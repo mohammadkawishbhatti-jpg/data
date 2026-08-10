@@ -1,0 +1,22 @@
+---
+# cPanel Git Version Control — Auto-Deployment Config
+# cPanel mein "Git Version Control" se GitHub repo clone karo,
+# yeh file automatically run hogi har pull pe.
+#
+# Zaroorat: cPanel > Git Version Control > Manage > Deploy
+
+deployment:
+  tasks:
+    # 1. pnpm install
+    - export PATH=$HOME/.local/share/pnpm:$PATH && pnpm install --frozen-lockfile
+
+    # 2. Frontend builds
+    - export PATH=$HOME/.local/share/pnpm:$PATH && PORT=3001 BASE_PATH=/ pnpm --filter @workspace/prime-site run build
+    - export PATH=$HOME/.local/share/pnpm:$PATH && PORT=3001 BASE_PATH=/admin/ pnpm --filter @workspace/admin-panel run build
+    - export PATH=$HOME/.local/share/pnpm:$PATH && PORT=3001 BASE_PATH=/customer-portal/ pnpm --filter @workspace/customer-portal run build
+
+    # 3. API server build
+    - export PATH=$HOME/.local/share/pnpm:$PATH && pnpm --filter @workspace/api-server run build
+
+    # 4. Restart Node.js app (cPanel Node.js App Manager — restart.txt method)
+    - touch /home/{YOUR_CPANEL_USERNAME}/prime-packaging-boxes/tmp/restart.txt

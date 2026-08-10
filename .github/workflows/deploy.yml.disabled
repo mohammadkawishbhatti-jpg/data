@@ -1,0 +1,94 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── 2. Node + pnpm ────────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      # ── 3. Install ────────────────────────────────────────────────────────
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ── 4. Build everything on GitHub runner (no GLIBC issues) ───────────
+      - name: Build prime-site
+        run: PORT=3001 BASE_PATH=/ pnpm --filter @workspace/prime-site run build
+
+      - name: Build admin-panel
+        run: PORT=3001 BASE_PATH=/admin/ pnpm --filter @workspace/admin-panel run build
+
+      - name: Build customer-portal
+        run: PORT=3001 BASE_PATH=/customer-portal/ pnpm --filter @workspace/customer-portal run build
+
+      - name: Build API server
+        run: pnpm --filter @workspace/api-server run build
+
+      # ── 5. Package built files ────────────────────────────────────────────
+      - name: Package dist files
+        run: |
+          tar -czf dist-bundle.tar.gz \
+            artifacts/prime-site/dist \
+            artifacts/admin-panel/dist \
+            artifacts/customer-portal/dist \
+            artifacts/api-server/dist
+          echo "Bundle size: $(du -sh dist-bundle.tar.gz)"
+
+      # ── 6. Upload bundle to cPanel via SCP ───────────────────────────────
+      - name: Upload dist bundle to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host:     ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          password: ${{ secrets.CPANEL_PASSWORD }}
+          port:     22
+          source:   "dist-bundle.tar.gz"
+          target:   "/home/${{ secrets.CPANEL_USERNAME }}/tmp-deploy/"
+
+      # ── 7. SSH: extract + install prod deps + restart ─────────────────────
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          password: ${{ secrets.CPANEL_PASSWORD }}
+          port:     22
+          script: |
+            set -e
+            APP_DIR="/home/${{ secrets.CPANEL_USERNAME }}/prime-packaging-boxes"
+            cd "$APP_DIR"
+
+            echo "Pulling latest source..."
+            git pull origin main
+
+            echo "Extracting built dist files..."
+            tar -xzf "/home/${{ secrets.CPANEL_USERNAME }}/tmp-deploy/dist-bundle.tar.gz" -C "$APP_DIR"
+
+            echo "Installing production dependencies..."
+            source "/home/${{ secrets.CPANEL_USERNAME }}/nodevenv/prime-packaging-boxes/artifacts/api-server/20/bin/activate"
+            cd "$APP_DIR/artifacts/api-server"
+            npm install --production --no-package-lock 2>/dev/null || true
+
+            echo "Restarting app..."
+            mkdir -p "$APP_DIR/tmp"
+            touch "$APP_DIR/tmp/restart.txt"
+
+            echo "Deploy complete!"

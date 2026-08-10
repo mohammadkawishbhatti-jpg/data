@@ -1,0 +1,124 @@
+name: 🗄️ Daily Database Backup
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # Roz raat 12:00 baje (UTC = Pakistan 5 AM)
+  workflow_dispatch:        # Manual run bhi ho sake
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # Branch mein push karne ke liye
+
+    steps:
+      # ── 1. Code checkout ────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Node.js setup ────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ── 3. pnpm + dependencies ──────────────────────────────────────────
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ── 4. DB Export Script ─────────────────────────────────────────────
+      - name: Create backup script
+        run: |
+          cat > /tmp/backup.mjs << 'EOF'
+          import pg from "/home/runner/work/prime-packaging-boxes/prime-packaging-boxes/node_modules/.pnpm/pg@8.22.0/node_modules/pg/lib/index.js";
+          import fs from "fs";
+
+          const Pool = pg.Pool;
+          const DB = process.env.NEON_DATABASE_URL;
+          const pool = new Pool({ connectionString: DB, ssl: { rejectUnauthorized: false } });
+
+          const TABLES = [
+            "admin_users","site_settings","categories","products",
+            "pages","page_templates","blog_posts","banners",
+            "customers","orders","invoices","quotes","leads"
+          ];
+
+          const date = new Date().toISOString().split("T")[0];
+          const file = `backups/db-backup-${date}.sql`;
+          fs.mkdirSync("backups", { recursive: true });
+          const out = fs.createWriteStream(file);
+
+          out.write(`-- Prime Packaging Boxes — DB Backup\n`);
+          out.write(`-- Date: ${new Date().toISOString()}\n\n`);
+          out.write(`SET client_encoding = 'UTF8';\n\n`);
+
+          for (const table of TABLES) {
+            try {
+              const rows = await pool.query(`SELECT * FROM "${table}"`);
+              out.write(`-- ═══════════════ ${table} (${rows.rows.length} rows) ═══════════════\n`);
+              if (rows.rows.length === 0) { out.write(`-- (empty)\n\n`); continue; }
+              out.write(`TRUNCATE TABLE "${table}" CASCADE;\n`);
+              const cols = rows.fields.map(f => `"${f.name}"`).join(", ");
+              for (const row of rows.rows) {
+                const vals = rows.fields.map(f => {
+                  const v = row[f.name];
+                  if (v === null || v === undefined) return "NULL";
+                  if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
+                  if (typeof v === "number") return String(v);
+                  if (v instanceof Date) return `'${v.toISOString()}'`;
+                  if (typeof v === "object") return `'${JSON.stringify(v).replace(/'/g,"''")}'`;
+                  return `'${String(v).replace(/'/g,"''")}'`;
+                }).join(", ");
+                out.write(`INSERT INTO "${table}" (${cols}) VALUES (${vals}) ON CONFLICT DO NOTHING;\n`);
+              }
+              out.write(`\n`);
+              console.log(`  ✅ ${table}: ${rows.rows.length} rows`);
+            } catch(e) {
+              console.log(`  ⚠️  ${table}: ${e.message}`);
+            }
+          }
+
+          out.end();
+          await new Promise(r => out.on("finish", r));
+          const size = fs.statSync(file).size;
+          console.log(`\n✅ Backup: ${file} (${(size/1024).toFixed(1)} KB)`);
+          fs.writeFileSync("backups/latest.sql", fs.readFileSync(file));
+          await pool.end();
+          EOF
+
+      # ── 5. Run backup ───────────────────────────────────────────────────
+      - name: Export database
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: node /tmp/backup.mjs
+
+      # ── 6. Keep only last 30 backups ────────────────────────────────────
+      - name: Cleanup old backups (keep 30)
+        run: |
+          cd backups
+          ls -t db-backup-*.sql | tail -n +31 | xargs -r rm
+          echo "Kept latest 30 backups"
+
+      # ── 7. Push to db-backups branch ────────────────────────────────────
+      - name: Push backup to db-backups branch
+        run: |
+          git config user.name "DB Backup Bot"
+          git config user.email "backup@primepackagingboxes.com"
+
+          # db-backups branch pe switch karo (ya banao)
+          git fetch origin db-backups 2>/dev/null || true
+          git checkout -B db-backups origin/db-backups 2>/dev/null || git checkout -b db-backups
+
+          # Backup files add karo
+          git add backups/
+          git diff --cached --quiet && echo "No changes" && exit 0
+
+          DATE=$(date '+%Y-%m-%d %H:%M UTC')
+          git commit -m "🗄️ DB Backup — ${DATE}"
+          git push origin db-backups
+          echo "✅ Backup pushed to db-backups branch!"

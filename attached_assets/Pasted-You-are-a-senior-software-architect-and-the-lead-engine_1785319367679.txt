@@ -1,0 +1,989 @@
+You are a senior software architect and the lead engineer behind a visual website builder similar to Elementor Pro.
+
+IMPORTANT:
+
+This project ALREADY HAS an existing visual editor.
+
+DO NOT create a new editor.
+
+DO NOT replace the current architecture.
+
+DO NOT remove existing functionality.
+
+Your job is to UPGRADE the existing editor until it reaches Elementor Pro quality.
+
+Everything should be production ready.
+
+The final result should feel almost identical to Elementor Pro in UX, workflow, speed and editing experience while using our own internal architecture.
+
+===========================================================
+PRIMARY GOAL
+===========================================================
+
+Transform the current editor into a complete professional page builder comparable to Elementor Pro.
+
+Everything users can do in Elementor Pro should also be possible here.
+
+Keep our own branding.
+
+Never clone Elementor source code.
+
+Implement similar functionality from scratch.
+
+===========================================================
+EDITOR ARCHITECTURE
+===========================================================
+
+Use Craft.js ONLY as the rendering and node engine.
+
+Hide Craft.js completely behind our own editor abstraction.
+
+The application should never depend directly on Craft.js APIs.
+
+Create an internal Editor Engine.
+
+Example:
+
+EditorEngine
+
+NodeManager
+
+HistoryManager
+
+SelectionManager
+
+DragManager
+
+ResizeManager
+
+CanvasManager
+
+BreakpointManager
+
+StyleManager
+
+AnimationManager
+
+PopupManager
+
+ThemeManager
+
+TemplateManager
+
+NavigatorManager
+
+GlobalStyleManager
+
+ResponsiveManager
+
+AssetManager
+
+UndoManager
+
+CommandManager
+
+Everything communicates only with our own API.
+
+This allows replacing Craft.js in future without affecting the application.
+
+===========================================================
+UI REQUIREMENTS
+===========================================================
+
+The entire editor should visually resemble Elementor Pro.
+
+Same workflow.
+
+Same user experience.
+
+Same editing flow.
+
+Professional animations.
+
+Professional spacing.
+
+Professional transitions.
+
+Smooth interactions.
+
+No lag.
+
+No flickering.
+
+Resizable panels.
+
+Dockable panels.
+
+Collapsible sections.
+
+Dark Mode.
+
+Light Mode.
+
+Professional Icons.
+
+Floating toolbar.
+
+Context menus.
+
+Professional breadcrumbs.
+
+Keyboard navigation.
+
+===========================================================
+LEFT PANEL
+===========================================================
+
+Professional widget panel.
+
+Search widgets.
+
+Categories.
+
+Favorites.
+
+Recently used widgets.
+
+Drag & Drop.
+
+Collapsible sections.
+
+Widget previews.
+
+===========================================================
+CANVAS
+===========================================================
+
+True WYSIWYG.
+
+Inline editing.
+
+Drop indicators.
+
+Section highlighting.
+
+Container highlighting.
+
+Snap guides.
+
+Alignment guides.
+
+Selection outlines.
+
+Hover outlines.
+
+Nested editing.
+
+Zoom.
+
+Pan.
+
+Fit screen.
+
+Navigator synchronization.
+
+===========================================================
+RIGHT PANEL
+===========================================================
+
+Exactly like Elementor.
+
+Tabs
+
+Content
+
+Style
+
+Advanced
+
+Motion Effects
+
+Responsive
+
+Custom CSS
+
+Attributes
+
+Visibility
+
+Conditions
+
+===========================================================
+CONTAINER SYSTEM
+===========================================================
+
+Modern Flexbox Container system identical to Elementor Pro.
+
+Containers
+
+Nested Containers
+
+Direction
+
+Row
+
+Column
+
+Wrap
+
+Justify Content
+
+Align Items
+
+Gap
+
+Grow
+
+Shrink
+
+Basis
+
+Order
+
+Reverse
+
+Responsive Flex
+
+Min Height
+
+Max Height
+
+Width
+
+Custom Width
+
+Auto Width
+
+Fit Content
+
+Full Width
+
+Stretch
+
+Overflow
+
+Sticky
+
+Position
+
+Absolute
+
+Relative
+
+Fixed
+
+Z Index
+
+Transform
+
+Aspect Ratio
+
+===========================================================
+LAYOUT SYSTEM
+===========================================================
+
+Sections
+
+Containers
+
+Inner Containers
+
+Columns
+
+Grid
+
+CSS Grid
+
+Flexbox
+
+Nested Layouts
+
+Unlimited nesting
+
+===========================================================
+WIDGETS
+===========================================================
+
+Implement ALL Elementor widgets.
+
+Heading
+
+Text Editor
+
+Button
+
+Image
+
+Video
+
+Icon
+
+Icon Box
+
+Image Box
+
+Spacer
+
+Divider
+
+Google Maps
+
+HTML
+
+Shortcode
+
+Accordion
+
+Toggle
+
+Tabs
+
+Progress Bar
+
+Counter
+
+Countdown
+
+Testimonials
+
+Carousel
+
+Slides
+
+Image Carousel
+
+Media Carousel
+
+Gallery
+
+Animated Headline
+
+Price Table
+
+Price List
+
+Call To Action
+
+Flip Box
+
+Share Buttons
+
+Blockquote
+
+Facebook Widgets
+
+Lottie
+
+Menu Anchor
+
+Alert
+
+Audio
+
+Star Rating
+
+Table of Contents
+
+Post Widgets
+
+Archive Widgets
+
+WooCommerce Widgets
+
+Loop Grid
+
+Loop Carousel
+
+Loop Builder
+
+Mega Menu
+
+Popup Trigger
+
+Forms
+
+Login
+
+Nav Menu
+
+Search Form
+
+Breadcrumbs
+
+Site Logo
+
+Site Title
+
+Page Title
+
+Author Box
+
+Post Navigation
+
+Featured Image
+
+Featured Video
+
+Related Products
+
+Upsells
+
+Product Data Tabs
+
+Product Images
+
+Add To Cart
+
+Checkout
+
+Cart
+
+Mini Cart
+
+My Account
+
+Wishlist
+
+Compare
+
+Dynamic Tags
+
+Global Widgets
+
+Template Widgets
+
+===========================================================
+STYLE CONTROLS
+===========================================================
+
+Typography
+
+Google Fonts
+
+Variable Fonts
+
+Letter Spacing
+
+Word Spacing
+
+Text Stroke
+
+Shadow
+
+Blend Modes
+
+Background
+
+Gradient
+
+Video Background
+
+Slideshow
+
+Overlay
+
+SVG
+
+Border
+
+Radius
+
+Outline
+
+Shadow
+
+Backdrop Blur
+
+Opacity
+
+Filters
+
+CSS Filters
+
+Transform
+
+Rotate
+
+Scale
+
+Skew
+
+Perspective
+
+Masks
+
+Clip Path
+
+===========================================================
+ADVANCED
+===========================================================
+
+Margin
+
+Padding
+
+Responsive Margin
+
+Responsive Padding
+
+Motion Effects
+
+Mouse Effects
+
+Scrolling Effects
+
+Sticky
+
+Entrance Animation
+
+Exit Animation
+
+Hover Animation
+
+Parallax
+
+Transform
+
+CSS Classes
+
+CSS ID
+
+Custom Attributes
+
+Pointer Events
+
+Visibility
+
+Display Conditions
+
+===========================================================
+RESPONSIVE
+===========================================================
+
+Desktop
+
+Laptop
+
+Tablet
+
+Mobile
+
+Custom Breakpoints
+
+Responsive Controls
+
+Responsive Typography
+
+Responsive Visibility
+
+Responsive Order
+
+Responsive Flex
+
+Responsive Grid
+
+Responsive Custom CSS
+
+Device Preview
+
+Rotate Device
+
+===========================================================
+GLOBAL DESIGN SYSTEM
+===========================================================
+
+Global Colors
+
+Global Fonts
+
+Theme Colors
+
+Theme Fonts
+
+Design Tokens
+
+Variables
+
+Reusable Styles
+
+Global CSS
+
+Theme Builder
+
+===========================================================
+HISTORY
+===========================================================
+
+Unlimited Undo
+
+Unlimited Redo
+
+History Timeline
+
+Restore State
+
+Autosave
+
+Recovery
+
+===========================================================
+NAVIGATOR
+===========================================================
+
+Professional Navigator.
+
+Tree View.
+
+Collapse.
+
+Expand.
+
+Drag reorder.
+
+Rename.
+
+Search.
+
+Visibility.
+
+Lock.
+
+Duplicate.
+
+Delete.
+
+===========================================================
+FINDER
+===========================================================
+
+CTRL + E
+
+Quick Search
+
+Pages
+
+Templates
+
+Posts
+
+Products
+
+Settings
+
+Widgets
+
+===========================================================
+RIGHT CLICK MENU
+===========================================================
+
+Copy
+
+Paste
+
+Paste Style
+
+Duplicate
+
+Delete
+
+Save as Global
+
+Save as Template
+
+Hide
+
+Lock
+
+Copy CSS
+
+Copy JSON
+
+===========================================================
+COPY / PASTE
+===========================================================
+
+Copy Widgets
+
+Copy Containers
+
+Copy Sections
+
+Copy Styles
+
+Paste Styles
+
+Paste Widgets
+
+Cross Page Copy
+
+===========================================================
+TEMPLATES
+===========================================================
+
+Page Templates
+
+Section Templates
+
+Container Templates
+
+Popup Templates
+
+Header
+
+Footer
+
+Loop Item
+
+Archive
+
+Single Product
+
+Single Post
+
+404
+
+Search Results
+
+Checkout
+
+Cart
+
+My Account
+
+Save Template
+
+Import
+
+Export
+
+JSON Templates
+
+===========================================================
+THEME BUILDER
+===========================================================
+
+Build entire website visually.
+
+Header
+
+Footer
+
+Single Product
+
+Archive
+
+Blog
+
+Category
+
+Tag
+
+Author
+
+404
+
+Search
+
+WooCommerce
+
+===========================================================
+POPUP BUILDER
+===========================================================
+
+Popup Editor
+
+Triggers
+
+Conditions
+
+Exit Intent
+
+Scroll
+
+Click
+
+Delay
+
+Device Rules
+
+===========================================================
+FORM BUILDER
+===========================================================
+
+Multi Step Forms
+
+Validation
+
+Actions After Submit
+
+Webhook
+
+Email
+
+File Upload
+
+Conditional Logic
+
+Spam Protection
+
+===========================================================
+WOOCOMMERCE
+===========================================================
+
+Full WooCommerce Builder.
+
+Product Templates
+
+Archive Templates
+
+Cart
+
+Checkout
+
+Account
+
+Dynamic Product Data
+
+Dynamic Pricing
+
+Dynamic Images
+
+Related Products
+
+Upsells
+
+Cross Sells
+
+===========================================================
+ANIMATIONS
+===========================================================
+
+GSAP powered.
+
+Timeline
+
+Scroll Trigger
+
+Mouse Follow
+
+Reveal
+
+Fade
+
+Zoom
+
+Rotate
+
+Flip
+
+Morph
+
+Stagger
+
+Hover
+
+Page Transition
+
+===========================================================
+ASSETS
+===========================================================
+
+Media Library
+
+SVG
+
+Icons
+
+Fonts
+
+Videos
+
+Images
+
+Uploads
+
+===========================================================
+PERFORMANCE
+===========================================================
+
+Virtual Rendering
+
+Memoization
+
+Lazy Loading
+
+Incremental Rendering
+
+Tree Optimization
+
+No unnecessary rerenders
+
+Fast drag
+
+Fast resize
+
+Smooth editing
+
+60 FPS
+
+===========================================================
+SHORTCUTS
+===========================================================
+
+Ctrl+C
+
+Ctrl+V
+
+Ctrl+Z
+
+Ctrl+Shift+Z
+
+Ctrl+D
+
+Ctrl+S
+
+Ctrl+E
+
+Delete
+
+Arrow Keys
+
+Alt Drag
+
+Shift Drag
+
+===========================================================
+CODE QUALITY
+===========================================================
+
+TypeScript Strict Mode
+
+Reusable Components
+
+Hooks
+
+Clean Architecture
+
+SOLID Principles
+
+Feature Modules
+
+No duplicate code
+
+Proper folder structure
+
+Extensive comments
+
+===========================================================
+FINAL REQUIREMENT
+===========================================================
+
+Do NOT stop after implementing basic functionality.
+
+Continue improving until the editor provides nearly everything expected from Elementor Pro.
+
+If any Elementor Pro feature is missing, implement it.
+
+Review every panel, interaction, animation, shortcut, widget, responsive control, template system, theme builder, popup builder, WooCommerce builder, global styles, and navigator until the experience feels like a premium professional visual page builder.
+
+Treat this as a production-grade website builder, not a demo.

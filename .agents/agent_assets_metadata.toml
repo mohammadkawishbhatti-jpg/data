@@ -1,0 +1,28 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "QL-Ndb_-BNYNV2rOQnms4"
+uri = "file://prime_packaging_backup.sql"
+type = "unspecified"
+title = "Prime Packaging DB Backup — Full SQL"
+
+[[outputs]]
+id = "v4UXtbK8YnUTBdisN5Px2"
+uri = "file://site_deploy.zip"
+type = "unspecified"
+title = "Prime Packaging — Site Deploy Package (Frontend)"
+
+[[outputs]]
+id = "nOVBWY1n4YXF7ylGJLpBB"
+uri = "file://downloads/invoice-INV-2026-001.html"
+type = "unspecified"
+title = "Invoice INV-2026-001 — Kawish Brand Co."
+description = "Sample invoice: 500 Custom Rigid Boxes, $1,750.00 — Open in browser aur Ctrl+P se PDF save karo"
+
+[[outputs]]
+id = "wtPpOtbwfP5snGtcK65Ro"
+uri = "file://downloads/quote-QT-2026-001.html"
+type = "unspecified"
+title = "Quote QT-2026-001 — Test Customer"
+description = "Sample quote: 500 Custom Mailer Boxes — Open in browser aur Ctrl+P se PDF save karo"

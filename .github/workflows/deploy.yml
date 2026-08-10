@@ -1,0 +1,63 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build prime-site
+        run: PORT=3001 BASE_PATH=/ pnpm --filter @workspace/prime-site run build
+
+      - name: Build admin-panel
+        run: PORT=3001 BASE_PATH=/admin/ pnpm --filter @workspace/admin-panel run build
+
+      - name: Build customer-portal
+        run: PORT=3001 BASE_PATH=/customer-portal/ pnpm --filter @workspace/customer-portal run build
+
+      - name: Build API server
+        run: pnpm --filter @workspace/api-server run build
+
+      - name: Deploy via SSH (git pull + restart)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          password: ${{ secrets.CPANEL_PASSWORD }}
+          port:     22
+          script: |
+            set -e
+            APP_DIR="/home/${{ secrets.CPANEL_USERNAME }}/prime-packaging-boxes"
+            cd "$APP_DIR"
+
+            echo "Pulling latest code + built dist files..."
+            git pull origin main
+
+            echo "Installing production dependencies..."
+            source "/home/${{ secrets.CPANEL_USERNAME }}/nodevenv/prime-packaging-boxes/artifacts/api-server/20/bin/activate"
+            cd "$APP_DIR/artifacts/api-server"
+            npm install --production --no-package-lock 2>/dev/null || true
+
+            echo "Restarting app..."
+            touch "$APP_DIR/tmp/restart.txt"
+            echo "Deploy complete!"

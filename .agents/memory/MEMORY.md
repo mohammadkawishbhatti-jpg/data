@@ -1,0 +1,3 @@
+- [Admin panel routing fix](admin-panel-routing.md) — prime-site vite.config proxy /admin → port 20130; index.html had /src/main.tsx wrong path (fixed to /main.tsx)
+- [GitHub push flow](github-push.md) — always pull --no-rebase before push; remote may have diverged; keep our artifact.toml fixes on conflict
+- [CSV product import](csv-import.md) — script at scripts/update-from-csv.mjs; uses psql execSync; 65/66 products updated; manual slug map needed

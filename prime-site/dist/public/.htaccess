@@ -1,0 +1,22 @@
+# ============================================================
+# Prime Packaging Boxes — Apache / cPanel .htaccess
+# ============================================================
+
+Options -MultiViews
+RewriteEngine On
+
+# ── 1. Security: block access to hidden files (.git, .env etc.) ──
+RewriteRule ^\.                         - [F,L]
+
+# ── 2. Force HTTPS ───────────────────────────────────────────────
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$                      https://%{HTTP_HOST}/$1 [R=301,L]
+
+# ── 3. Skip real files and directories (images, JS, CSS etc.) ───
+RewriteCond %{REQUEST_FILENAME}         -f [OR]
+RewriteCond %{REQUEST_FILENAME}         -d
+RewriteRule ^                           - [L]
+
+# ── 4. SPA fallback — all routes go to index.html ───────────────
+#    React / Wouter handles client-side routing from there
+RewriteRule ^                           index.html [L]

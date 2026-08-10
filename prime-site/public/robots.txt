@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Block admin and portal from crawlers
+Disallow: /admin
+Disallow: /portal
+Disallow: /api/
+
+Sitemap: https://www.primepackagingboxes.com/sitemap.xml

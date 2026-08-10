@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Prime Packaging Boxes"
+version = "1.0.0"
+id = "artifacts/prime-site"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24023
+
+[services.development]
+run = "pnpm --filter @workspace/prime-site run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/prime-site", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/prime-site/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24023"
+BASE_PATH = "/"

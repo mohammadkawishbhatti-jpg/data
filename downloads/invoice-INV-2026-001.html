@@ -1,0 +1,177 @@
+cp<!DOCTYPE html>
+<html lang="en">
+<read>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice INV-2026-001 — Prime Packaging Boxes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5; color: #1a1a2e; }
+  .page { max-width: 860px; margin: 40px auto; background: #fff; box-shadow: 0 4px 32px rgba(0,0,0,0.      12); border-radius: 12px; overflow: hidden; }
+  /* Header */
+  .header { background: #1B2B5E; color: #fff; padding: 40px 48px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo { width: 52px; height: 52px; background: #FFB800; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 900; color: #1B2B5E; }
+  .brand-name { font-size: 20px; font-weight: 800; letter-spacing: 0.05em; }
+  .brand-sub { font-size: 11px; opacity: 0.55; letter-spacing: 0.1em; margin-top: 2px; }
+  .inv-meta { text-align: right; }
+  .inv-num { font-size: 28px; font-weight: 800; letter-spacing: 0.02em; }
+  .inv-label { font-size: 11px; opacity: 0.55; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+  .badge { display: inline-block; margin-top: 10px; background: #FFB800; color: #1B2B5E; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.06em; text-transform: uppercase; }
+  /* Addresses */
+  .addresses { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-bottom: 1px solid #eee; }
+  .addr-block { padding: 28px 48px; }
+  .addr-block:first-child { border-right: 1px solid #eee; }
+  .addr-title { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #8A94A6; margin-bottom: 10px; }
+  .addr-name { font-size: 16px; font-weight: 700; color: #1B2B5E; margin-bottom: 4px; }
+  .addr-line { font-size: 13px; color: #555; line-height: 1.7; }
+  /* Details bar */
+  .details-bar { display: grid; grid-template-columns: repeat(4, 1fr); background: #f8fafc; border-bottom: 1px solid #eee; }
+  .detail { padding: 18px 24px; border-right: 1px solid #eee; }
+  .detail:last-child { border-right: none; }
+  .detail-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8A94A6; margin-bottom: 4px; }
+  .detail-val { font-size: 13px; font-weight: 600; color: #1B2B5E; }
+  /* Items table */
+  .items { padding: 32px 48px; }
+  .items-title { font-size: 14px; font-weight: 700; color: #1B2B5E; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #FFB800; display: inline-block; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: #1B2B5E; color: #fff; padding: 12px 16px; text-align: left; font-weight: 600; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+  thead th:last-child { text-align: right; }
+  tbody td { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; color: #333; }
+  tbody td:last-child { text-align: right; font-weight: 600; }
+  tbody tr:last-child td { border-bottom: none; }
+  /* Totals */
+  .totals { padding: 0 48px 32px; display: flex; justify-content: flex-end; }
+  .totals-box { width: 280px; }
+  .total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; color: #555; border-bottom: 1px solid #f0f0f0; }
+  .total-row.grand { font-size: 18px; font-weight: 800; color: #1B2B5E; border-bottom: none; border-top: 2px solid #1B2B5E; padding-top: 12px; margin-top: 4px; }
+  /* Notes */
+  .notes { padding: 24px 48px; background: #f8fafc; border-top: 1px solid #eee; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .note-block .note-title { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8A94A6; margin-bottom: 6px; }
+  .note-block .note-val { font-size: 13px; color: #444; line-height: 1.6; }
+  /* Footer */
+  .footer { background: #1B2B5E; color: rgba(255,255,255,0.6); text-align: center; padding: 20px; font-size: 11px; letter-spacing: 0.04em; }
+  .footer strong { color: #FFB800; }
+  @media print { body { background: white; } .page { box-shadow: none; margin: 0; border-radius: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <div class="logo">P</div>
+      <div>
+        <div class="brand-name">PRIME PACKAGING BOXES</div>
+        <div class="brand-sub">NEXT LEVEL PACKAGING</div>
+      </div>
+    </div>
+    <div class="inv-meta">
+      <div class="inv-label">Invoice Number</div>
+      <div class="inv-num">INV-2026-001</div>
+      <div class="inv-label" style="margin-top:10px;">Date Issued</div>
+      <div style="font-size:14px;font-weight:600;">July 31, 2026</div>
+      <div class="badge">DRAFT</div>
+    </div>
+  </div>
+
+  <!-- Addresses -->
+  <div class="addresses">
+    <div class="addr-block">
+      <div class="addr-title">Bill To</div>
+      <div class="addr-name">Kawish Brand Co.</div>
+      <div class="addr-line">kawish@kawishbrand.com</div>
+      <div class="addr-line">+1-818-758-4076</div>
+    </div>
+    <div class="addr-block">
+      <div class="addr-title">From</div>
+      <div class="addr-name">Prime Packaging Boxes</div>
+      <div class="addr-line">444 Alaska Avenue Suite</div>
+      <div class="addr-line">Torrance, CA 90503, USA</div>
+      <div class="addr-line">help@primepackagingboxes.com</div>
+      <div class="addr-line">818-758-4076</div>
+    </div>
+  </div>
+
+  <!-- Details bar -->
+  <div class="details-bar">
+    <div class="detail">
+      <div class="detail-label">Production Time</div>
+      <div class="detail-val">7–10 Business Days</div>
+    </div>
+    <div class="detail">
+      <div class="detail-label">Delivery</div>
+      <div class="detail-val">FedEx Ground USA</div>
+    </div>
+    <div class="detail">
+      <div class="detail-label">Payment Terms</div>
+      <div class="detail-val">Net 30</div>
+    </div>
+    <div class="detail">
+      <div class="detail-label">Currency</div>
+      <div class="detail-val">USD</div>
+    </div>
+  </div>
+
+  <!-- Items -->
+  <div class="items">
+    <div class="items-title">Line Items</div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:50%">Description</th>
+          <th>Qty</th>
+          <th>Unit</th>
+          <th>Unit Price</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Custom Rigid Boxes 10×7×3 inch<br><span style="font-size:11px;color:#888;">Full CMYK + Soft Touch Matte Lamination + Gold Foil Logo</span></td>
+          <td>500</td>
+          <td>pcs</td>
+          <td>$3.50</td>
+          <td>$1,750.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Totals -->
+  <div class="totals">
+    <div class="totals-box">
+      <div class="total-row"><span>Subtotal</span><span>$1,750.00</span></div>
+      <div class="total-row"><span>Tax (0%)</span><span>$0.00</span></div>
+      <div class="total-row grand"><span>Total Due</span><span>$1,750.00</span></div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="notes">
+    <div class="note-block">
+      <div class="note-title">Price Includes</div>
+      <div class="note-val">Design, printing, lamination, assembly</div>
+    </div>
+    <div class="note-block">
+      <div class="note-title">Notes</div>
+      <div class="note-val">Rush order approved. Samples available before bulk production.</div>
+    </div>
+    <div class="note-block">
+      <div class="note-title">Sales Executive</div>
+      <div class="note-val">Sales Team<br>sales@primepackagingboxes.com</div>
+    </div>
+    <div class="note-block">
+      <div class="note-title">Payment Terms</div>
+      <div class="note-val">Net 30 from invoice date. Wire transfer or credit card accepted.</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    Thank you for choosing <strong>Prime Packaging Boxes</strong> &nbsp;·&nbsp; 
+    818-758-4076 &nbsp;·&nbsp; help@primepackagingboxes.com &nbsp;·&nbsp; www.primepackagingboxes.com
+  </div>
+</div>
+</body>
+</html>
