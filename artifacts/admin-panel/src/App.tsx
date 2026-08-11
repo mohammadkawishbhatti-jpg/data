@@ -53,7 +53,7 @@ export default function App() {
           )}
         </Route>
 
-        {/* Full-screen page builder (for custom pages 1..10) — NEW Elementor-style Builder */}
+        {/* Full-screen page builder — NEW Elementor-style Builder */}
         <Route path="/builder/:id">
           {() => (
             <Suspense fallback={<div className="flex items-center justify-center h-screen bg-[#0f1117]"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>}>

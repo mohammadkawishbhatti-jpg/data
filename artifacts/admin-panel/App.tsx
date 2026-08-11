@@ -34,7 +34,6 @@ import ClarkPage from "./pages/ClarkPage";
 import { AdminLayout } from "./components/layout/AdminLayout";
 
 // Lazy-loaded full-screen builders (outside AdminLayout)
-const BuilderPage = lazy(() => import("./builder/GrapesBuilderPage"));
 const TemplateBuilderPage = lazy(() => import("./builder/TemplateBuilderPage"));
 
 export default function App() {
@@ -54,11 +53,11 @@ export default function App() {
           )}
         </Route>
 
-        {/* Full-screen page builder — NO AdminLayout wrapper */}
+        {/* Full-screen page builder — NEW Elementor-style Builder */}
         <Route path="/builder/:id">
           {() => (
             <Suspense fallback={<div className="flex items-center justify-center h-screen bg-[#0f1117]"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>}>
-              <BuilderPage />
+              <TemplateBuilderPage />
             </Suspense>
           )}
         </Route>
