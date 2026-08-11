@@ -90108,31 +90108,29 @@ app.use("/api/chat", chatLimiter);
 app.use(countryBlockMiddleware);
 app.use(sitemap_default);
 app.use("/api", routes_default);
-if (process.env.NODE_ENV === "production") {
-  const SITE_DIR = path4.join(process.cwd(), "../prime-site/dist/public");
-  const ADMIN_DIR = path4.join(process.cwd(), "../admin-panel/dist/public");
-  const PORTAL_DIR = path4.join(process.cwd(), "../customer-portal/dist/public");
-  app.use("/admin", (_req, res, next) => {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-    next();
-  }, import_express28.default.static(ADMIN_DIR, { maxAge: 0 }));
-  app.get(["/admin", "/admin/*splat"], (_req, res) => {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.sendFile(path4.join(ADMIN_DIR, "index.html"));
-  });
-  app.use("/customer-portal", import_express28.default.static(PORTAL_DIR, { maxAge: "1h" }));
-  app.get(
-    ["/customer-portal", "/customer-portal/*splat"],
-    (_req, res) => res.sendFile(path4.join(PORTAL_DIR, "index.html"))
-  );
-  app.use(import_express28.default.static(SITE_DIR, { maxAge: "1h" }));
-  app.get(
-    "*splat",
-    (_req, res) => res.sendFile(path4.join(SITE_DIR, "index.html"))
-  );
-}
+var SITE_DIR = path4.join(process.cwd(), "../prime-site/dist/public");
+var ADMIN_DIR = path4.join(process.cwd(), "../admin-panel/dist/public");
+var PORTAL_DIR = path4.join(process.cwd(), "../customer-portal/dist/public");
+app.use("/admin", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+}, import_express28.default.static(ADMIN_DIR, { maxAge: 0 }));
+app.get(["/admin", "/admin/*splat"], (_req, res) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.sendFile(path4.join(ADMIN_DIR, "index.html"));
+});
+app.use("/customer-portal", import_express28.default.static(PORTAL_DIR, { maxAge: "1h" }));
+app.get(
+  ["/customer-portal", "/customer-portal/*splat"],
+  (_req, res) => res.sendFile(path4.join(PORTAL_DIR, "index.html"))
+);
+app.use(import_express28.default.static(SITE_DIR, { maxAge: "1h" }));
+app.get(
+  "*splat",
+  (_req, res) => res.sendFile(path4.join(SITE_DIR, "index.html"))
+);
 var app_default = app;
 
 // src/index.ts

@@ -113,9 +113,10 @@ export default defineConfig({
       strict: true,
     },
     proxy: {
+      '/api': { target: 'http://localhost:3002', changeOrigin: true },
       // Forward sitemap.xml and robots.txt to API server (they live at Express root)
-      '/sitemap.xml': { target: 'http://localhost:8080', changeOrigin: true },
-      '/robots.txt':  { target: 'http://localhost:8080', changeOrigin: true },
+      '/sitemap.xml': { target: 'http://localhost:3002', changeOrigin: true },
+      '/robots.txt':  { target: 'http://localhost:3002', changeOrigin: true },
       // Forward /admin and /admin/ to the admin panel (port 20130)
       // rewrite: /admin (no slash) → /admin/ so Vite panel doesn't show "did you mean" page
       '/admin': {

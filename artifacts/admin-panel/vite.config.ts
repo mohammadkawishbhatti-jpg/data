@@ -81,6 +81,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
+        entryFileNames: `assets/[name]-[hash]-v${Date.now()}.js`,
+        chunkFileNames: `assets/[name]-[hash]-v${Date.now()}.js`,
+        assetFileNames: `assets/[name]-[hash]-v${Date.now()}[extname]`,
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('grapesjs')) {

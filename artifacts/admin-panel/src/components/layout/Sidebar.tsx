@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Package, FolderOpen, Image as ImageIcon,
-  FileText, Mail, BookOpen, FileEdit, Settings, LogOut, X, Users,
+  FileText, BookOpen, FileEdit, Settings, LogOut, X, Users,
   HardDrive, Shield, Layout, Palette, ShoppingBag, Receipt, FileOutput, Upload,
-  Bell, Bot, ChevronDown, TrendingUp, Inbox, Globe
+  Bell, Bot, ChevronDown, TrendingUp, Inbox, Globe, Sparkles, Command
 } from "lucide-react";
 import { useAdminLogout, useGetAdminStats } from "@workspace/api-client-react";
 
@@ -72,17 +72,17 @@ function NavSection({
   const [open, setOpen] = useState(true);
 
   return (
-    <div className="mb-1">
+    <div className="mb-2">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40 hover:text-sidebar-foreground/60 transition-colors"
+        className="w-full flex items-center justify-between px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400/80 hover:text-slate-200 transition-colors"
       >
         {section.label}
         <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${open ? "" : "-rotate-90"}`} />
       </button>
 
       {open && (
-        <div className="space-y-0.5 mt-0.5">
+        <div className="space-y-1 mt-1">
           {section.items.map((item) => {
             const isActive =
               location === item.href ||
@@ -97,16 +97,16 @@ function NavSection({
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className={`group flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                className={`group relative flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
                   isActive
-                    ? "bg-gradient-to-r from-primary/20 to-primary/5 text-white border-l-[3px] border-primary pl-[9px]"
-                    : "text-sidebar-foreground/65 hover:bg-white/5 hover:text-sidebar-foreground"
+                    ? "bg-gradient-to-r from-rose-500/20 via-rose-500/10 to-transparent text-white border-l-2 border-rose-500 shadow-md shadow-rose-500/10"
+                    : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
                 }`}
               >
-                <Icon className={`h-4 w-4 flex-shrink-0 transition-transform group-hover:scale-110 ${isActive ? "text-primary" : ""}`} />
+                <Icon className={`h-4 w-4 flex-shrink-0 transition-transform group-hover:scale-110 ${isActive ? "text-rose-400" : "text-slate-400 group-hover:text-slate-200"}`} />
                 <span className="truncate">{item.name}</span>
                 {badge > 0 && (
-                  <span className="ml-auto bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none">
+                  <span className="ml-auto bg-gradient-to-r from-rose-500 to-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md shadow-rose-500/30">
                     {badge}
                   </span>
                 )}
@@ -122,9 +122,11 @@ function NavSection({
 export function Sidebar({
   mobileOpen,
   setMobileOpen,
+  onOpenCommandPalette,
 }: {
   mobileOpen: boolean;
   setMobileOpen: (v: boolean) => void;
+  onOpenCommandPalette?: () => void;
 }) {
   const [location] = useLocation();
   const logout = useAdminLogout();
@@ -139,20 +141,47 @@ export function Sidebar({
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground w-64 border-r border-sidebar-border">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border/50">
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-[#c0251c] shadow-lg shadow-primary/30">
-          <Package className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <h2 className="text-sm font-bold tracking-tight leading-none">Prime Admin</h2>
-          <p className="text-[10px] text-sidebar-foreground/40 mt-0.5">primepackagingboxes.com</p>
+    <div className="flex flex-col h-full bg-[#090d16]/95 backdrop-blur-xl text-slate-100 w-64 border-r border-white/10 shadow-2xl">
+      {/* Brand Header */}
+      <div className="flex items-center justify-between px-5 py-5 border-b border-white/10 bg-white/5">
+        <div className="flex items-center gap-3">
+          <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 shadow-lg shadow-rose-500/30 border border-rose-400/30">
+            <Package className="h-5 w-5 text-white" />
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+            </span>
+          </div>
+          <div>
+            <h2 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+              Prime Admin
+              <Sparkles className="h-3 w-3 text-rose-400" />
+            </h2>
+            <p className="text-[10px] text-slate-400 mt-0.5">primepackagingboxes.com</p>
+          </div>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 scrollbar-thin">
+      {/* Quick Command Trigger */}
+      {onOpenCommandPalette && (
+        <div className="px-3 pt-3">
+          <button
+            onClick={onOpenCommandPalette}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/90 border border-white/10 text-xs text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all duration-150 group shadow-inner"
+          >
+            <span className="flex items-center gap-2">
+              <Command className="h-3.5 w-3.5 text-rose-400" />
+              Quick Search
+            </span>
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-slate-800 border border-slate-700 rounded group-hover:border-rose-500/40">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
+      )}
+
+      {/* Nav List */}
+      <nav className="flex-1 overflow-y-auto py-3 px-3 scrollbar-thin">
         {sections.map(section => (
           <NavSection
             key={section.label}
@@ -164,13 +193,13 @@ export function Sidebar({
         ))}
       </nav>
 
-      {/* Logout */}
-      <div className="px-2 pb-4 pt-2 border-t border-sidebar-border/50">
+      {/* Footer / Sign Out */}
+      <div className="px-3 pb-4 pt-3 border-t border-white/10 bg-white/5">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-sm font-medium text-sidebar-foreground/60 hover:bg-white/5 hover:text-red-400 transition-colors group"
+          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-xl text-xs font-semibold text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 border border-transparent hover:border-rose-500/20 transition-all duration-150 group"
         >
-          <LogOut className="h-4 w-4 group-hover:text-red-400 transition-colors" />
+          <LogOut className="h-4 w-4 text-slate-400 group-hover:text-rose-400 transition-colors" />
           Sign Out
         </button>
       </div>
@@ -179,21 +208,21 @@ export function Sidebar({
 
   return (
     <>
-      {/* Desktop */}
+      {/* Desktop Sidebar */}
       <div className="hidden md:block h-full relative z-20 flex-shrink-0">
         <SidebarContent />
       </div>
 
-      {/* Mobile overlay */}
+      {/* Mobile Drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden flex">
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="relative w-64 bg-sidebar z-50 animate-in slide-in-from-left duration-200">
+          <div className="relative w-64 bg-[#090d16] z-50 animate-in slide-in-from-left duration-200">
             <button
-              className="absolute right-4 top-5 text-white/50 hover:text-white"
+              className="absolute right-4 top-5 text-slate-400 hover:text-white"
               onClick={() => setMobileOpen(false)}
             >
               <X className="h-5 w-5" />

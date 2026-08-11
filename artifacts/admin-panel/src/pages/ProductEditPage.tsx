@@ -114,11 +114,15 @@ export default function ProductEditPage() {
         const extraImgs = (p.images || []).filter((u: string) => u !== p.imageUrl);
         setGalleryUrls(extraImgs);
         setAttrRows(((p as any).attributes && (p as any).attributes.length > 0) ? (p as any).attributes : [{name:"",value:""}]);
+        const BS_N = String.fromCharCode(92) + "n";
+        const BS_R = String.fromCharCode(92) + "r";
+        const cleanDesc = (p.description || "").split(BS_R + BS_N).join("<br/>").split(BS_N).join("<br/>").split(BS_R).join("");
+        const cleanShortDesc = (p.shortDescription || "").split(BS_R + BS_N).join("<br/>").split(BS_N).join("<br/>").split(BS_R).join("");
         reset({
           name: p.name || "",
           slug: p.slug || "",
-          shortDescription: p.shortDescription || "",
-          description: p.description || "",
+          shortDescription: cleanShortDesc,
+          description: cleanDesc,
           categoryId: p.categoryId?.toString() || "",
           imageUrl: p.imageUrl || "",
           isFeatured: p.isFeatured || false,
@@ -137,7 +141,7 @@ export default function ProductEditPage() {
           boxHeight: (p as any).boxHeight || "",
           status: p.isActive ? "publish" : "draft",
         });
-        setCodeValue(p.description || "");
+        setCodeValue(cleanDesc);
       }
     }
   }, [products, editId, isNew]);

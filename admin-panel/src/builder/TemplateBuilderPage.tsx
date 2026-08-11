@@ -902,10 +902,23 @@ function getDefaultPageHtml(pageId: string): string {
   useEffect(() => {
     const endpoint = id ? `/api/admin/pages/${id}` : `/api/admin/templates/${type}`;
     fetch(endpoint, { credentials: 'include' })
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(r => {
+        if (r.status === 401) {
+          window.location.href = '/admin/login';
+          return null;
+        }
+        if (!r.ok) {
+          if (id) {
+            return { title: `Custom Page ${id}`, content: getDefaultPageHtml(id) };
+          }
+          throw new Error(`HTTP ${r.status}`);
+        }
+        return r.json();
+      })
       .then(t => {
+        if (!t) return;
         if (t.title) setPageTitle(t.title);
-        const parsed = parseContent(t.content);
+        const parsed = parseContent(t.content || '');
         let htmlToLoad = parsed.html;
         let cssToLoad = parsed.css;
         if ((!htmlToLoad || !htmlToLoad.trim()) && id) {
@@ -929,7 +942,20 @@ function getDefaultPageHtml(pageId: string): string {
         }
         setLoading(false);
       })
-      .catch(e => { setLoadError(e.message); setLoading(false); });
+      .catch(e => {
+        if (id) {
+          const htmlToLoad = getDefaultPageHtml(id);
+          if (editorRef.current) {
+            editorRef.current.setComponents(htmlToLoad);
+          } else {
+            pendingContent.current = { html: htmlToLoad, css: '' };
+          }
+          setLoading(false);
+        } else {
+          setLoadError(e.message);
+          setLoading(false);
+        }
+      });
   }, [type, id]);
 
   const setViewportDevice = useCallback((v: string) => {

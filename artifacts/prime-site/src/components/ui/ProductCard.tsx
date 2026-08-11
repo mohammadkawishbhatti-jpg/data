@@ -11,17 +11,19 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function resolveImgUrl(url: string): string {
-  if (!url) return "";
-  if (url.startsWith("/uploads/")) return url.replace("/uploads/", "/api/uploads/");
-  return url;
+function resolveImgUrl(url: string | null | undefined): string {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === "null" || trimmed === "undefined" || trimmed === "none") return "";
+  if (trimmed.startsWith("/uploads/")) return `/api/uploads/${trimmed.slice("/uploads/".length)}`;
+  return trimmed;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const raw = product.images?.[0] || product.imageUrl || "";
+  const raw = (product.images && product.images.length > 0 && product.images[0]) ? product.images[0] : (product.imageUrl || "");
   const resolved = resolveImgUrl(raw);
   const [imgError, setImgError] = useState(false);
-  const hasImage = resolved && !imgError;
+  const hasImage = Boolean(resolved && !imgError);
   const excerpt = stripHtml(product.shortDescription || product.description || "Custom packaging designed specifically for your brand needs.");
 
   // Sale badge via price fields if available in the API shape

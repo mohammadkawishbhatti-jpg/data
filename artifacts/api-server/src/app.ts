@@ -179,38 +179,33 @@ app.use(countryBlockMiddleware);
 app.use(sitemapRouter);
 app.use("/api", router);
 
-// ── Production: serve built React apps ───────────────────────────────────────
-// In production (Render.com), the Express server also serves the
-// compiled frontend (prime-site) and admin panel (admin-panel) as static files.
-// CWD when running via `pnpm --filter @workspace/api-server run start` = artifacts/api-server
-if (process.env.NODE_ENV === "production") {
-  const SITE_DIR    = path.join(process.cwd(), "../prime-site/dist/public");
-  const ADMIN_DIR   = path.join(process.cwd(), "../admin-panel/dist/public");
-  const PORTAL_DIR  = path.join(process.cwd(), "../customer-portal/dist/public");
+// ── Serve built React apps (Admin Panel, Customer Portal, Main Site) ──────────
+const SITE_DIR    = path.join(process.cwd(), "../prime-site/dist/public");
+const ADMIN_DIR   = path.join(process.cwd(), "../admin-panel/dist/public");
+const PORTAL_DIR  = path.join(process.cwd(), "../customer-portal/dist/public");
 
-  // Admin panel — served at /admin/* (no-cache for instant live updates)
-  app.use("/admin", (_req, res, next) => {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-    next();
-  }, express.static(ADMIN_DIR, { maxAge: 0 }));
-  app.get(["/admin", "/admin/*splat"], (_req, res) => {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.sendFile(path.join(ADMIN_DIR, "index.html"));
-  });
+// Admin panel — served at /admin/* (no-cache for instant live updates)
+app.use("/admin", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+}, express.static(ADMIN_DIR, { maxAge: 0 }));
+app.get(["/admin", "/admin/*splat"], (_req, res) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.sendFile(path.join(ADMIN_DIR, "index.html"));
+});
 
-  // Customer portal — served at /customer-portal/*
-  app.use("/customer-portal", express.static(PORTAL_DIR, { maxAge: "1h" }));
-  app.get(["/customer-portal", "/customer-portal/*splat"], (_req, res) =>
-    res.sendFile(path.join(PORTAL_DIR, "index.html"))
-  );
+// Customer portal — served at /customer-portal/*
+app.use("/customer-portal", express.static(PORTAL_DIR, { maxAge: "1h" }));
+app.get(["/customer-portal", "/customer-portal/*splat"], (_req, res) =>
+  res.sendFile(path.join(PORTAL_DIR, "index.html"))
+);
 
-  // Main site SPA — served at /*  (must come last)
-  app.use(express.static(SITE_DIR, { maxAge: "1h" }));
-  app.get("*splat", (_req, res) =>
-    res.sendFile(path.join(SITE_DIR, "index.html"))
-  );
-}
+// Main site SPA — served at /*  (must come last)
+app.use(express.static(SITE_DIR, { maxAge: "1h" }));
+app.get("*splat", (_req, res) =>
+  res.sendFile(path.join(SITE_DIR, "index.html"))
+);
 
 export default app;
