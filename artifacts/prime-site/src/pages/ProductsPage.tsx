@@ -37,10 +37,6 @@ export default function ProductsPage() {
     });
   }, [products, searchQuery, selectedCategory]);
 
-  if (templateContent) {
-    return <TemplateRenderer content={templateContent} dynamicData={{} as any} />;
-  }
-
   return (
     <>
 

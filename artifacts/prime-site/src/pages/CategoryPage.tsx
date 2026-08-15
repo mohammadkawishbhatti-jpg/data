@@ -85,10 +85,6 @@ export default function CategoryPage() {
   const productCount = (products as any[]).length;
   const bgImage = (category as any).imageUrl || pickHeroImg(slug);
 
-  if (category && templateContent) {
-    return <TemplateRenderer content={templateContent} dynamicData={{ category } as any} />;
-  }
-
   return (
     <>
 
