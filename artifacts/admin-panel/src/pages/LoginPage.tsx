@@ -3,8 +3,8 @@ import { useLocation } from "wouter";
 import { useAdminLogin } from "@workspace/api-client-react";
 import { useForm } from "react-hook-form";
 import { 
-  Package, Loader2, AlertCircle, ShieldCheck, Eye, EyeOff, 
-  CheckCircle2, Lock, User, ArrowRight, Sparkles, KeyRound, Server
+  Loader2, AlertCircle, ShieldCheck, Eye, EyeOff, 
+  CheckCircle2, Lock, User, ArrowRight, Sparkles, KeyRound
 } from "lucide-react";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace("/admin", "") + "/api";
@@ -75,23 +75,20 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-[55%] relative z-10 flex-col justify-between p-12 lg:p-16 border-r border-white/5 bg-gradient-to-br from-[#0D1F3C]/40 to-[#070A12]/80 backdrop-blur-md">
         {/* Brand Header */}
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#E63329] to-[#C42A21] flex items-center justify-center font-black text-2xl text-white shadow-xl shadow-[#E63329]/40 border border-white/20">
-            P
-          </div>
-          <div>
-            <h1 className="font-heading font-extrabold text-lg text-white tracking-widest leading-none">
-              PRIME PACKAGING
-            </h1>
-            <p className="text-xs font-bold text-[#FFB800] uppercase tracking-widest mt-1">
-              Enterprise Command Center
-            </p>
-          </div>
+          <img
+            src="/api/uploads/prime-packaging-logo.svg"
+            alt="Prime Packaging Boxes"
+            className="h-14 w-auto max-w-[260px] object-contain"
+          />
+          <p className="text-xs font-bold text-[#FFB800] uppercase tracking-widest">
+            Admin Workspace
+          </p>
         </div>
 
         {/* Central Glass Card */}
         <div className="my-auto max-w-lg space-y-6">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white text-xs font-bold backdrop-blur-md">
-            <Sparkles size={14} className="text-[#FFB800]" /> Full Administrative System Management
+            <Sparkles size={14} className="text-[#FFB800]" /> Secure business management workspace
           </div>
 
           <h2 className="font-heading font-black text-4xl lg:text-5xl text-white leading-tight">
@@ -108,7 +105,7 @@ export default function LoginPage() {
               "Complete Product & Dynamic Category Management",
               "Instant Quote Builder & PDF Tax Invoice Generation",
               "CRM Sales Pipeline, Leads & Customer Accounts",
-              "Dual Provider Clark AI Chatbot (Groq & Gemini)",
+              "Customer support and sales tools in one place",
             ].map(feat => (
               <div key={feat} className="flex items-center gap-3 text-slate-300 text-sm font-medium">
                 <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
@@ -123,10 +120,10 @@ export default function LoginPage() {
         {/* Footer Status Bar */}
         <div className="flex items-center justify-between text-slate-500 text-xs border-t border-white/10 pt-6">
           <span className="flex items-center gap-2 text-emerald-400 font-semibold">
-            <Server size={14} /> Server Status: Operational (Port 3001)
+            <CheckCircle2 size={14} /> Secure admin workspace
           </span>
           <span className="flex items-center gap-1.5 text-slate-400 font-semibold">
-            <ShieldCheck size={14} className="text-[#FFB800]" /> SHA-256 Encrypted Admin Auth
+            <Lock size={14} className="text-[#FFB800]" /> Authorized access only
           </span>
         </div>
       </div>
@@ -136,13 +133,12 @@ export default function LoginPage() {
         
         {/* Mobile Header Logo */}
         <div className="lg:hidden flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-[#E63329] font-black text-white text-xl flex items-center justify-center">
-            P
-          </div>
-          <div>
-            <h1 className="font-heading font-extrabold text-sm text-white">PRIME PACKAGING</h1>
-            <p className="text-[10px] text-[#FFB800] uppercase tracking-wider font-bold">Admin Panel</p>
-          </div>
+          <img
+            src="/api/uploads/prime-packaging-logo.svg"
+            alt="Prime Packaging Boxes"
+            className="h-10 w-auto max-w-[220px] object-contain"
+          />
+          <p className="text-[10px] text-[#FFB800] uppercase tracking-wider font-bold">Admin Workspace</p>
         </div>
 
         <div className="my-auto max-w-md w-full mx-auto">
