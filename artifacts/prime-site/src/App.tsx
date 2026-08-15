@@ -68,8 +68,8 @@ function MainSite() {
           <Route path="/products" component={ProductsPage} />
           <Route path="/blog" component={BlogPage} />
           {/* Public static pages use the backed-up detailed React designs.
-              The CMS editor remains available through /pages/:slug, while
-              these canonical routes must not be replaced by generic seed HTML. */}
+              Admin inline editing remains available on supported pages and
+              shared product, category, and blog templates. */}
           <Route path="/about"                  component={AboutPage} />
           <Route path="/contact"                component={ContactPage} />
           <Route path="/faq"                    component={FaqPage} />

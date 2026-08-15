@@ -8,7 +8,7 @@ interface SmartPageProps {
 }
 
 export default function SmartPage({ slug, fallback: Fallback }: SmartPageProps) {
-  // Static pages are authored in the admin builder and stored in the pages
+  // Static pages are authored in the admin page manager and stored in the pages
   // table. Only use the legacy JSX page when the CMS record is unavailable.
   const { data: page, isLoading, isError } = useGetPage(slug, {
     query: { queryKey: ["page", slug] },

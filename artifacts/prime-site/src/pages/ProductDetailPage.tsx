@@ -4,7 +4,12 @@ import { ChevronRight, ChevronDown, ChevronUp, Star, Printer, Package, Zap, Laye
 import { useForm } from "react-hook-form";
 import { ProductCard } from "../components/ui/ProductCard";
 import { useGetProduct, useSubmitQuote, useListProducts } from "@workspace/api-client-react";
-import { TemplateRenderer, usePageTemplate } from "../components/ui/TemplateRenderer";
+import {
+  TemplateRenderer,
+  parseInlineTemplateContent,
+  serializeInlineTemplateContent,
+  usePageTemplate,
+} from "../components/ui/TemplateRenderer";
 import { useMemo } from "react";
 import { toAbsoluteUrl, useSEO, useSchemaOrg } from "../lib/useSEO";
 
@@ -176,10 +181,15 @@ export default function ProductDetailPage() {
   const productTemplateContent = useMemo(() => {
     if (!productTemplateRaw) return null;
     try {
-      const blocks = JSON.parse(productTemplateRaw).filter(
+      const inline = parseInlineTemplateContent(productTemplateRaw);
+      const blocks = JSON.parse(inline.baseContent).filter(
         (b: any) => b.type !== "dynamic_hero" && b.type !== "breadcrumb" && b.type !== "products_grid"
       );
-      return blocks.length > 0 ? JSON.stringify(blocks) : null;
+      if (!blocks.length) return null;
+      const filteredContent = JSON.stringify(blocks);
+      return Object.keys(inline.overrides).length > 0
+        ? serializeInlineTemplateContent(filteredContent, inline.overrides)
+        : filteredContent;
     } catch { return null; }
   }, [productTemplateRaw]);
   const [activeImage, setActiveImage] = useState(0);
@@ -281,6 +291,7 @@ export default function ProductDetailPage() {
 
   return (
     <>
+      <div data-inline-dynamic="true">
       {/* ── Product Hero — exact WP match ── */}
       <div className="bg-[#1a2f5a] pt-6 pb-5 relative">
         <div className="container mx-auto px-4">
@@ -860,8 +871,9 @@ export default function ProductDetailPage() {
           </div>
         </section>
       )}
+      </div>
 
-      {/* ── Product Page Template Blocks (features, CTA, FAQ, testimonials from Template Editor) ── */}
+      {/* ── Shared Product Template Blocks ── */}
       {productTemplateContent && (
         <TemplateRenderer content={productTemplateContent} dynamicData={{ product: product as any }} />
       )}

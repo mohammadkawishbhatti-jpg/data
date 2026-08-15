@@ -14,6 +14,7 @@ const TEMPLATE_NAMES: Record<string, string> = {
 };
 
 const CURRENT_TEMPLATE_VERSION = 2;
+const INLINE_DOCUMENT_MARKER = "__prime_inline_page_v1";
 
 function isCurrentTemplateContent(content: unknown): boolean {
   if (typeof content !== "string") return false;
@@ -24,7 +25,21 @@ function isCurrentTemplateContent(content: unknown): boolean {
   }
 }
 
+function isInlineTemplateContent(content: unknown): boolean {
+  if (typeof content !== "string") return false;
+  try {
+    const parsed = JSON.parse(content);
+    return parsed?.[INLINE_DOCUMENT_MARKER] === true
+      && typeof parsed.baseContent === "string"
+      && parsed.overrides
+      && typeof parsed.overrides === "object";
+  } catch {
+    return false;
+  }
+}
+
 function currentTemplateContent(type: string, content: unknown): string {
+  if (isInlineTemplateContent(content)) return String(content);
   return isCurrentTemplateContent(content)
     ? String(content)
     : JSON.stringify(DEFAULTS[type] || []);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import DOMPurify from "dompurify";
 
@@ -19,6 +19,60 @@ function safeUrl(raw: string | null | undefined): string {
 import { useListProducts, useListBlogPosts } from "@workspace/api-client-react";
 import { ProductCard } from "./ProductCard";
 
+const INLINE_DOCUMENT_MARKER = "__prime_inline_page_v1";
+
+type InlineTemplateDocument = {
+  baseContent: string;
+  overrides: Record<string, string>;
+};
+
+export function parseInlineTemplateContent(content: unknown): InlineTemplateDocument {
+  if (typeof content !== "string") {
+    return { baseContent: content == null ? "" : String(content), overrides: {} };
+  }
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed?.[INLINE_DOCUMENT_MARKER] === true && typeof parsed.baseContent === "string") {
+      return {
+        baseContent: parsed.baseContent,
+        overrides: parsed.overrides && typeof parsed.overrides === "object" ? parsed.overrides : {},
+      };
+    }
+  } catch {
+    // Native template content is not necessarily JSON until the renderer parses it.
+  }
+  return { baseContent: content, overrides: {} };
+}
+
+export function serializeInlineTemplateContent(baseContent: string, overrides: Record<string, string>): string {
+  return JSON.stringify({
+    [INLINE_DOCUMENT_MARKER]: true,
+    baseContent,
+    overrides,
+  });
+}
+
+function InlineTemplateOverrides({ overrides, children }: { overrides: Record<string, string>; children: ReactNode }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    Object.entries(overrides).forEach(([path, text]) => {
+      const element = root.querySelector<HTMLElement>(path);
+      if (element && !element.closest("[data-inline-dynamic='true']")) {
+        element.textContent = text;
+      }
+    });
+  }, [overrides, children]);
+
+  return (
+    <div ref={rootRef} data-inline-template-root className="contents">
+      {children}
+    </div>
+  );
+}
+
 interface Block {
   id: string;
   type: string;
@@ -36,13 +90,28 @@ interface DynamicData {
 // Substitute {{variable}} placeholders with actual dynamic data
 function interpolate(str: string, data: DynamicData): string {
   if (!str) return str;
-  return str
-    .replace(/\{\{category\.name\}\}/gi, data.category?.name || "")
-    .replace(/\{\{category\.description\}\}/gi, data.category?.description || "")
-    .replace(/\{\{category\.image\}\}/gi, data.category?.imageUrl || "")
-    .replace(/\{\{product\.name\}\}/gi, data.product?.name || "")
-    .replace(/\{\{product\.description\}\}/gi, data.product?.description || "")
-    .replace(/\{\{product\.image\}\}/gi, data.product?.imageUrl || "");
+  const values = [
+    [/\{\{category\.name\}\}/gi, data.category?.name || ""],
+    [/\{\{category\.description\}\}/gi, data.category?.description || ""],
+    [/\{\{category\.image\}\}/gi, data.category?.imageUrl || ""],
+    [/\{\{product\.name\}\}/gi, data.product?.name || ""],
+    [/\{\{product\.description\}\}/gi, data.product?.description || ""],
+    [/\{\{product\.image\}\}/gi, data.product?.imageUrl || ""],
+  ] as const;
+  const tokens = values.map(([, value], index) => ({
+    token: `__PRIME_DYNAMIC_${index}__`,
+    value: String(value),
+  }));
+  let output = str;
+  values.forEach(([pattern], index) => {
+    output = output.replace(pattern, tokens[index].token);
+  });
+  tokens.forEach(({ token, value }) => {
+    const escaped = escapeHtml(value);
+    output = output.replace(new RegExp(`(["'])${token}\\1`, "g"), (_match, quote: string) => `${quote}${escaped}${quote}`);
+    output = output.split(token).join(`<span data-inline-dynamic="true">${escaped}</span>`);
+  });
+  return output;
 }
 
 function escapeHtml(value: unknown): string {
@@ -74,11 +143,11 @@ function DynamicHeroBlock({ d, dynamicData }: { d: any; dynamicData: DynamicData
           <Link href="/" className="hover:text-white">Home</Link>
           <span className="mx-2">›</span>
           <Link href="/products" className="hover:text-white">Products</Link>
-          {title && <><span className="mx-2">›</span><span className="text-white">{title}</span></>}
+          {title && <><span className="mx-2">›</span><span data-inline-dynamic="true" className="text-white">{title}</span></>}
         </nav>
-        {title && <h1 className="text-4xl md:text-5xl font-extrabold mb-4">{title}</h1>}
+        {title && <h1 data-inline-dynamic="true" className="text-4xl md:text-5xl font-extrabold mb-4">{title}</h1>}
         {desc && (
-          <p className="text-white/70 text-lg mb-6 max-w-xl line-clamp-3">
+          <p data-inline-dynamic="true" className="text-white/70 text-lg mb-6 max-w-xl line-clamp-3">
             {desc.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 300)}
           </p>
         )}
@@ -149,7 +218,7 @@ function ProductsGridBlock({ d, dynamicData }: { d: any; dynamicData: DynamicDat
             <p>No products found.</p>
           </div>
         ) : (
-          <div className={`grid grid-cols-2 gap-5 ${d.columns === 4 ? "md:grid-cols-4" : d.columns === 2 ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+          <div data-inline-dynamic="true" className={`grid grid-cols-2 gap-5 ${d.columns === 4 ? "md:grid-cols-4" : d.columns === 2 ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
             {filtered.map((p: any) => <ProductCard key={p.id} product={p} />)}
           </div>
         )}
@@ -170,7 +239,7 @@ function BlogGridBlock({ d }: { d: any }) {
             {[1,2,3].map(i => <div key={i} className="bg-gray-100 rounded-xl h-64 animate-pulse" />)}
           </div>
         ) : (
-          <div className={`grid grid-cols-1 gap-6 ${d.columns === 2 ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+          <div data-inline-dynamic="true" className={`grid grid-cols-1 gap-6 ${d.columns === 2 ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
             {posts.map((post: any) => (
               <Link key={post.id} href={`/${post.slug}`} className="group">
                 <div className="bg-white border rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
@@ -429,7 +498,7 @@ function BreadcrumbBlock({ dynamicData }: { dynamicData: DynamicData }) {
         {entity?.name && (
           <>
             <span className="text-gray-300">›</span>
-            <span className="text-gray-500">{entity.name}</span>
+            <span data-inline-dynamic="true" className="text-gray-500">{entity.name}</span>
           </>
         )}
       </nav>
@@ -985,6 +1054,15 @@ interface TemplateRendererProps {
 }
 
 export function TemplateRenderer({ content, dynamicData = {} }: TemplateRendererProps) {
+  const inline = parseInlineTemplateContent(content);
+  return (
+    <InlineTemplateOverrides overrides={inline.overrides}>
+      <TemplateRendererContent content={inline.baseContent} dynamicData={dynamicData} />
+    </InlineTemplateOverrides>
+  );
+}
+
+function TemplateRendererContent({ content, dynamicData = {} }: TemplateRendererProps) {
   const { data: liveProducts = [] } = useListProducts(
     { limit: 100 },
     { query: { enabled: !dynamicData.products, queryKey: ["template-renderer-products", dynamicData.category?.slug ?? "all"] } },
@@ -1032,7 +1110,7 @@ export function TemplateRenderer({ content, dynamicData = {} }: TemplateRenderer
 
     // Render real dynamic product grid HTML with rich inline styles
     const productsGridHtml = products.length > 0
-      ? `<section style="background: #ffffff; padding: 32px 0 48px 0; border-radius: 16px; margin-bottom: 32px;">
+      ? `<section data-inline-dynamic="true" style="background: #ffffff; padding: 32px 0 48px 0; border-radius: 16px; margin-bottom: 32px;">
           <div style="max-width: 1200px; margin: 0 auto; padding: 0 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px;">
               <div>
@@ -1117,11 +1195,11 @@ export function TemplateRenderer({ content, dynamicData = {} }: TemplateRenderer
       };
       rawHtml = rawHtml.replace(
         /<!-- FEATURED ARTICLE -->[\s\S]*?<\/section>/i,
-        `<!-- FEATURED ARTICLE --><section style="background:#fff;padding:48px 24px;"><div style="max-width:1100px;margin:0 auto;">${postCard(featured, true)}</div></section>`,
+         `<!-- FEATURED ARTICLE --><section data-inline-dynamic="true" style="background:#fff;padding:48px 24px;"><div style="max-width:1100px;margin:0 auto;">${postCard(featured, true)}</div></section>`,
       );
       rawHtml = rawHtml.replace(
         /<!-- MORE ARTICLES -->[\s\S]*?<\/section>/i,
-        `<!-- MORE ARTICLES --><section style="background:#f8fafc;padding:48px 24px;"><div style="max-width:1100px;margin:0 auto;"><h2 style="font-size:24px;color:#1a2f5a;margin:0 0 24px;">More Articles</h2><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">${rest.map((post: any) => postCard(post)).join("")}</div></div></section>`,
+         `<!-- MORE ARTICLES --><section data-inline-dynamic="true" style="background:#f8fafc;padding:48px 24px;"><div style="max-width:1100px;margin:0 auto;"><h2 style="font-size:24px;color:#1a2f5a;margin:0 0 24px;">More Articles</h2><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">${rest.map((post: any) => postCard(post)).join("")}</div></div></section>`,
       );
     }
 
@@ -1180,7 +1258,7 @@ export function TemplateRenderer({ content, dynamicData = {} }: TemplateRenderer
   );
 }
 
-// ─── Hook: load template from API with live builder sync & auto-refetch ─────
+// ─── Hook: load a shared template and refresh saved inline edits ────────────
 export function usePageTemplate(type: string) {
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1202,7 +1280,7 @@ export function usePageTemplate(type: string) {
 
     loadTemplate();
 
-    // Listen for instant broadcast updates when Admin Builder saves template
+    // Listen for instant updates when an admin saves a shared template
     const handleStorage = (e: StorageEvent) => {
       if (e.key === `template_updated_${type}` || e.key === 'template_updated_all') {
         loadTemplate();
@@ -1210,7 +1288,7 @@ export function usePageTemplate(type: string) {
     };
     window.addEventListener("storage", handleStorage);
 
-    // Poll every 2 seconds to guarantee live connection between Page Builder & Public Page
+    // Poll so edits made in another admin tab become visible without a refresh
     const interval = setInterval(loadTemplate, 2000);
 
     return () => {

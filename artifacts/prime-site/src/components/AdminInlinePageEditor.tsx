@@ -30,11 +30,30 @@ type InlineDocument = {
   overrides: Record<string, string>;
 };
 
-function pageSlugForLocation(location: string): string | null {
-  const pathname = location.split("?")[0].replace(/\/+$/, "") || "/";
+type TemplateType = "product" | "category" | "blog";
+
+type ContentResource =
+  | { kind: "page"; slug: string; id: number }
+  | { kind: "template"; type: TemplateType };
+
+function pathnameForLocation(location: string): string {
+  return location.split("?")[0].replace(/\/+$/, "") || "/";
+}
+
+function pageSlugForPathname(pathname: string): string | null {
   if (CANONICAL_PAGE_SLUGS[pathname]) return CANONICAL_PAGE_SLUGS[pathname];
   const cmsMatch = pathname.match(/^\/pages\/([^/]+)$/);
   return cmsMatch ? decodeURIComponent(cmsMatch[1]) : null;
+}
+
+function directTemplateTypeForPathname(pathname: string): TemplateType | null {
+  if (pathname === "/blog") return "blog";
+  if (pathname.startsWith("/products/")) return "product";
+  return null;
+}
+
+function templateLabel(type: TemplateType): string {
+  return type === "product" ? "Product" : type === "category" ? "Category" : "Blog";
 }
 
 function parseInlineDocument(content: unknown): InlineDocument {
@@ -71,6 +90,7 @@ function elementPath(element: HTMLElement, root: HTMLElement): string {
 }
 
 function isEditableTextElement(element: HTMLElement): boolean {
+  if (element.closest("[data-inline-dynamic='true']")) return false;
   if (!element.textContent?.trim()) return false;
   if (element.children.length > 0) return false;
   if (element.matches("script,style,svg,input,textarea,select")) return false;
@@ -81,6 +101,13 @@ function isEditableTextElement(element: HTMLElement): boolean {
 function editableElements(root: HTMLElement): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(EDITABLE_TAGS))
     .filter(isEditableTextElement);
+}
+
+function contentRootForResource(root: HTMLElement, resource: ContentResource | null): HTMLElement {
+  if (resource?.kind === "template") {
+    return root.querySelector<HTMLElement>("[data-inline-template-root]") ?? root;
+  }
+  return root;
 }
 
 function applyOverrides(root: HTMLElement, overrides: Record<string, string>) {
@@ -106,13 +133,14 @@ function setEditingState(elements: HTMLElement[], editing: boolean) {
 
 export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const pageSlug = useMemo(() => pageSlugForLocation(location), [location]);
+  const pathname = useMemo(() => pathnameForLocation(location), [location]);
+  const pageSlug = useMemo(() => pageSlugForPathname(pathname), [pathname]);
   const rootRef = useRef<HTMLDivElement>(null);
   const elementsRef = useRef<HTMLElement[]>([]);
   const originalValuesRef = useRef<Map<string, string>>(new Map());
   const storedContentRef = useRef<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [pageId, setPageId] = useState<number | null>(null);
+  const [resource, setResource] = useState<ContentResource | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -120,43 +148,73 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setIsAdmin(false);
-    setPageId(null);
+    setResource(null);
     setIsEditing(false);
     setSaved(false);
     setError("");
     storedContentRef.current = null;
     elementsRef.current = [];
 
-    if (!pageSlug) return;
-
     let cancelled = false;
     let intervalId: number | undefined;
     const load = async () => {
       try {
+        let resolvedTemplateType = directTemplateTypeForPathname(pathname);
+        if (!pageSlug && !resolvedTemplateType) {
+          const slugMatch = pathname.match(/^\/([^/]+)$/);
+          if (slugMatch) {
+            const resolveResponse = await fetch(`/api/resolve/${encodeURIComponent(slugMatch[1])}`);
+            if (resolveResponse.ok) {
+              const resolved = await resolveResponse.json();
+              if (resolved.type === "product" || resolved.type === "category") {
+                resolvedTemplateType = resolved.type;
+              }
+            }
+          }
+        }
+
+        if (!pageSlug && !resolvedTemplateType) return;
+
+        const publicUrl = pageSlug
+          ? `/api/pages/${encodeURIComponent(pageSlug)}`
+          : `/api/templates/${resolvedTemplateType}`;
         const [publicResponse, adminResponse] = await Promise.all([
-          fetch(`/api/pages/${encodeURIComponent(pageSlug)}`, { credentials: "include" }),
+          fetch(publicUrl, { credentials: "include" }),
           fetch("/api/admin/me", { credentials: "include" }),
         ]);
 
-        const publicPage = publicResponse.ok ? await publicResponse.json() : null;
-        let page = publicPage;
+        const publicData = publicResponse.ok ? await publicResponse.json() : null;
+        let page = publicData;
         let admin = false;
+        let nextResource: ContentResource | null = pageSlug
+          ? null
+          : resolvedTemplateType
+            ? { kind: "template", type: resolvedTemplateType }
+            : null;
 
         if (adminResponse.ok) {
           admin = true;
-          const adminPagesResponse = await fetch("/api/admin/pages", { credentials: "include" });
-          if (adminPagesResponse.ok) {
-            const adminPages = await adminPagesResponse.json();
-            const adminPage = adminPages.find((item: any) => item.slug === pageSlug);
-            if (adminPage) {
-              page = adminPage;
-              if (!cancelled) setPageId(adminPage.id);
+          if (pageSlug) {
+            const adminPagesResponse = await fetch("/api/admin/pages", { credentials: "include" });
+            if (adminPagesResponse.ok) {
+              const adminPages = await adminPagesResponse.json();
+              const adminPage = adminPages.find((item: any) => item.slug === pageSlug);
+              if (adminPage) {
+                page = adminPage;
+                nextResource = { kind: "page", slug: pageSlug, id: adminPage.id };
+              }
+            }
+          } else if (resolvedTemplateType) {
+            const adminTemplateResponse = await fetch(`/api/admin/templates/${resolvedTemplateType}`, { credentials: "include" });
+            if (adminTemplateResponse.ok) {
+              page = await adminTemplateResponse.json();
             }
           }
         }
 
         if (cancelled) return;
         setIsAdmin(admin);
+        if (nextResource) setResource(nextResource);
         storedContentRef.current = page?.content ?? null;
         const document = parseInlineDocument(page?.content);
 
@@ -165,7 +223,7 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
           const root = rootRef.current;
           const elements = editableElements(root);
           if (!elements.length) return;
-          applyOverrides(root, document.overrides);
+          applyOverrides(contentRootForResource(root, nextResource), document.overrides);
           elementsRef.current = editableElements(root);
           if (intervalId) window.clearInterval(intervalId);
         };
@@ -186,7 +244,7 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
       if (intervalId) window.clearInterval(intervalId);
       setEditingState(elementsRef.current, false);
     };
-  }, [pageSlug]);
+  }, [pageSlug, pathname]);
 
   useEffect(() => {
     if (!isEditing) return;
@@ -195,8 +253,9 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
 
     const elements = editableElements(root);
     elementsRef.current = elements;
+    const contentRoot = contentRootForResource(root, resource);
     originalValuesRef.current = new Map(
-      elements.map((element) => [elementPath(element, root), element.textContent ?? ""]),
+      elements.map((element) => [elementPath(element, contentRoot), element.textContent ?? ""]),
     );
     setEditingState(elements, true);
 
@@ -228,8 +287,9 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
   const cancelEditing = () => {
     const root = rootRef.current;
     if (root) {
+      const contentRoot = contentRootForResource(root, resource);
       originalValuesRef.current.forEach((text, path) => {
-        const element = root.querySelector<HTMLElement>(path);
+        const element = contentRoot.querySelector<HTMLElement>(path);
         if (element && isEditableTextElement(element)) element.textContent = text;
       });
     }
@@ -240,14 +300,15 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
 
   const saveEditing = async () => {
     const root = rootRef.current;
-    if (!root || pageId == null) {
-      setError("This page is not connected to a saved page record yet.");
+    if (!root || !resource) {
+      setError("This content is not connected to a saved record yet.");
       return;
     }
 
+    const contentRoot = contentRootForResource(root, resource);
     const overrides: Record<string, string> = {};
     elementsRef.current.forEach((element) => {
-      overrides[elementPath(element, root)] = element.textContent ?? "";
+      overrides[elementPath(element, contentRoot)] = element.textContent ?? "";
     });
 
     const existing = parseInlineDocument(storedContentRef.current);
@@ -260,7 +321,10 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
     setIsSaving(true);
     setError("");
     try {
-      const response = await fetch(`/api/admin/pages/${pageId}`, {
+      const saveUrl = resource.kind === "page"
+        ? `/api/admin/pages/${resource.id}`
+        : `/api/admin/templates/${resource.type}`;
+      const response = await fetch(saveUrl, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -283,7 +347,7 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
       <div ref={rootRef} data-inline-page-root className="contents">
         {children}
       </div>
-      {isAdmin && pageId != null && (
+      {isAdmin && resource && (
         <div
           data-inline-editor-ui
           className="fixed right-4 top-4 z-[100] flex items-center gap-2 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 shadow-xl backdrop-blur"
@@ -304,7 +368,7 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-[#e63329] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c42a21] disabled:opacity-60"
               >
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                {isSaving ? "Saving..." : "Save Page"}
+                {isSaving ? "Saving..." : resource.kind === "template" ? "Save Template" : "Save Page"}
               </button>
             </>
           ) : (
@@ -313,7 +377,8 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
               onClick={startEditing}
               className="inline-flex items-center gap-1.5 rounded-lg bg-[#1a2f5a] px-3 py-2 text-sm font-semibold text-white hover:bg-[#0d1f3c]"
             >
-              <Pencil className="h-4 w-4" /> Edit Page
+              <Pencil className="h-4 w-4" />{" "}
+              {resource.kind === "template" ? `Edit ${templateLabel(resource.type)} Template` : "Edit Page"}
             </button>
           )}
           {saved && !isEditing && <span className="text-xs font-medium text-emerald-600">Saved</span>}
