@@ -360,7 +360,17 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  let response: Response;
+  try {
+    response = await fetch(input, { ...init, method, headers, credentials: "include" });
+  } catch (err) {
+    // Re-throw AbortError as-is — React Query handles it gracefully and
+    // won't treat it as a query failure when throwOnError filters it.
+    // We still rethrow so React Query can cancel the query properly.
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
+    if (err instanceof Error && err.name === "AbortError") throw err;
+    throw err;
+  }
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

@@ -1,0 +1,6 @@
+- [Prime Packaging Project](prime-packaging-setup.md) — full-stack ecommerce monorepo: api-server (8080), prime-site (24023), admin-panel (20130), customer-portal (23434)
+- [API Server Typecheck Fix](api-server-noImplicitReturns.md) — noImplicitReturns must be false in api-server tsconfig; Express async handlers are void-return and TS strict mode flags all of them
+- [Lib Build Order](lib-build-order.md) — must run `pnpm typecheck:libs` (tsc --build) before artifact typechecks; project references require composite lib builds first
+- [Admin Dashboard Stats Mismatch](admin-stats-field-names.md) — API returns totalProducts/totalCategories etc; dashboard mapped to products/categories with as-any cast in DashboardPage.tsx
+- [DynamicData Type Scope](dynamic-data-scope.md) — TemplateRenderer DynamicData only has category/product (singular); pages using products[] must cast dynamicData as any
+- [React Hooks Early Return](react-hooks-early-return.md) — ProductsPage had useMemo after early templateContent return; all hooks must precede early returns

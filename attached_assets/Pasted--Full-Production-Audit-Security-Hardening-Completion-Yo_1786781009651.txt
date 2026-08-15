@@ -1,0 +1,547 @@
+# Full Production Audit, Security Hardening & Completion
+
+You are working on an existing full-stack website/repository.
+
+Repository:
+https://github.com/mohammadkawishbhatti-jpg/data
+
+Your job is to take this project from its current state to a **fully working, production-ready website**. Do NOT just analyze it or give me a report. **Inspect the entire codebase, run the application, identify problems, and implement the fixes yourself.**
+
+## 1. FIRST: FULL CODEBASE AUDIT
+
+Before making changes, inspect the ENTIRE project:
+
+* Frontend
+* Backend/API
+* Database/schema/migrations
+* Authentication
+* Admin panel
+* Customer portal
+* Product system
+* Categories
+* Cart/checkout/order flow
+* Forms
+* File/image handling
+* Search/filtering
+* Responsive UI
+* Routing
+* API endpoints
+* Environment/configuration
+* Dependencies
+* Error handling
+* Loading states
+* Empty states
+* Security
+* Performance
+* SEO
+* Accessibility
+
+Do not assume something works because the code exists. **Run/test the actual application and verify functionality.**
+
+Check for:
+
+* TypeScript errors
+* Runtime errors
+* Console errors
+* API errors
+* Broken routes
+* Broken imports
+* Dead code
+* Incorrect database queries
+* Missing database tables/relations
+* Missing validation
+* Race conditions
+* Incorrect state management
+* Broken forms
+* Broken buttons
+* Broken links
+* Missing error handling
+* Security vulnerabilities
+* Authentication/authorization problems
+* N+1 queries
+* unnecessary API calls
+* unnecessary re-renders
+* duplicated code
+* unfinished TODOs
+* placeholder content
+* hardcoded data that should come from DB
+
+Fix problems you discover rather than merely reporting them.
+
+---
+
+## 2. RUN THE PROJECT AND TEST EVERYTHING
+
+Start the application and actually interact with it.
+
+Test:
+
+### Public website
+
+* Homepage
+* Header/navigation
+* Footer
+* All main pages
+* Product listing
+* Product detail
+* Categories
+* Search
+* Filters
+* Pagination/load more
+* Contact forms
+* Any quotation/request forms
+* Mobile/tablet/desktop layouts
+
+### Customer
+
+* Registration
+* Login
+* Logout
+* Profile
+* Account/dashboard
+* Cart
+* Checkout
+* Orders
+* Order details
+* Any customer-specific functionality
+
+### Admin
+
+* Admin login
+* Dashboard
+* Products
+* Categories
+* Orders
+* Customers
+* Users/roles
+* Settings
+* Any CRUD functionality
+
+Every major button should actually work.
+
+If you find a broken feature, fix it and test it again.
+
+---
+
+## 3. DATABASE — MAKE IT PRODUCTION SAFE
+
+Inspect the complete database structure.
+
+Verify that:
+
+* All required tables exist
+* Relationships are correct
+* Foreign keys are correct
+* Indexes exist where appropriate
+* Unique constraints are correct
+* Nullability is correct
+* Migrations work
+* Seed data works
+* Queries match the actual schema
+* No fake/mock data is being used where real DB data is expected
+
+Make the database reliable and consistent.
+
+Do NOT delete existing real product/customer/order data just to make the application work.
+
+If migrations are required, create proper migrations rather than manually breaking/recreating the database.
+
+---
+
+## 4. PRODUCTS — IMPORTANT
+
+The website should properly support **60+ products**.
+
+Inspect the current product system and make sure it can reliably handle 60+ products and scale beyond that.
+
+Check:
+
+* Product CRUD
+* Product images
+* Product descriptions
+* Product pricing
+* Categories
+* Slugs
+* SEO fields
+* Search
+* Filtering
+* Sorting
+* Pagination
+* Product detail pages
+* Related products
+* Featured products
+* Stock/status if applicable
+
+Do not hardcode only a small number of products in the frontend.
+
+Products should come from the database/API correctly.
+
+If the existing seed/product data is incomplete, preserve the existing structure and make the system capable of handling the full catalogue.
+
+---
+
+## 5. HEADING / TEXT RENDERING BUG
+
+There is currently a problem where text/content containing things such as:
+
+* H1
+* H2
+* H3
+* normal text
+
+does not behave/render correctly when clicked/highlighted.
+
+Investigate the actual cause.
+
+Do NOT simply hide the problem with CSS.
+
+Check:
+
+* HTML rendering
+* content editor
+* rich-text/HTML parser
+* event handlers
+* selection/highlighting
+* sanitization
+* React rendering
+* nested elements
+* CSS `user-select`
+* overlays/pointer-events
+* DOM manipulation
+
+Fix the root cause.
+
+Also make sure heading hierarchy is semantically correct:
+
+H1 → H2 → H3 etc.
+
+Do not create unnecessary H1 elements.
+
+---
+
+## 6. LITERAL `\n` / FORMATTING BUG
+
+Find places where users currently see literal:
+
+`\n`
+
+instead of an actual line break.
+
+Search the entire application for this issue.
+
+Fix the underlying data/rendering/serialization problem so that:
+
+* real new lines render as real new lines
+* HTML content is handled correctly
+* JSON/stringified content is not displayed incorrectly
+* escaped content is decoded appropriately
+* user-generated content remains secure
+
+Do not globally replace `\n` blindly if it could corrupt valid data.
+
+---
+
+## 7. SECURITY AUDIT — VERY IMPORTANT
+
+Perform a deep security audit.
+
+Check for:
+
+* SQL injection
+* XSS
+* CSRF where applicable
+* insecure API endpoints
+* missing authentication
+* missing authorization
+* privilege escalation
+* admin access vulnerabilities
+* IDOR
+* insecure direct object references
+* exposed secrets
+* API keys in frontend
+* passwords/secrets in source code
+* unsafe file uploads
+* malicious image/file uploads
+* weak input validation
+* unsafe HTML rendering
+* insecure cookies
+* session problems
+* excessive API permissions
+* sensitive information leakage
+* error messages exposing internal details
+
+Especially verify that a normal customer cannot access or modify admin resources simply by changing an ID or API request.
+
+Admin-only operations must be enforced **server-side**, not only hidden in the UI.
+
+Use secure validation and authorization throughout.
+
+Do not expose `.env` secrets or private credentials.
+
+---
+
+## 8. ADMIN PANEL — MAKE IT STRONGER
+
+The admin panel should feel like a proper production ecommerce/admin system.
+
+Improve it where needed.
+
+Include/verify:
+
+### Dashboard
+
+* Useful statistics
+* Orders overview
+* Product count
+* Customer count
+* Recent activity
+* Useful empty/loading/error states
+
+### Products
+
+* Create
+* Edit
+* Delete
+* Search
+* Filter
+* Category management
+* Image management
+* Status
+* Pricing
+* Slug
+* Description
+* SEO information
+
+### Orders
+
+* Order list
+* Search/filter
+* Order details
+* Customer information
+* Products
+* Quantities
+* Pricing
+* Status management
+* Proper validation
+
+### Customers
+
+* Customer list
+* Search
+* Customer details
+* Order history
+* Account status where applicable
+
+### Roles & permissions
+
+Make sure admin functionality is protected properly.
+
+Do not over-engineer features that the project does not need. Improve the existing architecture rather than rebuilding everything unnecessarily.
+
+---
+
+## 9. CUSTOMER PORTAL — MAKE IT COMPLETE
+
+Verify and improve:
+
+* Login/register
+* Account dashboard
+* Profile
+* Address information if applicable
+* Orders
+* Order details
+* Account security
+* Logout
+* Proper authentication state
+
+Make sure customers can only access their own data.
+
+---
+
+## 10. UI/UX QUALITY
+
+Inspect the entire website visually.
+
+Fix:
+
+* Broken spacing
+* Overflow
+* Bad alignment
+* Broken responsive layouts
+* Mobile navigation
+* Desktop layout
+* Tablet layout
+* Typography
+* Buttons
+* Forms
+* Cards
+* Tables
+* Modals
+* Loading states
+* Empty states
+* Error states
+* Images
+* Inconsistent components
+
+Keep the existing brand/design direction unless something is clearly broken.
+
+Do not redesign the entire website unnecessarily.
+
+Make it look like a polished professional production website.
+
+---
+
+## 11. RESPONSIVE TESTING
+
+Verify the site at:
+
+* Mobile
+* Tablet
+* Laptop
+* Large desktop
+
+No:
+
+* horizontal overflow
+* clipped text
+* inaccessible buttons
+* broken menus
+* broken tables
+* broken modals
+
+Admin and customer portals must also be responsive.
+
+---
+
+## 12. PERFORMANCE
+
+Optimize obvious performance problems.
+
+Check:
+
+* unnecessary API requests
+* unnecessary database queries
+* large images
+* missing image optimization
+* unnecessary client-side rendering
+* excessive bundle size
+* duplicate requests
+* inefficient product queries
+* missing pagination
+* unnecessary polling
+* expensive operations on every render
+
+Do not perform premature optimization or rewrite working architecture without reason.
+
+---
+
+## 13. SEO
+
+Verify:
+
+* Proper page titles
+* Meta descriptions
+* Canonical URLs where appropriate
+* Correct heading hierarchy
+* Product URLs/slugs
+* Category URLs
+* Open Graph metadata
+* Robots configuration
+* Sitemap if applicable
+* No accidental indexing of admin/private pages
+* No duplicate metadata
+
+Do not expose private/admin/customer pages to search engines.
+
+---
+
+## 14. ERROR HANDLING
+
+Every important operation should have:
+
+* Loading state
+* Success state
+* Error state
+* Empty state where appropriate
+
+Do not allow uncaught exceptions to crash the UI.
+
+API errors should be handled cleanly.
+
+Never show raw database errors, stack traces, secrets, or internal implementation details to normal users.
+
+---
+
+## 15. CODE QUALITY
+
+Clean up obvious problems while working:
+
+* Remove unused imports
+* Remove dead code
+* Fix TypeScript issues
+* Fix lint issues
+* Fix incorrect types
+* Consolidate obvious duplicated logic
+* Create reusable components where appropriate
+* Keep naming consistent
+* Keep the existing architecture unless there is a strong reason to change it
+
+Do not rewrite the entire application from scratch.
+
+Prefer **small, safe, production-quality changes**.
+
+---
+
+## 16. IMPORTANT AGENT BEHAVIOR
+
+Do NOT stop after finding problems.
+
+Do NOT just tell me:
+
+> "I found these issues."
+
+Instead:
+
+**Find → Fix → Run → Test → Fix remaining issues → Test again.**
+
+If one change causes another problem, resolve it before moving on.
+
+Do not ask me for permission for every small fix.
+
+Use your available tools/terminal to inspect and test the project yourself.
+
+If something genuinely requires a missing secret, external service, domain, payment credential, or information that cannot be inferred safely, leave that specific integration untouched and clearly identify it at the end.
+
+---
+
+## 17. FINAL VERIFICATION
+
+Before declaring the project complete, run the relevant:
+
+* build
+* typecheck
+* lint
+* tests
+* database checks
+* API checks
+
+Then test the major user flows manually.
+
+Fix all errors you can find.
+
+The final goal is:
+
+**A working, secure, responsive, production-ready website with a reliable database, 60+ product capability, working customer portal, strong admin panel, clean content rendering, and no obvious runtime/security problems.**
+
+Do not waste tokens giving me a long explanation.
+
+Spend the majority of your effort **actually inspecting, coding, testing and fixing the repository**.
+
+At the end, give me only a concise summary containing:
+
+1. What you fixed
+2. Important security fixes
+3. Database changes
+4. Admin/customer improvements
+5. Any remaining issue that genuinely requires external information/credentials
+6. Confirmation that build/typecheck/tests were run and their result
