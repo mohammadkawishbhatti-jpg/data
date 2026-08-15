@@ -34,7 +34,7 @@ const cardStyle = `background:#fff;border:1px solid #e5e7eb;border-radius:16px;p
 /* ════════════════════════════════════════════════════════════════
    PAGE HTML SEEDS
    ════════════════════════════════════════════════════════════════ */
-const PAGE_HTML: Record<string, string> = {
+const LEGACY_PAGE_HTML: Record<string, string> = {
 
   /* ── ABOUT US ── */
   "about-us": `
@@ -525,6 +525,236 @@ const PAGE_HTML: Record<string, string> = {
 };
 
 /* ════════════════════════════════════════════════════════════════
+   CURRENT PUBLIC PAGE SYSTEM
+
+   The first seed above is retained only as historical source material.
+   Published pages are now written from this single modern system so an
+   old builder export cannot silently bring the legacy look back.
+   ════════════════════════════════════════════════════════════════ */
+type ModernPage = {
+  eyebrow: string;
+  title: string;
+  intro: string;
+  cards: Array<{ title: string; body: string }>;
+  sections: Array<{ title: string; body: string }>;
+  primaryLabel?: string;
+};
+
+function modernPage(page: ModernPage): string {
+  const primaryLabel = page.primaryLabel ?? "Get a free quote";
+  return `
+<div data-prime-page="modern" style="font-family:Inter,Arial,sans-serif;color:#24364b;background:#ffffff;">
+  <section style="background:linear-gradient(135deg,#0d1f3c 0%,#173b60 58%,#112b4b 100%);padding:76px 24px 84px;position:relative;overflow:hidden;">
+    <div style="position:absolute;inset:0;opacity:.08;background-image:radial-gradient(circle,#fff 1px,transparent 1px);background-size:28px 28px;"></div>
+    <div style="position:absolute;width:420px;height:420px;right:-170px;top:-220px;border-radius:50%;background:rgba(230,51,41,.22);filter:blur(8px);"></div>
+    <div style="max-width:1160px;margin:0 auto;position:relative;">
+      <div style="max-width:760px;">
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(230,51,41,.14);border:1px solid rgba(255,107,99,.36);color:#ff8c84;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:8px 13px;border-radius:999px;margin-bottom:22px;">${page.eyebrow}</div>
+        <h1 style="font-size:clamp(32px,5vw,58px);line-height:1.05;letter-spacing:-.04em;font-weight:850;color:#fff;margin:0 0 20px;">${page.title}</h1>
+        <p style="max-width:680px;color:rgba(255,255,255,.74);font-size:17px;line-height:1.7;margin:0 0 30px;">${page.intro}</p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;">
+          <a href="/get-a-quote" style="display:inline-flex;align-items:center;gap:8px;background:#e63329;color:#fff;font-weight:800;font-size:14px;padding:14px 22px;border-radius:9px;text-decoration:none;box-shadow:0 10px 24px rgba(230,51,41,.24);">${primaryLabel} <span aria-hidden="true">→</span></a>
+          <a href="/contact" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#fff;font-weight:750;font-size:14px;padding:14px 22px;border-radius:9px;text-decoration:none;">Talk to our team</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:#f7fafc;padding:58px 24px 72px;border-bottom:1px solid #e6edf2;">
+    <div style="max-width:1160px;margin:0 auto;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:-104px;position:relative;">
+        ${page.cards.map(card => `
+        <div style="background:#fff;border:1px solid #e1e9ef;border-radius:14px;padding:24px;box-shadow:0 12px 30px rgba(13,31,60,.08);">
+          <div style="width:30px;height:3px;background:#e63329;border-radius:999px;margin-bottom:18px;"></div>
+          <h2 style="font-size:16px;line-height:1.35;color:#173b60;font-weight:800;margin:0 0 8px;">${card.title}</h2>
+          <p style="font-size:13px;line-height:1.65;color:#667789;margin:0;">${card.body}</p>
+        </div>`).join("")}
+      </div>
+
+      <div style="max-width:900px;margin:64px auto 0;">
+        ${page.sections.map((section, index) => `
+        <article style="padding:26px 0;border-top:1px solid #dce5eb;${index === page.sections.length - 1 ? "border-bottom:1px solid #dce5eb;" : ""}">
+          <h2 style="font-size:22px;line-height:1.3;letter-spacing:-.02em;color:#173b60;font-weight:800;margin:0 0 10px;">${section.title}</h2>
+          <p style="font-size:15px;line-height:1.85;color:#5d6d7d;margin:0;">${section.body}</p>
+        </article>`).join("")}
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:54px 24px;background:#fff;">
+    <div style="max-width:960px;margin:0 auto;background:#173b60;border-radius:18px;padding:34px 38px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+      <div>
+        <div style="color:#ff8c84;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;">Prime Packaging Boxes</div>
+        <h2 style="color:#fff;font-size:26px;line-height:1.2;margin:0 0 7px;letter-spacing:-.02em;">Ready to move forward?</h2>
+        <p style="color:rgba(255,255,255,.68);font-size:14px;line-height:1.6;margin:0;">Get expert guidance, clear pricing, and a fast response from our packaging team.</p>
+      </div>
+      <a href="/get-a-quote" style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap;background:#e63329;color:#fff;font-size:14px;font-weight:800;text-decoration:none;padding:13px 20px;border-radius:9px;">Start your quote <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+</div>
+`;
+}
+
+const MODERN_PAGE_HTML: Record<string, string> = {
+  "about-us": modernPage({
+    eyebrow: "About Prime Packaging",
+    title: "Packaging expertise built around your brand.",
+    intro: "Prime Packaging Boxes helps growing brands turn great products into memorable unboxing experiences with dependable production and hands-on support.",
+    cards: [
+      { title: "500+ brands served", body: "A trusted packaging partner for ecommerce, retail, food, beauty, and lifestyle brands." },
+      { title: "Built for clarity", body: "Straightforward quotes, clear proofs, and practical guidance from first concept to delivery." },
+      { title: "Made to scale", body: "Flexible custom packaging for launches, recurring orders, and national fulfillment." },
+    ],
+    sections: [
+      { title: "A practical packaging partner", body: "We combine thoughtful structural design, reliable materials, and responsive communication so your team can make confident packaging decisions without the usual back-and-forth." },
+      { title: "Quality you can plan around", body: "Every project is reviewed against the approved artwork, dimensions, materials, and finish before production moves forward. Our goal is consistent packaging that arrives ready for your customers." },
+      { title: "Support from people who understand packaging", body: "From dielines and sample reviews to production questions, our team stays close to the details and keeps your timeline moving." },
+    ],
+  }),
+  "contact-us": modernPage({
+    eyebrow: "Contact Prime Packaging",
+    title: "Let’s make your next packaging project simple.",
+    intro: "Tell us what you are building and our team will help you choose the right box style, material, finish, and production path.",
+    cards: [
+      { title: "Fast responses", body: "Share your requirements and receive a helpful next step from our packaging team." },
+      { title: "Design support", body: "Need a dieline, artwork review, or structural recommendation? We can help." },
+      { title: "Real answers", body: "Talk with a packaging specialist about quantities, timing, materials, and shipping." },
+    ],
+    sections: [
+      { title: "Start with the details you have", body: "You can send a product link, approximate dimensions, quantity, reference photos, or artwork. Even an early idea is enough for us to begin." },
+      { title: "What happens next", body: "We review your request, confirm the important specifications, and follow up with the clearest route to a quote or sample." },
+      { title: "Prefer a direct conversation?", body: "Call our team or use the quote form for the fastest response. We support brands across the USA and UK." },
+    ],
+    primaryLabel: "Send an inquiry",
+  }),
+  "faq": modernPage({
+    eyebrow: "Packaging Questions",
+    title: "Clear answers before you place an order.",
+    intro: "Everything you need to know about minimums, production timing, artwork, samples, shipping, and custom packaging support.",
+    cards: [
+      { title: "100-unit minimums", body: "Most custom packaging projects start at 100 units, with larger runs available." },
+      { title: "7–10 business days", body: "Standard production begins after artwork and proof approval." },
+      { title: "Free design guidance", body: "Our team can help with dielines, artwork checks, and packaging recommendations." },
+    ],
+    sections: [
+      { title: "What is the minimum order quantity?", body: "Our standard minimum is 100 units across custom cardboard, corrugated, rigid, Kraft, and specialty packaging. Requirements can vary by structure and finish." },
+      { title: "How long does production take?", body: "Standard production is typically 7–10 business days after digital proof approval. Rush production may be available for qualifying projects." },
+      { title: "Can you help with artwork and dielines?", body: "Yes. We provide practical dieline and artwork guidance so your files are set up correctly before production." },
+      { title: "Do you ship across the USA and UK?", body: "Yes. We coordinate shipping options for brands across the USA and UK and can review delivery requirements with your quote." },
+    ],
+    primaryLabel: "Ask a question",
+  }),
+  "privacy-policy": modernPage({
+    eyebrow: "Privacy & Data",
+    title: "Your information should be handled with care.",
+    intro: "This policy explains what information Prime Packaging Boxes collects, why we use it, and the choices available to you.",
+    cards: [
+      { title: "Purpose limited", body: "We use information to respond to requests, provide services, and improve the customer experience." },
+      { title: "No surprise selling", body: "We do not sell personal information as part of our normal business operations." },
+      { title: "Questions welcome", body: "Contact us if you need to review, update, or understand information connected to your request." },
+    ],
+    sections: [
+      { title: "Information we collect", body: "We may collect contact details, project specifications, account information, communications, and technical information needed to operate our website and services." },
+      { title: "How we use information", body: "Information is used to answer inquiries, prepare quotes, process orders, provide support, maintain security, and improve our services." },
+      { title: "Your choices", body: "You may contact us to ask about your information, request corrections, or opt out of non-essential communications." },
+    ],
+  }),
+  "terms-and-conditions": modernPage({
+    eyebrow: "Terms & Conditions",
+    title: "Clear terms for confident projects.",
+    intro: "These terms outline how quotes, approvals, production, payments, delivery, and customer responsibilities work together.",
+    cards: [
+      { title: "Approve carefully", body: "Production begins after the customer approves the final artwork, dimensions, and specifications." },
+      { title: "Quotes are time-bound", body: "Pricing depends on specifications, quantity, materials, and shipping conditions." },
+      { title: "Communication matters", body: "Prompt approvals and accurate project information help protect your timeline." },
+    ],
+    sections: [
+      { title: "Quotes and orders", body: "Quotes are based on the specifications available at the time and may change if quantities, materials, artwork, or shipping requirements change." },
+      { title: "Artwork and approvals", body: "The customer is responsible for reviewing spelling, dimensions, colors, placement, and final proof details before approval." },
+      { title: "Payment and production", body: "Payment terms and production timing are confirmed with the project quote. Production timelines begin after required approvals and payment milestones are complete." },
+    ],
+  }),
+  "delivery-policy": modernPage({
+    eyebrow: "Delivery & Shipping",
+    title: "A clearer path from production to your door.",
+    intro: "We help you plan packaging delivery with practical timelines, shipping coordination, and proactive communication.",
+    cards: [
+      { title: "USA & UK delivery", body: "Shipping options are coordinated around your destination, quantity, and requested timeline." },
+      { title: "Trackable updates", body: "We share available shipment and delivery information as your order moves forward." },
+      { title: "Plan with confidence", body: "Your quote confirms the expected production and shipping assumptions for the project." },
+    ],
+    sections: [
+      { title: "Production comes first", body: "Standard production typically takes 7–10 business days after final proof approval. Timing may vary by structure, finish, quantity, and rush requirements." },
+      { title: "Shipping estimates", body: "Transit timing depends on the destination, carrier, service level, and order size. We confirm the best available option with your quote." },
+      { title: "Delivery questions", body: "If your shipment arrives damaged, delayed, or incomplete, contact our support team promptly with your order details and photos." },
+    ],
+  }),
+  "refund-return-policy": modernPage({
+    eyebrow: "Refunds & Returns",
+    title: "A fair resolution when something goes wrong.",
+    intro: "If a manufacturing issue or shipping problem affects your order, our support team will review the details and work toward a practical resolution.",
+    cards: [
+      { title: "Manufacturing defects", body: "Print, structure, material, or finishing issues can be reviewed against the approved proof." },
+      { title: "Transit damage", body: "Keep the packaging and take clear photos so the team can assess the shipment quickly." },
+      { title: "Fast next steps", body: "Qualifying claims may be resolved through a reprint, replacement, credit, or refund." },
+    ],
+    sections: [
+      { title: "Report an issue", body: "Contact us with your order number, delivery date, a description of the issue, and clear photos of the affected packaging." },
+      { title: "What we review", body: "We compare the delivered order with the approved artwork, dimensions, materials, and finish, while also reviewing any shipping damage." },
+      { title: "Resolution", body: "When a claim is confirmed, we will explain the available resolution and expected timing before moving forward." },
+    ],
+    primaryLabel: "Start a support request",
+  }),
+  "disclaimer": modernPage({
+    eyebrow: "Website Disclaimer",
+    title: "Useful information, clearly presented.",
+    intro: "The information on this website is provided for general guidance and should be confirmed against the specifications of your individual project.",
+    cards: [
+      { title: "Project-specific pricing", body: "Quotes depend on dimensions, quantity, materials, finishes, artwork, and delivery details." },
+      { title: "Visual references", body: "Colors and product images may vary by screen, lighting, photography, and final production." },
+      { title: "Ask before ordering", body: "Our team can confirm the details that matter for your packaging application." },
+    ],
+    sections: [
+      { title: "No substitute for project confirmation", body: "Website content is not a final quote, technical drawing, proof, or guarantee of suitability for a particular product." },
+      { title: "Third-party links", body: "Links to external websites are provided for convenience. Prime Packaging Boxes is not responsible for third-party content or availability." },
+      { title: "Need a definitive answer?", body: "Contact our team with your specifications so we can provide project-specific guidance." },
+    ],
+  }),
+  "request-sample": modernPage({
+    eyebrow: "Request a Sample",
+    title: "Feel the material before you commit.",
+    intro: "Request a sample conversation to explore structure, board, finish, print quality, and the right packaging direction for your product.",
+    cards: [
+      { title: "Review the structure", body: "Discuss the box style, dimensions, closures, inserts, and fit your product needs." },
+      { title: "Compare finishes", body: "Explore print, coating, texture, foil, embossing, windows, and other finishing options." },
+      { title: "Plan the next step", body: "Use the sample discussion to move toward a confident production-ready quote." },
+    ],
+    sections: [
+      { title: "What to include", body: "Share your product type, approximate dimensions, quantity, destination, and any reference images or artwork you already have." },
+      { title: "Sample timing", body: "Timing depends on the sample type and specifications. We will confirm the expected next step after reviewing your request." },
+      { title: "A sample is a decision tool", body: "The goal is to help you evaluate the feel, fit, and finish before committing to a production run." },
+    ],
+    primaryLabel: "Request a sample",
+  }),
+  "returns-claims-support": modernPage({
+    eyebrow: "Returns & Claims Support",
+    title: "We make it right when your order misses the mark.",
+    intro: "Our support team helps review manufacturing defects, incorrect items, transit damage, and other order issues with clear next steps.",
+    cards: [
+      { title: "1. Contact us", body: "Send your order number and a short description of the issue as soon as possible." },
+      { title: "2. Share photos", body: "Clear photos of the affected packaging help us understand and resolve the claim faster." },
+      { title: "3. Get a resolution", body: "We review the details and explain the available reprint, replacement, credit, or refund path." },
+    ],
+    sections: [
+      { title: "How to submit a claim", body: "Email support@primepackagingboxes.com with your order number, delivery date, issue description, and photos within 7 days of delivery whenever possible." },
+      { title: "Eligible issues", body: "Claims may include manufacturing defects, incorrect items, packaging that differs from the approved proof, or damage that occurred during transit." },
+      { title: "Resolution timeline", body: "Our team aims to respond within one business day and confirm the next step as quickly as the available information allows." },
+    ],
+    primaryLabel: "Start a support request",
+  }),
+};
+
+/* ════════════════════════════════════════════════════════════════
    SEED RUNNER
    ════════════════════════════════════════════════════════════════ */
 const PAGE_TITLES: Record<string, string> = {
@@ -545,7 +775,7 @@ async function main() {
   console.log("✓ Connected to database");
 
   let upserted = 0;
-  for (const [slug, html] of Object.entries(PAGE_HTML)) {
+  for (const [slug, html] of Object.entries(MODERN_PAGE_HTML)) {
     const title   = PAGE_TITLES[slug] ?? slug;
     const content = JSON.stringify({ gjs: { html: html.trim(), css: "" } });
     // UPSERT: insert if missing, force-update content if already there

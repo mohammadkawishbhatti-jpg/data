@@ -7,6 +7,15 @@ let cachedEnabled = false;
 let cachedCountries: string[] = [];
 let lastFetch = 0;
 
+function normalizeCountries(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(
+    value
+      .map(code => String(code).trim().toUpperCase())
+      .filter(code => /^[A-Z]{2}$/.test(code)),
+  )];
+}
+
 async function refreshCache() {
   try {
     const [s] = await db.select({
@@ -14,9 +23,15 @@ async function refreshCache() {
       blockedCountries: siteSettingsTable.blockedCountries,
     }).from(siteSettingsTable).limit(1);
     cachedEnabled = s?.countryBlockEnabled === "true";
-    cachedCountries = s?.blockedCountries ? JSON.parse(s.blockedCountries) : [];
+    cachedCountries = normalizeCountries(s?.blockedCountries ? JSON.parse(s.blockedCountries) : []);
   } catch {}
   lastFetch = Date.now();
+}
+
+/** Called after an admin saves settings so the next request uses new rules. */
+export function invalidateCountryBlockCache(): void {
+  lastFetch = 0;
+  void refreshCache();
 }
 
 // Lightweight IP → country lookup via free external API (cached per session)
@@ -53,7 +68,7 @@ export function countryBlockMiddleware(req: Request, res: Response, next: NextFu
   const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "";
 
   getCountryFromIp(ip).then(country => {
-    if (country && cachedCountries.includes(country)) {
+  if (country && cachedCountries.includes(country.toUpperCase())) {
       res.status(403).send(`
         <!DOCTYPE html>
         <html><head><title>Access Restricted</title></head>

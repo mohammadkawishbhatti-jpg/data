@@ -181,9 +181,9 @@ export default function HomePage() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[#e63329] animate-pulse" />
                 #1 Custom Packaging in the USA & UK
               </span>
-              <h1 className="font-display text-[2.1rem] md:text-[2.75rem] lg:text-[3.1rem] font-bold text-white leading-[1.12] mb-5">
-                Packaging That Makes<br />
-                <span className="text-[#e63329] italic">Your Brand Unforgettable</span>
+              <h1 className="font-display text-[2.35rem] sm:text-[2.7rem] md:text-[3.45rem] lg:text-[4rem] font-extrabold text-white leading-[1.04] mb-6 max-w-[680px]">
+                Packaging that makes
+                <span className="block">your brand <span className="text-[#ff6b63]">unforgettable.</span></span>
               </h1>
               <p className="text-white/85 text-base md:text-lg max-w-xl mb-8 leading-relaxed">
                 Premium custom boxes with free design support, 100-unit minimums, and 7–10 day turnaround. Over 500 brands across the USA &amp; UK trust Prime Packaging to elevate their unboxing experience.

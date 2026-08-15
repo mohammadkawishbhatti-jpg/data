@@ -4,6 +4,7 @@ import { quotesTable, leadsTable, productsTable, categoriesTable, blogPostsTable
 import { eq, count, desc, sql, and, gte } from "drizzle-orm";
 import { AdminLoginBody, UpdateSettingsBody } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/auth";
+import { invalidateCountryBlockCache } from "../middlewares/countryBlock";
 
 const router = Router();
 
@@ -261,6 +262,9 @@ async function handleUpdateSettings(req: any, res: any) {
       [row] = await db.update(siteSettingsTable).set(data as any).where(eq(siteSettingsTable.id, existing.id)).returning();
     } else {
       [row] = await db.insert(siteSettingsTable).values(data as any).returning();
+    }
+    if (body.countryBlockEnabled !== undefined || body.blockedCountries !== undefined) {
+      invalidateCountryBlockCache();
     }
     res.json(row);
   } catch (e) {

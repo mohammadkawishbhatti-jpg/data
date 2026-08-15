@@ -272,7 +272,13 @@ html, body {
 
 /* ── Display font ───────────────────────────────────────────────────────────── */
 .font-display {
-  font-family: 'DM Serif Display', Georgia, 'Times New Roman', serif;
+  /*
+   * Keep display type in the same modern sans family as the rest of the
+   * storefront. DM Serif Display was not loaded on this app, so it silently
+   * fell back to Georgia and made the hero feel like a different brand.
+   */
+  font-family: 'Outfit', var(--app-font-sans), sans-serif;
+  letter-spacing: -0.035em;
 }
 
 /* ── CTA button shimmer sweep on hover ─────────────────────────────────────── */

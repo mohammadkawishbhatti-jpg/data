@@ -1,75 +1,89 @@
-import { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef, useEffect, memo, type ElementType } from "react";
 import { Link, useLocation } from "wouter";
 import { useSettings } from "../../context/SettingsContext";
 import {
-  Menu, X, Phone, Mail, ChevronDown, ArrowRight, Package,
-  Flame, Star, Palette, Truck, Zap, CheckCircle2, Leaf, Award, User,
+  Menu,
+  X,
+  Phone,
+  Mail,
+  ChevronDown,
+  ArrowRight,
+  Package,
+  Flame,
+  Star,
+  Palette,
+  Truck,
+  Zap,
+  CheckCircle2,
+  Leaf,
+  Award,
+  User,
 } from "lucide-react";
 
-/* ─── Mega-menu data ─────────────────────────────────────────── */
 const BY_INDUSTRY = [
-  { label: "Apparel Boxes",    slug: "apparel-boxes" },
-  { label: "Bakery Boxes",     slug: "bakery-boxes" },
-  { label: "Bottle Boxes",     slug: "bottle-boxes" },
-  { label: "Candle Boxes",     slug: "candle-boxes" },
-  { label: "CBD Boxes",        slug: "cbd-boxes" },
-  { label: "Cereal Boxes",     slug: "cereal-boxes" },
+  { label: "Apparel Boxes", slug: "apparel-boxes" },
+  { label: "Bakery Boxes", slug: "bakery-boxes" },
+  { label: "Bottle Boxes", slug: "bottle-boxes" },
+  { label: "Candle Boxes", slug: "candle-boxes" },
+  { label: "CBD Boxes", slug: "cbd-boxes" },
+  { label: "Cereal Boxes", slug: "cereal-boxes" },
   { label: "Coffee Packaging", slug: "coffee-packaging" },
-  { label: "Display Boxes",    slug: "display-boxes" },
-  { label: "Food Boxes",       slug: "food-boxes" },
-  { label: "Mailer Boxes",     slug: "mailer-boxes" },
-  { label: "Medicine Boxes",   slug: "medicine-boxes" },
-  { label: "Retail Boxes",     slug: "retail-boxes" },
-  { label: "Shipping Boxes",   slug: "shipping-boxes" },
-  { label: "Soap Boxes",       slug: "soap-boxes" },
-  { label: "Gable Boxes",      slug: "gable-boxes" },
-  { label: "Product Boxes",    slug: "product-boxes" },
+  { label: "Display Boxes", slug: "display-boxes" },
+  { label: "Food Boxes", slug: "food-boxes" },
+  { label: "Mailer Boxes", slug: "mailer-boxes" },
+  { label: "Medicine Boxes", slug: "medicine-boxes" },
+  { label: "Retail Boxes", slug: "retail-boxes" },
+  { label: "Shipping Boxes", slug: "shipping-boxes" },
+  { label: "Soap Boxes", slug: "soap-boxes" },
+  { label: "Gable Boxes", slug: "gable-boxes" },
+  { label: "Product Boxes", slug: "product-boxes" },
 ];
 
 const HOT_SELLING = [
-  { label: "Christmas Boxes",   slug: "christmas-boxes" },
+  { label: "Christmas Boxes", slug: "christmas-boxes" },
   { label: "Custom Paper Bags", slug: "custom-paper-bags" },
-  { label: "Jewelry Boxes",     slug: "jewelry-boxes" },
-  { label: "Pillow Boxes",      slug: "pillow-boxes" },
-  { label: "Pizza Boxes",       slug: "pizza-boxes" },
-  { label: "Tea Packaging",     slug: "tea-packaging" },
-  { label: "Trays & Sleeves",   slug: "trays-and-sleeves" },
-  { label: "Window Packaging",  slug: "window-packaging" },
-  { label: "Stationery Boxes",  slug: "stationery-boxes" },
-  { label: "Cigarette Boxes",   slug: "cigarette-boxes" },
+  { label: "Jewelry Boxes", slug: "jewelry-boxes" },
+  { label: "Pillow Boxes", slug: "pillow-boxes" },
+  { label: "Pizza Boxes", slug: "pizza-boxes" },
+  { label: "Tea Packaging", slug: "tea-packaging" },
+  { label: "Trays & Sleeves", slug: "trays-and-sleeves" },
+  { label: "Window Packaging", slug: "window-packaging" },
+  { label: "Stationery Boxes", slug: "stationery-boxes" },
+  { label: "Cigarette Boxes", slug: "cigarette-boxes" },
 ];
 
 const BOX_BY_STYLE = [
-  { label: "Cardboard Boxes",    slug: "cardboard-boxes" },
-  { label: "Corrugated Boxes",   slug: "corrugated-boxes" },
+  { label: "Cardboard Boxes", slug: "cardboard-boxes" },
+  { label: "Corrugated Boxes", slug: "corrugated-boxes" },
   { label: "Custom Kraft Boxes", slug: "custom-kraft-boxes" },
   { label: "Eco-Friendly Boxes", slug: "eco-friendly-boxes" },
-  { label: "Cosmetic Boxes",     slug: "cosmetic-boxes" },
-  { label: "Chocolate Boxes",    slug: "chocolate-boxes" },
-  { label: "Labels & Stickers",  slug: "labels-and-stickers" },
-  { label: "Custom Mylar Bags",  slug: "custom-mylar-bags" },
-  { label: "Rigid Boxes",        slug: "rigid-boxes" },
-  { label: "Gift Boxes",         slug: "gift-boxes" },
+  { label: "Cosmetic Boxes", slug: "cosmetic-boxes" },
+  { label: "Chocolate Boxes", slug: "chocolate-boxes" },
+  { label: "Labels & Stickers", slug: "labels-and-stickers" },
+  { label: "Custom Mylar Bags", slug: "custom-mylar-bags" },
+  { label: "Rigid Boxes", slug: "rigid-boxes" },
+  { label: "Gift Boxes", slug: "gift-boxes" },
 ];
 
 const FEATURED_IN_MENU = [
-  { img: "/api/uploads/custom-cake-boxes.webp",                   label: "Cake Boxes",         slug: "custom-cake-boxes" },
-  { img: "/api/uploads/luxury-chocolate-boxes.webp",              label: "Chocolate Boxes",    slug: "luxury-chocolate-boxes" },
-  { img: "/api/uploads/custom-kraft-boxes-wholesale.webp",        label: "Kraft Boxes",        slug: "custom-kraft-boxes" },
-  { img: "/api/uploads/printed-magnetic-closure-boxes-bulk.webp", label: "Magnetic Boxes",     slug: "custom-magnetic-closure-boxes" },
+  { img: "/api/uploads/custom-cake-boxes.webp", label: "Cake Boxes", slug: "custom-cake-boxes" },
+  { img: "/api/uploads/luxury-chocolate-boxes.webp", label: "Chocolate Boxes", slug: "luxury-chocolate-boxes" },
+  { img: "/api/uploads/custom-kraft-boxes-wholesale.webp", label: "Kraft Boxes", slug: "custom-kraft-boxes" },
+  { img: "/api/uploads/printed-magnetic-closure-boxes-bulk.webp", label: "Magnetic Boxes", slug: "custom-magnetic-closure-boxes" },
 ];
 
-/* ─── Marquee items ──────────────────────────────────────────── */
-const TICKER: { Icon: React.ElementType; text: string }[] = [
-  { Icon: Truck,        text: "Free Shipping — USA & UK" },
-  { Icon: Zap,          text: "7–10 Day Turnaround" },
-  { Icon: Palette,      text: "Free Design Support" },
-  { Icon: Package,      text: "100 Unit Minimum" },
+const TICKER: { Icon: ElementType; text: string }[] = [
+  { Icon: Truck, text: "Free Shipping — USA & UK" },
+  { Icon: Zap, text: "7–10 Day Turnaround" },
+  { Icon: Palette, text: "Free Design Support" },
+  { Icon: Package, text: "100 Unit Minimum" },
   { Icon: CheckCircle2, text: "100% Quality Guarantee" },
-  { Icon: Leaf,         text: "FSC Certified Materials" },
-  { Icon: Award,        text: "500+ Happy Brands" },
-  { Icon: Star,         text: "4.9 Star Rating" },
+  { Icon: Leaf, text: "FSC Certified Materials" },
+  { Icon: Award, text: "500+ Happy Brands" },
+  { Icon: Star, text: "4.9 Star Rating" },
 ];
+
+const LOGO_SRC = "https://www.primepackagingboxes.com/wp-content/uploads/2026/04/PRIME-PACKAGING-BOXES-3.svg";
 
 function _Header() {
   const { phone, email } = useSettings();
@@ -79,356 +93,260 @@ function _Header() {
   const [mobileProdOpen, setMobileProdOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const dropRef = useRef<HTMLDivElement>(null);
+  const [logoFailed, setLogoFailed] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setScrolled(window.scrollY > 12);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const openDrop  = () => { if (timerRef.current) clearTimeout(timerRef.current); setDropOpen(true); };
-  const closeDrop = () => { timerRef.current = setTimeout(() => setDropOpen(false), 140); };
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+  useEffect(() => {
+    if (!mobileOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
 
-  const closeAll = () => { setMobileOpen(false); setMobileProdOpen(false); setDropOpen(false); };
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
+  const openDrop = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setDropOpen(true);
+  };
+
+  const closeDrop = () => {
+    timerRef.current = setTimeout(() => setDropOpen(false), 120);
+  };
+
+  const closeAll = () => {
+    setMobileOpen(false);
+    setMobileProdOpen(false);
+    setDropOpen(false);
+  };
+
   const isActive = (href: string) => location === href;
 
   return (
-    <header className="sticky top-0 z-50">
-
-      {/* ── TOP BAR ── */}
-      <div className="bg-[#0d1f3c] text-white overflow-hidden relative" style={{ height: "28px" }}>
-        <div className="flex items-center h-full">
-          <div
-            className="flex gap-0 whitespace-nowrap"
-            style={{ animation: "ticker 36s linear infinite" }}
-          >
-            {[...TICKER, ...TICKER].map(({ Icon, text }, i) => (
-              <span key={i} className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold text-white/80 px-5">
-                <Icon className="w-3 h-3 text-white/60 shrink-0" />
+    <header className="sticky top-0 z-50 font-sans">
+      <div className="header-trust-rail bg-[#112b4b] text-white">
+        <div className="mx-auto flex h-8 max-w-[1440px] items-center overflow-hidden px-4 sm:px-6 lg:px-8">
+          <div className="header-ticker flex min-w-max items-center">
+            {[...TICKER, ...TICKER].map(({ Icon, text }, index) => (
+              <span key={`${text}-${index}`} className="inline-flex items-center gap-2 px-5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70 first:pl-0">
+                <Icon className="h-3 w-3 shrink-0 text-[#f1b45a]" strokeWidth={1.8} />
                 {text}
-                <span className="text-white/20 ml-4">|</span>
               </span>
             ))}
           </div>
-        </div>
-        <div className="absolute right-0 top-0 h-full hidden lg:flex items-center gap-5 pl-8 pr-5 border-l border-white/10"
-          style={{ backgroundImage: "linear-gradient(to right, transparent, #0d1f3c 20%)", background: "#0d1f3c" }}>
-          <a href={telLink} className="flex items-center gap-1.5 text-[10.5px] font-bold text-white/70 hover:text-white transition-colors">
-            <Phone className="w-3 h-3" /> {phone}
-          </a>
-          <a href={`mailto:${email}`} className="flex items-center gap-1.5 text-[10.5px] text-white/60 hover:text-white transition-colors">
-            <Mail className="w-3 h-3" /> {email}
-          </a>
+          <div className="ml-auto hidden shrink-0 items-center gap-5 border-l border-white/15 bg-[#112b4b] pl-6 text-[10px] font-medium tracking-[0.04em] lg:flex">
+            <a href={telLink} className="inline-flex items-center gap-1.5 text-white/75 transition-colors hover:text-white">
+              <Phone className="h-3 w-3 text-[#f1b45a]" /> {phone}
+            </a>
+            <a href={`mailto:${email}`} className="inline-flex items-center gap-1.5 text-white/60 transition-colors hover:text-white">
+              <Mail className="h-3 w-3 text-[#f1b45a]" /> {email}
+            </a>
+          </div>
         </div>
       </div>
 
-      {/* ── MAIN NAV ── */}
-      <div className={`transition-all duration-300 ${scrolled ? "bg-white/95 backdrop-blur-md shadow-[0_2px_24px_rgba(0,0,0,0.11)]" : "bg-white shadow-[0_1px_0_#e5e7eb]"}`}>
-        <div className="container mx-auto px-4 h-[68px] flex items-center justify-between gap-6">
-
-          {/* Logo */}
-          <Link href="/" onClick={closeAll} className="shrink-0 flex items-center">
-            <img
-              src="https://www.primepackagingboxes.com/wp-content/uploads/2026/04/PRIME-PACKAGING-BOXES-3.svg"
-              alt="Prime Packaging Boxes"
-              className="h-[52px] w-auto"
-              onError={(e) => {
-                const t = e.target as HTMLImageElement;
-                t.style.display = "none";
-                const d = document.createElement("div");
-                d.innerHTML = `<div style="display:flex;align-items:center;gap:8px"><div style="background:#e63329;color:white;font-weight:900;font-size:17px;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(230,51,41,0.35)">P</div><div><div style="font-weight:800;font-size:12px;color:#1a2f5a;letter-spacing:0.06em;line-height:1.2">PRIME PACKAGING<br/>BOXES</div><div style="font-size:8px;color:#aaa;letter-spacing:0.18em;text-transform:uppercase;margin-top:1px">Next Level Packaging</div></div></div>`;
-                t.parentElement?.appendChild(d.firstElementChild!);
-              }}
-            />
+      <div className={`border-b transition-all duration-300 ${scrolled ? "border-[#dce4eb]/80 bg-[#fbfcfd]/95 shadow-[0_10px_30px_rgba(17,43,75,0.09)] backdrop-blur-md" : "border-[#e5ebf0] bg-[#fbfcfd]"}`}>
+        <div className="mx-auto flex h-[74px] max-w-[1440px] items-center gap-5 px-4 sm:px-6 lg:px-8">
+          <Link href="/" onClick={closeAll} className="group shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3483e] focus-visible:ring-offset-2">
+            {logoFailed ? (
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e3483e] text-lg font-black text-white shadow-[0_5px_14px_rgba(227,72,62,0.24)]">P</div>
+                <div className="leading-[1.08]">
+                  <div className="text-[12px] font-extrabold tracking-[0.08em] text-[#183654]">PRIME PACKAGING</div>
+                  <div className="text-[12px] font-extrabold tracking-[0.08em] text-[#183654]">BOXES</div>
+                  <div className="mt-1 text-[7px] font-bold uppercase tracking-[0.2em] text-[#768696]">Next Level Packaging</div>
+                </div>
+              </div>
+            ) : (
+              <img src={LOGO_SRC} alt="Prime Packaging Boxes" className="h-[48px] w-auto transition-transform duration-200 group-hover:scale-[1.02]" onError={() => setLogoFailed(true)} />
+            )}
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-0.5 flex-1 justify-center">
+          <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex" aria-label="Primary navigation">
             <NavLink href="/" label="Home" active={isActive("/")} onClick={closeAll} />
-            <NavLink href="/faq" label="FAQ" active={isActive("/faq")} onClick={closeAll} />
-
-            {/* Products mega-menu */}
-            <div ref={dropRef} className="relative" onMouseEnter={openDrop} onMouseLeave={closeDrop}>
+            <div className="relative" onMouseEnter={openDrop} onMouseLeave={closeDrop}>
               <button
-                className={`flex items-center gap-1 px-3.5 py-1.5 rounded-lg font-semibold text-sm transition-colors ${dropOpen ? "text-[#e63329] bg-[#e63329]/6" : "text-gray-700 hover:text-[#e63329] hover:bg-gray-50"}`}
+                type="button"
+                aria-expanded={dropOpen}
+                aria-haspopup="true"
+                onClick={() => setDropOpen((open) => !open)}
+                className={`nav-link-ul inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-bold transition-colors ${dropOpen ? "bg-[#e3483e]/[0.07] text-[#d93c34]" : "text-[#30465c] hover:bg-[#edf2f5] hover:text-[#d93c34]"}`}
               >
                 Products
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${dropOpen ? "rotate-180 text-[#e63329]" : ""}`} />
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${dropOpen ? "rotate-180 text-[#e3483e]" : "text-[#8291a0]"}`} />
               </button>
-
               {dropOpen && (
                 <div
-                  className="fixed z-[9999]"
-                  style={{
-                    top: "96px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    width: "min(1080px, calc(100vw - 32px))",
-                    boxShadow: "0 32px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.07)",
-                    borderRadius: "16px",
-                    overflow: "hidden",
-                    animation: "megaFadeIn 0.18s ease-out",
-                  }}
+                  className="absolute left-1/2 top-[calc(100%+15px)] z-[9999] w-[min(1120px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-2xl border border-[#dfe7ed] bg-[#fbfcfd] shadow-[0_25px_70px_rgba(17,43,75,0.19)]"
                   onMouseEnter={openDrop}
                   onMouseLeave={closeDrop}
+                  style={{ animation: "megaFadeIn 180ms ease-out both" }}
                 >
-                  {/* Top bar */}
-                  <div className="bg-[#0d1f3c] px-7 py-3 flex items-center justify-between">
+                  <div className="flex items-center justify-between bg-[#112b4b] px-7 py-3.5">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-6 h-6 bg-[#e63329] rounded-md flex items-center justify-center">
-                        <Package className="w-3.5 h-3.5 text-white" />
-                      </div>
-                      <span className="text-white font-bold text-sm tracking-wide">All Custom Packaging Products</span>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#e3483e] text-white"><Package className="h-3.5 w-3.5" /></span>
+                      <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-white/90">Custom packaging, organized</span>
                     </div>
-                    <Link href="/products" onClick={closeAll}
-                      className="flex items-center gap-1.5 text-xs font-bold text-[#FFB800] hover:text-yellow-300 transition-colors">
-                      View All Products <ArrowRight className="w-3.5 h-3.5" />
+                    <Link href="/products" onClick={closeAll} className="inline-flex items-center gap-1.5 text-xs font-bold text-[#f1b45a] transition-colors hover:text-white">
+                      View all products <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>
-
-                  {/* Body — CSS grid: 3 equal link cols + 1 featured col */}
-                  <div className="bg-white" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 260px" }}>
-
-                    {/* Col 1 — By Industry */}
-                    <div style={{ padding: "20px 16px 20px 20px", borderRight: "1px solid #f3f4f6" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, paddingBottom: 10, borderBottom: "2px solid #eff6ff" }}>
-                        <div style={{ width: 24, height: 24, background: "#eff6ff", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <Package size={13} color="#3b82f6" />
-                        </div>
-                        <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.14em", color: "#3b82f6" }}>By Industry</span>
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1px 8px" }}>
-                        {BY_INDUSTRY.map(item => (
-                          <Link key={item.slug} href={`/${item.slug}`} onClick={closeAll}
-                            style={{ display: "block", padding: "5px 8px", borderRadius: 6, fontSize: 12, color: "#4b5563", textDecoration: "none", transition: "background 0.15s, color 0.15s", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                            onMouseEnter={e => { (e.target as HTMLElement).style.background = "#fef2f2"; (e.target as HTMLElement).style.color = "#e63329"; }}
-                            onMouseLeave={e => { (e.target as HTMLElement).style.background = "transparent"; (e.target as HTMLElement).style.color = "#4b5563"; }}>
-                            {item.label}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Col 2 — Hot Selling */}
-                    <div style={{ padding: "20px 16px", borderRight: "1px solid #f3f4f6" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, paddingBottom: 10, borderBottom: "2px solid #fff7ed" }}>
-                        <div style={{ width: 24, height: 24, background: "#fff7ed", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <Flame size={13} color="#f97316" />
-                        </div>
-                        <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.14em", color: "#f97316" }}>Hot Selling</span>
-                      </div>
-                      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                        {HOT_SELLING.map(item => (
-                          <li key={item.slug}>
-                            <Link href={`/${item.slug}`} onClick={closeAll}
-                              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 8px", borderRadius: 6, fontSize: 12.5, color: "#4b5563", textDecoration: "none", transition: "background 0.15s, color 0.15s" }}
-                              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#fef2f2"; el.style.color = "#e63329"; const arrow = el.querySelector("svg") as SVGElement | null; if (arrow) { arrow.style.opacity = "1"; arrow.style.color = "#e63329"; } }}
-                              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "#4b5563"; const arrow = el.querySelector("svg") as SVGElement | null; if (arrow) { arrow.style.opacity = "0"; } }}>
-                              <span>{item.label}</span>
-                              <ArrowRight size={11} color="#e63329" style={{ opacity: 0, flexShrink: 0, transition: "opacity 0.15s" }} />
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Col 3 — By Style */}
-                    <div style={{ padding: "20px 16px", borderRight: "1px solid #f3f4f6" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, paddingBottom: 10, borderBottom: "2px solid #faf5ff" }}>
-                        <div style={{ width: 24, height: 24, background: "#faf5ff", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <Palette size={13} color="#a855f7" />
-                        </div>
-                        <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.14em", color: "#a855f7" }}>By Style / Material</span>
-                      </div>
-                      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                        {BOX_BY_STYLE.map(item => (
-                          <li key={item.slug}>
-                            <Link href={`/${item.slug}`} onClick={closeAll}
-                              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 8px", borderRadius: 6, fontSize: 12.5, color: "#4b5563", textDecoration: "none", transition: "background 0.15s, color 0.15s" }}
-                              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#fef2f2"; el.style.color = "#e63329"; const arrow = el.querySelector("svg") as SVGElement | null; if (arrow) { arrow.style.opacity = "1"; } }}
-                              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "#4b5563"; const arrow = el.querySelector("svg") as SVGElement | null; if (arrow) { arrow.style.opacity = "0"; } }}>
-                              <span>{item.label}</span>
-                              <ArrowRight size={11} color="#e63329" style={{ opacity: 0, flexShrink: 0, transition: "opacity 0.15s" }} />
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Col 4 — Featured + Promo */}
-                    <div style={{ padding: "20px 16px", background: "#f9fafb", display: "flex", flexDirection: "column" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, paddingBottom: 10, borderBottom: "2px solid #fefce8" }}>
-                        <div style={{ width: 24, height: 24, background: "#fefce8", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <Star size={13} color="#eab308" fill="#eab308" />
-                        </div>
-                        <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.14em", color: "#ca8a04" }}>Featured</span>
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                        {FEATURED_IN_MENU.map(f => (
-                          <Link key={f.slug} href={`/${f.slug}`} onClick={closeAll}
-                            style={{ display: "block", background: "#fff", borderRadius: 10, border: "1px solid #e5e7eb", overflow: "hidden", textDecoration: "none", transition: "box-shadow 0.2s, border-color 0.2s" }}
-                            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.boxShadow = "0 4px 16px rgba(230,51,41,0.15)"; el.style.borderColor = "rgba(230,51,41,0.4)"; }}
-                            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.boxShadow = "none"; el.style.borderColor = "#e5e7eb"; }}>
-                            <div style={{ aspectRatio: "4/3", overflow: "hidden", background: "#f3f4f6" }}>
-                              <img src={f.img} alt={f.label} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
-                                onMouseEnter={e => { (e.target as HTMLElement).style.transform = "scale(1.07)"; }}
-                                onMouseLeave={e => { (e.target as HTMLElement).style.transform = "scale(1)"; }}
-                                onError={e => { (e.target as HTMLImageElement).style.opacity = "0.2"; }} />
-                            </div>
-                            <div style={{ padding: "7px 8px", fontSize: 11, fontWeight: 600, color: "#374151" }}>{f.label}</div>
-                          </Link>
-                        ))}
-                      </div>
-                      {/* Promo */}
-                      <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid rgba(26,47,90,0.15)", marginTop: "auto" }}>
-                        <div style={{ background: "#1a2f5a", padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 10 }}>
-                          <div style={{ width: 28, height: 28, background: "#e63329", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <Palette size={13} color="#fff" />
-                          </div>
-                          <div>
-                            <div style={{ color: "#fff", fontWeight: 700, fontSize: 12, lineHeight: 1.3 }}>Free Design Support</div>
-                            <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 10.5, marginTop: 3, lineHeight: 1.5 }}>In-house designers, unlimited revisions, no charge.</div>
-                          </div>
-                        </div>
-                        <Link href="/get-a-quote" onClick={closeAll}
-                          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "#e63329", color: "#fff", fontSize: 11.5, fontWeight: 700, padding: "9px 0", textDecoration: "none", transition: "background 0.15s" }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#c42a21"; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#e63329"; }}>
-                          Get a Free Quote <ArrowRight size={12} />
-                        </Link>
-                      </div>
-                    </div>
-
+                  <div className="grid grid-cols-[1fr_1fr_1fr_272px]">
+                    <MenuColumn title="By industry" tone="blue" Icon={Package} items={BY_INDUSTRY} onSelect={closeAll} />
+                    <MenuColumn title="Hot selling" tone="orange" Icon={Flame} items={HOT_SELLING} onSelect={closeAll} />
+                    <MenuColumn title="By style / material" tone="purple" Icon={Palette} items={BOX_BY_STYLE} onSelect={closeAll} />
+                    <FeaturedColumn onSelect={closeAll} />
                   </div>
                 </div>
               )}
             </div>
-
-            <NavLink href="/blog"    label="Blog"    active={isActive("/blog")}    onClick={closeAll} />
-            <NavLink href="/about"   label="About"   active={isActive("/about")}   onClick={closeAll} />
+            <NavLink href="/faq" label="FAQ" active={isActive("/faq")} onClick={closeAll} />
+            <NavLink href="/blog" label="Blog" active={isActive("/blog")} onClick={closeAll} />
+            <NavLink href="/about" label="About" active={isActive("/about")} onClick={closeAll} />
             <NavLink href="/contact" label="Contact" active={isActive("/contact")} onClick={closeAll} />
           </nav>
 
-          {/* Desktop CTA group */}
-          <div className="hidden lg:flex items-center gap-3 shrink-0">
-            <a href="/customer-portal/"
-              className="flex items-center gap-1.5 text-xs font-bold text-[#1a2f5a] bg-blue-50 border border-blue-200 hover:bg-blue-100 hover:text-[#e63329] transition-all px-3 py-1.5 rounded-lg">
-              <User className="w-3.5 h-3.5" /> Customer Portal
+          <div className="ml-auto hidden shrink-0 items-center gap-2.5 lg:flex">
+            <a href="/customer-portal/" className="inline-flex items-center gap-1.5 rounded-lg border border-[#d9e3eb] bg-white px-3 py-2 text-[11px] font-bold text-[#24415d] transition-colors hover:border-[#b9cbd8] hover:bg-[#f2f6f8] hover:text-[#d93c34]">
+              <User className="h-3.5 w-3.5" /> Portal
             </a>
-            <Link href="/request-sample" onClick={closeAll}
-              className="text-xs font-bold text-gray-500 hover:text-[#e63329] transition-colors px-3 py-1.5">
-              Free Samples
-            </Link>
-            <a href={telLink}
-              className="flex items-center gap-1.5 text-sm font-bold text-[#1a2f5a] hover:text-[#e63329] transition-colors">
-              <Phone className="w-4 h-4" /> {phone}
-            </a>
-            <Link href="/get-a-quote" onClick={closeAll}
-              className="bg-[#e63329] hover:bg-[#c42a21] text-white px-4 py-2 rounded-lg font-bold text-sm transition-all shadow-[0_4px_14px_rgba(230,51,41,0.35)] hover:shadow-[0_4px_20px_rgba(230,51,41,0.45)] flex items-center gap-1.5">
-              Get a Quote <ArrowRight className="w-3.5 h-3.5" />
+            <Link href="/request-sample" onClick={closeAll} className="px-2 py-2 text-[11px] font-bold text-[#637487] transition-colors hover:text-[#d93c34]">Free samples</Link>
+            <Link href="/get-a-quote" onClick={closeAll} className="btn-shimmer inline-flex items-center gap-2 rounded-lg bg-[#e3483e] px-4 py-2.5 text-[12px] font-extrabold text-white shadow-[0_6px_16px_rgba(227,72,62,0.2)] transition-all hover:bg-[#cf3932] hover:shadow-[0_8px_20px_rgba(227,72,62,0.27)]">
+              Get a quote <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
-          {/* Mobile hamburger */}
-          <button
-            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-[#1a2f5a] hover:bg-gray-100 transition-colors"
-            onClick={() => setMobileOpen(v => !v)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          <button type="button" className="ml-auto flex h-10 w-10 items-center justify-center rounded-lg border border-[#dce5eb] text-[#183654] transition-colors hover:bg-[#eef3f6] lg:hidden" onClick={() => setMobileOpen((open) => !open)} aria-label={mobileOpen ? "Close menu" : "Open menu"} aria-expanded={mobileOpen}>
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
-      {/* ── MOBILE DRAWER ── */}
       {mobileOpen && (
-        <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-2xl max-h-[85vh] overflow-y-auto">
-          <nav className="flex flex-col divide-y divide-gray-100">
-            <Link href="/" onClick={closeAll} className="px-5 py-4 font-semibold text-gray-800 hover:text-[#e63329] flex items-center justify-between">
-              Home
-            </Link>
-            <div>
-              <button onClick={() => setMobileProdOpen(v => !v)}
-                className="w-full flex items-center justify-between px-5 py-4 font-semibold text-gray-800 hover:text-[#e63329]">
-                Products
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${mobileProdOpen ? "rotate-180 text-[#e63329]" : "text-gray-400"}`} />
-              </button>
-              {mobileProdOpen && (
-                <div className="bg-gray-50 px-5 pb-5 pt-1">
-                  <div className="grid grid-cols-1 gap-4">
+        <div className="absolute inset-x-0 top-full z-[60] h-[calc(100dvh-106px)] lg:hidden">
+          <button type="button" className="absolute inset-0 bg-[#112b4b]/35 backdrop-blur-[2px]" onClick={closeAll} aria-label="Close navigation" />
+          <aside className="absolute bottom-0 right-0 top-0 flex w-[min(410px,100%)] flex-col overflow-y-auto border-l border-[#dce5eb] bg-[#fbfcfd] shadow-[-20px_0_60px_rgba(17,43,75,0.18)]" style={{ animation: "drawerIn 220ms ease-out both" }}>
+            <div className="flex items-center justify-between border-b border-[#e5ebf0] px-5 py-4">
+              <div>
+                <div className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#e3483e]">Prime Packaging Boxes</div>
+                <div className="mt-1 text-sm font-semibold text-[#183654]">What are you building?</div>
+              </div>
+              <button type="button" onClick={closeAll} className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#dce5eb] text-[#637487] hover:bg-[#eef3f6]" aria-label="Close menu"><X className="h-4 w-4" /></button>
+            </div>
+            <nav className="divide-y divide-[#e7edf1]" aria-label="Mobile navigation">
+              <MobileLink href="/" label="Home" onClick={closeAll} />
+              <div>
+                <button type="button" onClick={() => setMobileProdOpen((open) => !open)} className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-bold text-[#243f59] hover:text-[#d93c34]">
+                  Products <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${mobileProdOpen ? "rotate-180 text-[#e3483e]" : "text-[#8393a2]"}`} />
+                </button>
+                {mobileProdOpen && (
+                  <div className="space-y-5 bg-[#f1f5f7] px-5 pb-5 pt-1">
                     {[
-                      { heading: "By Industry", items: BY_INDUSTRY },
-                      { heading: "Hot Selling", items: HOT_SELLING },
-                      { heading: "By Style", items: BOX_BY_STYLE },
-                    ].map(section => (
+                      { heading: "By industry", items: BY_INDUSTRY },
+                      { heading: "Hot selling", items: HOT_SELLING },
+                      { heading: "By style / material", items: BOX_BY_STYLE },
+                    ].map((section) => (
                       <div key={section.heading}>
-                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{section.heading}</div>
-                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                          {section.items.map(item => (
-                            <Link key={item.slug} href={`/${item.slug}`} onClick={closeAll}
-                              className="text-sm text-gray-600 hover:text-[#e63329] py-0.5">
-                              {item.label}
-                            </Link>
-                          ))}
+                        <div className="mb-2.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#7b8a99]">{section.heading}</div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                          {section.items.map((item) => <Link key={item.slug} href={`/${item.slug}`} onClick={closeAll} className="text-[13px] font-medium text-[#4d6377] transition-colors hover:text-[#d93c34]">{item.label}</Link>)}
                         </div>
                       </div>
                     ))}
+                    <Link href="/products" onClick={closeAll} className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#e3483e]">View all products <ArrowRight className="h-3.5 w-3.5" /></Link>
                   </div>
-                  <Link href="/products" onClick={closeAll}
-                    className="inline-flex items-center gap-1.5 mt-4 text-sm font-bold text-[#e63329]">
-                    <ArrowRight className="w-4 h-4" /> View All Products
-                  </Link>
-                </div>
-              )}
+                )}
+              </div>
+              <MobileLink href="/faq" label="FAQ" onClick={closeAll} />
+              <MobileLink href="/blog" label="Blog" onClick={closeAll} />
+              <MobileLink href="/about" label="About" onClick={closeAll} />
+              <MobileLink href="/contact" label="Contact" onClick={closeAll} />
+              <MobileLink href="/request-sample" label="Free samples" onClick={closeAll} />
+              <a href="/customer-portal/" onClick={closeAll} className="flex items-center gap-2 px-5 py-4 text-sm font-bold text-[#244f78] hover:text-[#d93c34]"><User className="h-4 w-4" /> Customer portal</a>
+            </nav>
+            <div className="mt-auto space-y-2.5 border-t border-[#dce5eb] bg-[#eef3f5] p-5">
+              <a href={telLink} className="flex items-center justify-center gap-2 rounded-lg border border-[#b9cbd8] bg-[#fbfcfd] px-4 py-3 text-sm font-bold text-[#183654] transition-colors hover:border-[#183654]"><Phone className="h-4 w-4" /> {phone}</a>
+              <a href={`mailto:${email}`} className="flex items-center justify-center gap-2 px-2 py-1 text-xs font-semibold text-[#637487] hover:text-[#d93c34]"><Mail className="h-3.5 w-3.5" /> {email}</a>
+              <Link href="/get-a-quote" onClick={closeAll} className="btn-shimmer flex items-center justify-center gap-2 rounded-lg bg-[#e3483e] px-4 py-3 text-sm font-extrabold text-white shadow-[0_7px_18px_rgba(227,72,62,0.22)]">Get a free quote <ArrowRight className="h-4 w-4" /></Link>
             </div>
-            <Link href="/faq"     onClick={closeAll} className="px-5 py-4 font-semibold text-gray-800 hover:text-[#e63329]">FAQ</Link>
-            <Link href="/blog"    onClick={closeAll} className="px-5 py-4 font-semibold text-gray-800 hover:text-[#e63329]">Blog</Link>
-            <Link href="/about"   onClick={closeAll} className="px-5 py-4 font-semibold text-gray-800 hover:text-[#e63329]">About</Link>
-            <Link href="/contact" onClick={closeAll} className="px-5 py-4 font-semibold text-gray-800 hover:text-[#e63329]">Contact</Link>
-            <Link href="/request-sample" onClick={closeAll} className="px-5 py-4 font-semibold text-gray-800 hover:text-[#e63329]">Free Samples</Link>
-            <a href="/customer-portal/" onClick={closeAll} className="px-5 py-4 font-semibold text-blue-600 hover:text-[#e63329] flex items-center gap-2">
-              <User className="w-4 h-4" /> Customer Portal
-            </a>
-            <div className="p-5 flex flex-col gap-3 bg-gray-50">
-              <a href={telLink}
-                className="flex items-center justify-center gap-2 border-2 border-[#1a2f5a] text-[#1a2f5a] py-3 rounded-xl font-bold text-sm hover:bg-[#1a2f5a] hover:text-white transition-all">
-                <Phone className="w-4 h-4" /> {phone}
-              </a>
-              <Link href="/get-a-quote" onClick={closeAll}
-                className="bg-[#e63329] hover:bg-[#c42a21] text-white py-3 rounded-xl font-bold text-center text-sm shadow-md flex items-center justify-center gap-2 transition-all">
-                Get a Free Quote <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </nav>
+          </aside>
         </div>
       )}
 
       <style>{`
-        @keyframes ticker {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes megaFadeIn {
-          from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
-          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-        .group-hover\\:scale-108:hover img { transform: scale(1.08); }
+        @keyframes headerTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes megaFadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes drawerIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
+        .header-ticker { animation: headerTicker 42s linear infinite; }
+        .header-ticker:hover { animation-play-state: paused; }
       `}</style>
     </header>
   );
 }
 
 function NavLink({ href, label, active, onClick }: { href: string; label: string; active: boolean; onClick: () => void }) {
+  return <Link href={href} onClick={onClick} className={`nav-link-ul rounded-lg px-3.5 py-2 text-[13px] font-bold transition-colors ${active ? "bg-[#e3483e]/[0.07] text-[#d93c34]" : "text-[#30465c] hover:bg-[#edf2f5] hover:text-[#d93c34]"}`}>{label}</Link>;
+}
+
+function MobileLink({ href, label, onClick }: { href: string; label: string; onClick: () => void }) {
+  return <Link href={href} onClick={onClick} className="flex items-center justify-between px-5 py-4 text-sm font-bold text-[#243f59] transition-colors hover:text-[#d93c34]">{label}<ArrowRight className="h-3.5 w-3.5 text-[#b1bdc7]" /></Link>;
+}
+
+function MenuColumn({ title, tone, Icon, items, onSelect }: { title: string; tone: "blue" | "orange" | "purple"; Icon: ElementType; items: { label: string; slug: string }[]; onSelect: () => void }) {
+  const toneStyles = {
+    blue: { icon: "bg-[#eaf3fb] text-[#3377a9]", line: "border-[#dcebf5]", label: "text-[#3377a9]" },
+    orange: { icon: "bg-[#fff1e6] text-[#d66a1c]", line: "border-[#fae3d2]", label: "text-[#d66a1c]" },
+    purple: { icon: "bg-[#f2edfa] text-[#7653a5]", line: "border-[#e7ddf4]", label: "text-[#7653a5]" },
+  }[tone];
   return (
-    <Link href={href} onClick={onClick}
-      className={`nav-link-ul px-3.5 py-1.5 rounded-lg font-semibold text-sm transition-all duration-200 ${active ? "text-[#e63329] bg-[#e63329]/6" : "text-gray-700 hover:text-[#e63329] hover:bg-gray-50"}`}>
-      {label}
-    </Link>
+    <div className="border-r border-[#e6edf1] px-5 py-5">
+      <div className={`mb-3.5 flex items-center gap-2 border-b-2 pb-2.5 ${toneStyles.line}`}>
+        <span className={`flex h-6 w-6 items-center justify-center rounded-md ${toneStyles.icon}`}><Icon className="h-3.5 w-3.5" /></span>
+        <span className={`text-[10px] font-extrabold uppercase tracking-[0.14em] ${toneStyles.label}`}>{title}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+        {items.map((item) => <Link key={item.slug} href={`/${item.slug}`} onClick={onSelect} className="truncate rounded-md px-2 py-1.5 text-[12px] font-medium text-[#52677a] transition-colors hover:bg-[#fff0ee] hover:text-[#d93c34]">{item.label}</Link>)}
+      </div>
+    </div>
   );
 }
 
-// memo: Header has no external props — never re-renders on parent state changes
+function FeaturedColumn({ onSelect }: { onSelect: () => void }) {
+  return (
+    <div className="bg-[#f2f5f6] px-4 py-5">
+      <div className="mb-3.5 flex items-center gap-2 border-b-2 border-[#f4e9c8] pb-2.5">
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#fff6d9] text-[#be8c13]"><Star className="h-3.5 w-3.5" fill="currentColor" /></span>
+        <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#a2740c]">Featured</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {FEATURED_IN_MENU.map((item) => (
+          <Link key={item.slug} href={`/${item.slug}`} onClick={onSelect} className="group overflow-hidden rounded-lg border border-[#dce4e8] bg-[#fbfcfd] transition-all hover:-translate-y-0.5 hover:border-[#e3483e]/40 hover:shadow-[0_5px_14px_rgba(17,43,75,0.1)]">
+            <div className="aspect-[4/3] overflow-hidden bg-[#e7edf0]"><img src={item.img} alt={item.label} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={(event) => { event.currentTarget.style.opacity = "0.25"; }} /></div>
+            <div className="px-2 py-1.5 text-[10px] font-bold text-[#40566a]">{item.label}</div>
+          </Link>
+        ))}
+      </div>
+      <div className="mt-3 overflow-hidden rounded-lg border border-[#d6e0e6]">
+        <div className="flex items-start gap-2.5 bg-[#183654] px-3 py-2.5">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#e3483e] text-white"><Palette className="h-3 w-3" /></span>
+          <div><div className="text-[11px] font-bold text-white">Free design support</div><div className="mt-0.5 text-[9px] leading-[1.4] text-white/60">In-house designers. Unlimited revisions.</div></div>
+        </div>
+        <Link href="/get-a-quote" onClick={onSelect} className="flex items-center justify-center gap-1.5 bg-[#e3483e] py-2 text-[10px] font-extrabold text-white transition-colors hover:bg-[#cf3932]">Get a free quote <ArrowRight className="h-3 w-3" /></Link>
+      </div>
+    </div>
+  );
+}
+
 export const Header = memo(_Header);

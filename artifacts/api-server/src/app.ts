@@ -184,6 +184,18 @@ const SITE_DIR    = path.join(process.cwd(), "../prime-site/dist/public");
 const ADMIN_DIR   = path.join(process.cwd(), "../admin-panel/dist/public");
 const PORTAL_DIR  = path.join(process.cwd(), "../customer-portal/dist/public");
 
+function sendSpaEntry(file: string, res: express.Response) {
+  res.sendFile(file, (error) => {
+    // The dev workflows serve these apps through Vite, so their production
+    // dist folders may not exist beside the API. Return a clean 404 instead
+    // of logging an expected ENOENT stack trace on every health probe.
+    if (error && !res.headersSent) {
+      const statusCode = (error as NodeJS.ErrnoException & { statusCode?: number }).statusCode;
+      res.status(statusCode || 404).send("Not found");
+    }
+  });
+}
+
 // Admin panel — served at /admin/* (no-cache for instant live updates)
 app.use("/admin", (_req, res, next) => {
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -193,19 +205,19 @@ app.use("/admin", (_req, res, next) => {
 }, express.static(ADMIN_DIR, { maxAge: 0 }));
 app.get(["/admin", "/admin/*splat"], (_req, res) => {
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  res.sendFile(path.join(ADMIN_DIR, "index.html"));
+  sendSpaEntry(path.join(ADMIN_DIR, "index.html"), res);
 });
 
 // Customer portal — served at /customer-portal/*
 app.use("/customer-portal", express.static(PORTAL_DIR, { maxAge: "1h" }));
 app.get(["/customer-portal", "/customer-portal/*splat"], (_req, res) =>
-  res.sendFile(path.join(PORTAL_DIR, "index.html"))
+  sendSpaEntry(path.join(PORTAL_DIR, "index.html"), res)
 );
 
 // Main site SPA — served at /*  (must come last)
 app.use(express.static(SITE_DIR, { maxAge: "1h" }));
 app.get("*splat", (_req, res) =>
-  res.sendFile(path.join(SITE_DIR, "index.html"))
+  sendSpaEntry(path.join(SITE_DIR, "index.html"), res)
 );
 
 export default app;

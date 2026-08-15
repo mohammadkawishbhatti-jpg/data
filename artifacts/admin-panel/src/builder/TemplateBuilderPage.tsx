@@ -996,9 +996,17 @@ export default function TemplateBuilderPage() {
 
     if (pendingContent.current) {
       editor.setComponents(pendingContent.current.html);
-      editor.setStyle(pendingContent.current.css || '');
+      if (pendingContent.current.css) editor.setStyle(pendingContent.current.css);
       resetCanvasScrollToTop(editor);
-      setTimeout(updateFrameHeight, 500);
+      setTimeout(() => {
+        if (editorRef.current) {
+          updateFrameHeight();
+          resetCanvasScrollToTop(editorRef.current);
+        }
+      }, 500);
+      setTimeout(() => {
+        if (editorRef.current) resetCanvasScrollToTop(editorRef.current);
+      }, 950);
       pendingContent.current = null;
     }
 
@@ -1065,12 +1073,17 @@ function getDefaultPageHtml(pageId: string): string {
         // hard-coded demo page. Real starter content is seeded in the DB.
         if (editorRef.current) {
           editorRef.current.setComponents(htmlToLoad);
-          editorRef.current.setStyle(cssToLoad || '');
-            [0, 100, 350, 800].forEach(delay => {
+          // Do not call setStyle('') for inline-style templates. GrapesJS
+          // parses those styles into its CSS composer; clearing the composer
+          // here makes a valid saved page look like unstyled plain HTML.
+          if (cssToLoad) editorRef.current.setStyle(cssToLoad);
+          [0, 100, 350, 800].forEach(delay => {
             window.setTimeout(() => {
               if (editorRef.current) {
                 applySampleDataToCanvas(editorRef.current, previewCategory);
-                if (delay === 350) resetCanvasScrollToTop(editorRef.current);
+                // Token replacement causes another iframe layout. Reset
+                // after the final pass so long pages open at their start.
+                if (delay >= 350) resetCanvasScrollToTop(editorRef.current);
               }
             }, delay);
           });
@@ -1091,6 +1104,9 @@ function getDefaultPageHtml(pageId: string): string {
               }
             } catch {}
           }, 350);
+          window.setTimeout(() => {
+            if (editorRef.current) resetCanvasScrollToTop(editorRef.current);
+          }, 950);
         } else {
           pendingContent.current = { html: htmlToLoad, css: cssToLoad };
         }
