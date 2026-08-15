@@ -136,7 +136,7 @@ const CUSTOM_BLOCKS: CB[] = [
     id: 'cb-icon-box',
     label: 'Icon Box',
     category: 'Content',
-    icon: ico('<rect x="4" y="14" width="14" height="14" rx="3"/><path d="M11" y1="21" stroke="none"/><circle cx="11" cy="21" r="4" stroke="currentColor"/><line x1="22" y1="16" x2="36" y2="16"/><line x1="22" y1="22" x2="33" y2="22"/>'),
+    icon: ico('<rect x="4" y="14" width="14" height="14" rx="3"/><circle cx="11" cy="21" r="4" stroke="currentColor"/><line x1="22" y1="16" x2="36" y2="16"/><line x1="22" y1="22" x2="33" y2="22"/>'),
     content: `<div style="display:flex;gap:18px;align-items:flex-start;padding:24px;background:#fff;border-radius:12px;border:1px solid #f3f4f6">
   <div style="width:52px;height:52px;background:#ede9fe;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px">📦</div>
   <div>
@@ -766,7 +766,10 @@ export const CUSTOM_BLOCK_LABELS: Record<string, string> = Object.fromEntries(
 
 /* ─── Register all custom blocks with GrapesJS editor ─── */
 export function registerCustomBlocks(editor: Editor): void {
-  const bm = editor.BlockManager;
+  // GrapesJS 0.23 exposes the blocks module as `Blocks`; older builds used
+  // `BlockManager`. Keep both so the builder does not crash during startup.
+  const bm = (editor as any).Blocks ?? (editor as any).BlockManager;
+  if (!bm) return;
   CUSTOM_BLOCKS.forEach(({ id, label, category, icon, content }) => {
     bm.add(id, { label, category, media: icon, content });
   });

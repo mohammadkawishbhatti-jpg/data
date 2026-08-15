@@ -78,7 +78,7 @@ function FollowUpCard({
   const statusColor = STATUS_COLORS[item.status?.toLowerCase()] ?? "bg-gray-100 text-gray-600";
 
   return (
-    <div className={`bg-white border rounded-2xl overflow-hidden transition-all shadow-sm
+    <div className={`bg-white text-slate-900 border rounded-2xl overflow-hidden transition-all shadow-sm
       ${item.followUpDone ? "opacity-60 border-green-200" : "border-border hover:shadow-md"}`}>
 
       {/* Main row */}
@@ -99,7 +99,7 @@ function FollowUpCard({
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className={`font-bold text-sm ${item.followUpDone ? "line-through text-muted-foreground" : ""}`}>
+            <span className={`font-bold text-sm text-slate-900 ${item.followUpDone ? "line-through text-slate-500" : ""}`}>
               {item.name}
             </span>
 
@@ -123,14 +123,14 @@ function FollowUpCard({
           </div>
 
           {/* Contact details */}
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-slate-600">
             <a href={`mailto:${item.email}`}
-              className="flex items-center gap-1 hover:text-primary font-medium transition-colors">
+               className="flex items-center gap-1 hover:text-primary font-medium transition-colors text-slate-600">
               <Mail className="w-3 h-3" />
               {item.email}
             </a>
             {item.phone && (
-              <a href={`tel:${item.phone}`} className="flex items-center gap-1 hover:text-primary transition-colors">
+               <a href={`tel:${item.phone}`} className="flex items-center gap-1 hover:text-primary transition-colors text-slate-600">
                 <Phone className="w-3 h-3" /> {item.phone}
               </a>
             )}
@@ -174,7 +174,7 @@ function FollowUpCard({
 
           {/* Message preview */}
           {item.message && (
-            <p className="text-[12px] text-muted-foreground mt-1.5 line-clamp-1 italic">
+            <p className="text-[12px] text-slate-500 mt-1.5 line-clamp-1 italic">
               "{item.message}"
             </p>
           )}
@@ -182,7 +182,7 @@ function FollowUpCard({
 
         {/* Right: date + expand */}
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <span className="text-[11px] text-muted-foreground">
+           <span className="text-[11px] text-slate-500">
             {format(parseISO(item.createdAt), "h:mm a")}
           </span>
           {item.followUpDate && (
@@ -193,7 +193,7 @@ function FollowUpCard({
           )}
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-[11px] text-muted-foreground hover:text-foreground border border-border rounded-lg px-2 py-1 hover:bg-muted transition-colors"
+             className="text-[11px] text-slate-600 hover:text-slate-900 border border-border rounded-lg px-2 py-1 hover:bg-muted transition-colors"
           >
             {expanded ? "Less" : "Notes ↓"}
           </button>
@@ -202,10 +202,10 @@ function FollowUpCard({
 
       {/* Expanded notes panel */}
       {expanded && (
-        <div className="border-t border-border bg-muted/30 p-4 space-y-3">
+        <div className="border-t border-border bg-slate-50 p-4 space-y-3 text-slate-900">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+               <label className="text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" /> Schedule Follow-up
               </label>
               <input
@@ -216,7 +216,7 @@ function FollowUpCard({
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+               <label className="text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
                 <MessageSquare className="w-3.5 h-3.5" /> Internal Note
               </label>
               <input
@@ -342,7 +342,7 @@ export default function FollowUpsPage() {
             </p>
           </div>
           <button onClick={() => refetch()}
-            className="flex items-center gap-1.5 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">
+             className="flex items-center gap-1.5 border border-border rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-muted transition-colors">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
         </div>
@@ -387,7 +387,7 @@ export default function FollowUpsPage() {
             ))}
           </div>
 
-          <div className="ml-auto text-sm font-bold text-muted-foreground">
+           <div className="ml-auto text-sm font-bold text-slate-600">
             📅 {dateDisplay}
           </div>
         </div>
@@ -435,7 +435,7 @@ export default function FollowUpsPage() {
               <button
                 key={f}
                 onClick={() => setFilterDone(f)}
-                className={`px-3 py-2 capitalize transition-colors
+                 className={`px-3 py-2 capitalize text-slate-700 transition-colors
                   ${filterDone === f ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
               >
                 {f}
@@ -449,7 +449,7 @@ export default function FollowUpsPage() {
               <button
                 key={f}
                 onClick={() => setFilterType(f)}
-                className={`px-3 py-2 capitalize transition-colors
+                 className={`px-3 py-2 capitalize text-slate-700 transition-colors
                   ${filterType === f ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
               >
                 {f === "all" ? "All Types" : f === "quote" ? "Quotes" : "Leads"}
@@ -479,7 +479,7 @@ export default function FollowUpsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground font-medium">
+             <p className="text-xs text-slate-500 font-medium">
               Showing {filtered.length} of {items.length} submissions
             </p>
             {filtered.map(item => (

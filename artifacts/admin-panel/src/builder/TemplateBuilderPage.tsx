@@ -53,10 +53,16 @@ const BLOCK_LABELS: Record<string, string> = {
 const ALL_ICONS  = { ...BLOCK_ICONS,  ...CUSTOM_BLOCK_ICONS };
 const ALL_LABELS = { ...BLOCK_LABELS, ...CUSTOM_BLOCK_LABELS };
 
+function getBlocksManager(editor: Editor): any {
+  return (editor as any).Blocks ?? (editor as any).BlockManager;
+}
+
 /* GrapesJS plugin — runs LAST: registers custom blocks then overrides all icons/labels */
 const iconPlugin = (editor: Editor) => {
   registerCustomBlocks(editor);
-  editor.BlockManager.getAll().forEach((block: any) => {
+  const blocks = getBlocksManager(editor);
+  if (!blocks?.getAll) return;
+  blocks.getAll().forEach((block: any) => {
     const id = block.get('id') as string;
     const update: Record<string, string> = {};
     if (ALL_ICONS[id])  update.media = ALL_ICONS[id];
@@ -693,7 +699,7 @@ export default function TemplateBuilderPage() {
     const blockHtml = selected.toHTML();
     const blockId = `custom_block_${Date.now()}`;
     
-    ed.BlockManager.add(blockId, {
+    getBlocksManager(ed)?.add(blockId, {
       label: name,
       category: '⭐ MY SAVED BLOCKS',
       content: blockHtml,
@@ -818,7 +824,9 @@ export default function TemplateBuilderPage() {
         if (mediaEl && BLOCK_ICONS[id]) mediaEl.innerHTML = BLOCK_ICONS[id];
         if (labelEl && BLOCK_LABELS[id]) labelEl.textContent = BLOCK_LABELS[id];
       });
-      editor.BlockManager.getAll().forEach((block: any) => {
+      const blocks = getBlocksManager(editor);
+      if (!blocks?.getAll) return;
+      blocks.getAll().forEach((block: any) => {
         const id = block.get('id') as string;
         const update: Record<string, string> = {};
         if (BLOCK_ICONS[id]) update.media = BLOCK_ICONS[id];
@@ -922,9 +930,8 @@ function getDefaultPageHtml(pageId: string): string {
         const parsed = parseContent(t.content || '');
         let htmlToLoad = parsed.html;
         let cssToLoad = parsed.css;
-        if ((!htmlToLoad || !htmlToLoad.trim()) && id) {
-          htmlToLoad = getDefaultPageHtml(id);
-        }
+        // Empty pages should open as an empty builder, not as the legacy
+        // hard-coded demo page. Real starter content is seeded in the DB.
         if (editorRef.current) {
           editorRef.current.setComponents(htmlToLoad);
           if (cssToLoad) editorRef.current.setStyle(cssToLoad);
@@ -945,11 +952,12 @@ function getDefaultPageHtml(pageId: string): string {
       })
       .catch(e => {
         if (id) {
-          const htmlToLoad = getDefaultPageHtml(id);
+          // A genuinely empty page should remain empty so the builder's
+          // "Start Building" overlay is shown instead of stale demo content.
           if (editorRef.current) {
-            editorRef.current.setComponents(htmlToLoad);
+            editorRef.current.setComponents('');
           } else {
-            pendingContent.current = { html: htmlToLoad, css: '' };
+            pendingContent.current = { html: '', css: '' };
           }
           setLoading(false);
         } else {

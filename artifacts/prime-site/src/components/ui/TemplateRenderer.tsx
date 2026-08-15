@@ -29,6 +29,8 @@ interface Block {
 interface DynamicData {
   category?: { name: string; slug: string; description?: string | null; imageUrl?: string | null };
   product?: { name: string; slug: string; description?: string | null; imageUrl?: string | null };
+  products?: any[];
+  posts?: any[];
 }
 
 // Substitute {{variable}} placeholders with actual dynamic data
@@ -41,6 +43,15 @@ function interpolate(str: string, data: DynamicData): string {
     .replace(/\{\{product\.name\}\}/gi, data.product?.name || "")
     .replace(/\{\{product\.description\}\}/gi, data.product?.description || "")
     .replace(/\{\{product\.image\}\}/gi, data.product?.imageUrl || "");
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 // ─── Block components ────────────────────────────────────────────────────
@@ -974,6 +985,20 @@ interface TemplateRendererProps {
 }
 
 export function TemplateRenderer({ content, dynamicData = {} }: TemplateRendererProps) {
+  const { data: liveProducts = [] } = useListProducts(
+    { limit: 100 },
+    { query: { enabled: !dynamicData.products, queryKey: ["template-renderer-products", dynamicData.category?.slug ?? "all"] } },
+  );
+  const { data: livePosts = [] } = useListBlogPosts(
+    { limit: 12 },
+    { query: { enabled: !dynamicData.posts, queryKey: ["template-renderer-posts"] } },
+  );
+  const resolvedData: DynamicData = {
+    ...dynamicData,
+    products: dynamicData.products ?? liveProducts,
+    posts: dynamicData.posts ?? livePosts,
+  };
+
   let parsed: any = content;
   if (typeof parsed === "string") {
     try {
@@ -990,7 +1015,7 @@ export function TemplateRenderer({ content, dynamicData = {} }: TemplateRenderer
 
   // If parsed is still a raw string (e.g. plain HTML), render safe HTML directly
   if (typeof parsed === "string") {
-    const htmlWithData = interpolate(parsed, dynamicData);
+    const htmlWithData = interpolate(parsed, resolvedData);
     return (
       <div className="grapes-template-wrapper w-full">
         <div dangerouslySetInnerHTML={{ __html: safeHtml(htmlWithData) }} />
@@ -1002,7 +1027,8 @@ export function TemplateRenderer({ content, dynamicData = {} }: TemplateRenderer
   if (parsed?.gjs) {
     let rawHtml = parsed.gjs.html || "";
     const rawCss = parsed.gjs.css || "";
-    const products = (dynamicData as any).products || [];
+    const products = resolvedData.products || [];
+    const posts = resolvedData.posts || [];
 
     // Render real dynamic product grid HTML with rich inline styles
     const productsGridHtml = products.length > 0
@@ -1058,11 +1084,51 @@ export function TemplateRenderer({ content, dynamicData = {} }: TemplateRenderer
       }
     }
 
-    const htmlWithData = interpolate(rawHtml, dynamicData);
+    if (posts.length > 0) {
+      const featured = posts[0];
+      const rest = posts.slice(1);
+      const postCard = (post: any, featuredCard = false) => {
+        const title = escapeHtml(post.title);
+        const slug = safeUrl(`/${post.slug || "#"}`);
+        const excerpt = escapeHtml(post.excerpt || "Packaging insights from Prime Packaging Boxes.");
+        const image = escapeHtml(post.imageUrl || "/api/uploads/printed-magnetic-closure-boxes-bulk.webp");
+        const date = post.createdAt
+          ? new Date(post.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+          : "";
+        if (featuredCard) {
+          return `<a href="${slug}" style="display:grid;grid-template-columns:1.25fr 1fr;gap:0;background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;text-decoration:none;">
+            <img src="${image}" alt="${title}" style="width:100%;height:260px;object-fit:cover;" />
+            <div style="padding:28px;display:flex;flex-direction:column;justify-content:center;">
+              <div style="color:#e63329;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">Featured Article</div>
+              <h2 style="font-size:22px;line-height:1.25;color:#1a2f5a;margin:0 0 10px;">${title}</h2>
+              <p style="font-size:13px;line-height:1.6;color:#64748b;margin:0 0 14px;">${excerpt}</p>
+              <span style="font-size:11px;color:#94a3b8;">${date}</span>
+            </div>
+          </a>`;
+        }
+        return `<a href="${slug}" style="display:block;background:#fff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;text-decoration:none;">
+          <img src="${image}" alt="${title}" style="width:100%;height:170px;object-fit:cover;" />
+          <div style="padding:18px;">
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;">${date}</div>
+            <h3 style="font-size:15px;line-height:1.35;color:#1a2f5a;margin:0 0 8px;">${title}</h3>
+            <p style="font-size:12px;line-height:1.55;color:#64748b;margin:0;">${excerpt}</p>
+          </div>
+        </a>`;
+      };
+      rawHtml = rawHtml.replace(
+        /<!-- FEATURED ARTICLE -->[\s\S]*?<\/section>/i,
+        `<!-- FEATURED ARTICLE --><section style="background:#fff;padding:48px 24px;"><div style="max-width:1100px;margin:0 auto;">${postCard(featured, true)}</div></section>`,
+      );
+      rawHtml = rawHtml.replace(
+        /<!-- MORE ARTICLES -->[\s\S]*?<\/section>/i,
+        `<!-- MORE ARTICLES --><section style="background:#f8fafc;padding:48px 24px;"><div style="max-width:1100px;margin:0 auto;"><h2 style="font-size:24px;color:#1a2f5a;margin:0 0 24px;">More Articles</h2><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">${rest.map((post: any) => postCard(post)).join("")}</div></div></section>`,
+      );
+    }
+
+    const htmlWithData = interpolate(rawHtml, resolvedData);
 
     return (
       <div className="grapes-template-wrapper w-full">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;700;800;900&display=swap" />
         {rawCss && <style dangerouslySetInnerHTML={{ __html: rawCss }} />}
         <div dangerouslySetInnerHTML={{ __html: htmlWithData }} />
@@ -1075,7 +1141,7 @@ export function TemplateRenderer({ content, dynamicData = {} }: TemplateRenderer
     const zones: Record<string, any[]> = parsed.zones ?? {};
     return (
       <>
-        {parsed.content.map((item: any) => renderPuckItem(item, zones, dynamicData))}
+        {parsed.content.map((item: any) => renderPuckItem(item, zones, resolvedData))}
       </>
     );
   }
@@ -1087,13 +1153,13 @@ export function TemplateRenderer({ content, dynamicData = {} }: TemplateRenderer
 
   return (
     <>
-      {blocks.filter(b => !b.hidden).map(block => {
+        {blocks.filter(b => !b.hidden).map(block => {
         const d = block.data;
         switch (block.type) {
-          case "dynamic_hero": return <DynamicHeroBlock key={block.id} d={d} dynamicData={dynamicData} />;
+          case "dynamic_hero": return <DynamicHeroBlock key={block.id} d={d} dynamicData={resolvedData} />;
           case "hero": return <HeroBlock key={block.id} d={d} />;
           case "trust_bar": return <TrustBarBlock key={block.id} d={d} />;
-          case "products_grid": return <ProductsGridBlock key={block.id} d={d} dynamicData={dynamicData} />;
+          case "products_grid": return <ProductsGridBlock key={block.id} d={d} dynamicData={resolvedData} />;
           case "blog_grid": return <BlogGridBlock key={block.id} d={d} />;
           case "text": return <TextBlock key={block.id} d={d} />;
           case "image_text": return <ImageTextBlock key={block.id} d={d} />;
@@ -1106,7 +1172,7 @@ export function TemplateRenderer({ content, dynamicData = {} }: TemplateRenderer
           case "spacer": return <SpacerBlock key={block.id} d={d} />;
           case "html": return <HtmlBlock key={block.id} d={d} />;
           case "video": return <VideoBlock key={block.id} d={d} />;
-          case "breadcrumb": return <BreadcrumbBlock key={block.id} dynamicData={dynamicData} />;
+          case "breadcrumb": return <BreadcrumbBlock key={block.id} dynamicData={resolvedData} />;
           default: return null;
         }
       })}

@@ -39,7 +39,8 @@ export default function CategoryPage() {
 
   const products = (productsData as any)?.items || (Array.isArray(productsData) ? productsData : []);
 
-  // Always renders complete React JSX — DB template does NOT affect this public page
+  // Use the saved template only after live category/product data is ready.
+  // TemplateRenderer replaces the catalog section with the real products.
   useSEO({
     title: category ? (category.metaTitle || `${category.name} | Custom Packaging Boxes USA`) : "Category",
     description: category
@@ -84,6 +85,15 @@ export default function CategoryPage() {
 
   const productCount = (products as any[]).length;
   const bgImage = (category as any).imageUrl || pickHeroImg(slug);
+
+  if (templateContent && !isLoadingProducts) {
+    return (
+      <TemplateRenderer
+        content={templateContent}
+        dynamicData={{ category: category as any, products: products as any[] }}
+      />
+    );
+  }
 
   return (
     <>

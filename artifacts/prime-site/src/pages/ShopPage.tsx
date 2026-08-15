@@ -1,6 +1,7 @@
 import { useSEO } from "../lib/useSEO";
 import { TemplateRenderer, usePageTemplate } from "../components/ui/TemplateRenderer";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
+import { useListProducts } from "@workspace/api-client-react";
 
 export default function ShopPage() {
   useSEO({
@@ -10,6 +11,7 @@ export default function ShopPage() {
   });
 
   const { content, loading } = usePageTemplate("shop");
+  const { data: products = [], isLoading: productsLoading } = useListProducts({ limit: 100 });
 
   return (
     <>
@@ -22,8 +24,8 @@ export default function ShopPage() {
             </div>
           </div>
         </div>
-      ) : content ? (
-        <TemplateRenderer content={content} />
+      ) : content && !productsLoading ? (
+        <TemplateRenderer content={content} dynamicData={{ products: products as any[] }} />
       ) : (
         <div className="py-16 px-4 text-center bg-[#1a2f5a] text-white">
           <h1 className="text-4xl font-bold">Shop All Products</h1>
