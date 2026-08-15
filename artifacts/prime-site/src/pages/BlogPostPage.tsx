@@ -2,7 +2,7 @@ import { useParams, Link } from "wouter";
 import { format } from "date-fns";
 import { ArrowLeft, User, Calendar } from "lucide-react";
 import { useGetBlogPost } from "@workspace/api-client-react";
-import { toAbsoluteUrl, useSEO, useSchemaOrg } from "../lib/useSEO";
+import { DEFAULT_OG_IMAGE, toAbsoluteUrl, useSEO, useSchemaOrg } from "../lib/useSEO";
 
 export default function BlogPostPage() {
   const params = useParams<{ slug: string }>();
@@ -72,7 +72,7 @@ export default function BlogPostPage() {
           {post.imageUrl ? (
             <img src={post.imageUrl} alt={post.title} className="absolute inset-0 w-full h-full object-cover" style={{opacity:0.22}} loading="eager" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
           ) : (
-            <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1400&q=50" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{opacity:0.18}} loading="eager" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
+            <img src={DEFAULT_OG_IMAGE} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{opacity:0.18}} loading="eager" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
           )}
           <div className="absolute inset-0" style={{background:"linear-gradient(135deg,#0d1f3c 0%,rgba(13,31,60,0.85) 100%)"}} />
           <div className="absolute inset-0 opacity-[0.035]" style={{backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)",backgroundSize:"28px 28px"}} />
@@ -122,7 +122,7 @@ export default function BlogPostPage() {
                 src={post.imageUrl} 
                 alt={post.title} 
                 className="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = "https://placehold.co/1200x480/1a2f5a/ffffff?text=Prime+Packaging+Insights"; }}
+                onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = DEFAULT_OG_IMAGE; }}
               />
             </div>
           </div>

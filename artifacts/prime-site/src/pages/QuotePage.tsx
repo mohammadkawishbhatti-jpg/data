@@ -86,7 +86,7 @@ export default function QuotePage() {
     <>
       {/* Hero */}
       <div className="bg-[#1a2f5a] pt-14 pb-28 text-center text-white relative overflow-hidden">
-        <img src="https://images.unsplash.com/photo-1584464491033-f628bccf4870?auto=format&fit=crop&w=1400&q=50" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{opacity:0.14}} loading="eager" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
+        <img src="/api/uploads/printed-cardboard-gift-boxes-bulk.webp" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{opacity:0.14}} loading="eager" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
         <div className="absolute inset-0" style={{background:"linear-gradient(135deg,#1a2f5a 0%,rgba(13,31,60,0.9) 100%)"}} />
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
         <div className="container mx-auto px-4 relative z-10">

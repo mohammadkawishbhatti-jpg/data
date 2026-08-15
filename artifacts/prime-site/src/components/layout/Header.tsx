@@ -83,7 +83,7 @@ const TICKER: { Icon: ElementType; text: string }[] = [
   { Icon: Star, text: "4.9 Star Rating" },
 ];
 
-const LOGO_SRC = "https://www.primepackagingboxes.com/wp-content/uploads/2026/04/PRIME-PACKAGING-BOXES-3.svg";
+const LOGO_SRC = "/api/uploads/prime-packaging-logo.svg";
 
 function _Header() {
   const { phone, email } = useSettings();

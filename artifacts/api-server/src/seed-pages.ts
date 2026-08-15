@@ -43,7 +43,7 @@ const LEGACY_PAGE_HTML: Record<string, string> = {
     <div style="${badgeStyle}">Our Story</div>
     <h1 style="${h1Style}">We're Not Just a Printer.<br><span style="color:${red}">We're Your Packaging Partner.</span></h1>
     <p style="${subStyle}">Founded in Torrance, California, Prime Packaging Boxes was built on one belief: every brand deserves packaging that's as impressive as the product inside.</p>
-    <a href="/get-quote" style="${btnRedStyle}">Get a Free Quote →</a>
+    <a href="/get-a-quote" style="${btnRedStyle}">Get a Free Quote →</a>
     <a href="/contact" style="${btnGhostStyle}">Contact Our Team</a>
   </div>
 </section>
@@ -140,7 +140,7 @@ const LEGACY_PAGE_HTML: Record<string, string> = {
   <div style="${containerStyle}">
     <h2 style="color:#fff;font-size:36px;font-weight:800;margin:0 0 16px;">Ready to Build Something Great?</h2>
     <p style="color:rgba(255,255,255,0.65);font-size:16px;margin:0 0 32px;">Get a free quote in minutes. No commitment required.</p>
-    <a href="/get-quote" style="${btnRedStyle}">Get a Free Quote →</a>
+    <a href="/get-a-quote" style="${btnRedStyle}">Get a Free Quote →</a>
     <a href="/contact" style="${btnGhostStyle}">Talk to Our Team</a>
   </div>
 </section>
@@ -228,7 +228,7 @@ const LEGACY_PAGE_HTML: Record<string, string> = {
     <h2 style="color:#fff;font-size:32px;font-weight:800;margin:0 0 16px;">Questions About Delivery?</h2>
     <p style="color:rgba(255,255,255,0.65);margin:0 0 28px;font-size:16px;">Our team responds within 2 hours during business hours.</p>
     <a href="/contact" style="${btnRedStyle}">Contact Us →</a>
-    <a href="/get-quote" style="${btnGhostStyle}">Get a Quote</a>
+    <a href="/get-a-quote" style="${btnGhostStyle}">Get a Quote</a>
   </div>
 </section>
 `,
@@ -243,7 +243,7 @@ const LEGACY_PAGE_HTML: Record<string, string> = {
     <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;">
       <a href="tel:18187584076" style="${btnGhostStyle}">📞 818-758-4076</a>
       <a href="mailto:help@primepackagingboxes.com" style="${btnGhostStyle}">✉ Email 24/7</a>
-      <a href="/get-quote" style="${btnRedStyle}">Get a Free Quote</a>
+      <a href="/get-a-quote" style="${btnRedStyle}">Get a Free Quote</a>
     </div>
   </div>
 </section>
@@ -460,7 +460,7 @@ const LEGACY_PAGE_HTML: Record<string, string> = {
     <div style="${badgeStyle}">📦 Free Samples</div>
     <h1 style="${h1Style}">Request a <span style="color:${red};">Free Sample</span></h1>
     <p style="${subStyle}">See and feel our quality before committing to a full order. Physical samples available for most box types.</p>
-    <a href="/get-quote" style="${btnRedStyle}">Request Sample →</a>
+    <a href="/get-a-quote" style="${btnRedStyle}">Request Sample →</a>
   </div>
 </section>
 <section style="${sectionStyle}background:#fff;">

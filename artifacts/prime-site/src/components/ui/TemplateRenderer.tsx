@@ -176,7 +176,7 @@ function BlogGridBlock({ d }: { d: any }) {
                 <div className="bg-white border rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
                   {post.imageUrl ? (
                     <img src={post.imageUrl} alt={post.title}
-                      onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = "https://placehold.co/800x400/1a2f5a/ffffff?text=Prime+Packaging"; }}
+                      onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = "/api/uploads/cardboard-gift-boxes.webp"; }}
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform" />
                   ) : (
                     <div className="w-full h-48 bg-gradient-to-br from-[#1a2f5a] to-[#162445] flex items-center justify-center"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-16 h-16"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg></div>

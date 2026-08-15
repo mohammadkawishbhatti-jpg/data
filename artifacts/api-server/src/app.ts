@@ -187,17 +187,65 @@ app.use("/api", router);
 const SITE_DIR    = path.join(process.cwd(), "../prime-site/dist/public");
 const ADMIN_DIR   = path.join(process.cwd(), "../admin-panel/dist/public");
 const PORTAL_DIR  = path.join(process.cwd(), "../customer-portal/dist/public");
+const PUBLIC_SITE_ORIGIN = "https://www.primepackagingboxes.com";
 
-function sendSpaEntry(file: string, res: express.Response) {
-  res.sendFile(file, (error) => {
+type PublicSeo = { title: string; description: string; canonical?: string };
+
+const PUBLIC_SEO: Record<string, PublicSeo> = {
+  "/": { title: "Custom Packaging Boxes | Free Design, Low MOQ, Fast US & UK Shipping | Prime Packaging Boxes", description: "Premium custom packaging boxes with free design support, low minimums from 100 units, and 7–10 day turnaround for USA and UK brands." },
+  "/products": { title: "Custom Packaging Products | Prime Packaging Boxes", description: "Browse custom mailer, rigid, corrugated, retail, food, and specialty packaging boxes with low MOQs and free design support." },
+  "/about": { title: "About Prime Packaging Boxes | Custom Packaging USA", description: "Learn about Prime Packaging Boxes, a Torrance, California packaging partner serving brands with custom boxes, free design, and reliable production." },
+  "/contact": { title: "Contact Prime Packaging Boxes | Custom Packaging Support", description: "Contact Prime Packaging Boxes for custom packaging quotes, design support, samples, materials, quantities, and production timelines." },
+  "/faq": { title: "FAQ & Support | Prime Packaging Boxes", description: "Answers about custom packaging minimums, materials, printing, samples, turnaround times, shipping, and pricing." },
+  "/blog": { title: "Packaging Insights & Guides | Prime Packaging Boxes", description: "Explore practical packaging guides, box design advice, material comparisons, and production insights from Prime Packaging Boxes." },
+  "/get-a-quote": { title: "Get a Free Quote | Prime Packaging Boxes", description: "Request a custom packaging quote with free design support, clear pricing, low minimums, and fast production guidance." },
+  "/request-sample": { title: "Request a Free Sample Kit | Prime Packaging Boxes", description: "Request a packaging sample kit and explore premium materials, finishes, and box styles before placing your custom order." },
+  "/delivery-policy": { title: "Delivery & Shipping Policy | Prime Packaging Boxes", description: "Review Prime Packaging Boxes delivery timelines, free shipping coverage, rush production options, and order dispatch details." },
+  "/refund-return-policy": { title: "Refund & Return Policy | Prime Packaging Boxes", description: "Review the Prime Packaging Boxes satisfaction guarantee, manufacturing defect claims, reprints, refunds, and resolution timelines." },
+  "/privacy-policy": { title: "Privacy Policy | Prime Packaging Boxes", description: "Learn how Prime Packaging Boxes collects, uses, protects, and deletes personal information submitted through our website." },
+  "/terms-and-conditions": { title: "Terms & Conditions | Prime Packaging Boxes", description: "Read the terms that apply to quotes, custom packaging orders, artwork, approvals, payments, production, and delivery." },
+  "/disclaimer": { title: "Disclaimer | Prime Packaging Boxes", description: "Review important information about packaging specifications, estimates, third-party services, customer artwork, and website content." },
+  "/returns-claims-support": { title: "Returns & Claims Support | Prime Packaging Boxes", description: "Get help with damaged orders, manufacturing defects, printing issues, returns, claims, reprints, and customer support." },
+};
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+async function sendSpaEntry(
+  file: string,
+  res: express.Response,
+  seo?: PublicSeo,
+) {
+  try {
+    let html = await fs.readFile(file, "utf8");
+    if (seo) {
+      const title = escapeHtml(seo.title);
+      const description = escapeHtml(seo.description);
+      const canonical = escapeHtml(seo.canonical || PUBLIC_SITE_ORIGIN + "/");
+      const fallbackHeading = escapeHtml(seo.title.split("|")[0].trim());
+      const seoFallback = `<noscript id="seo-fallback"><main><h1>${fallbackHeading}</h1><p>${description}</p></main></noscript>`;
+      html = html
+        .replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`)
+        .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/i, `$1${description}$2`)
+        .replace(/(<meta\s+property="og:title"\s+content=")[^"]*(")/i, `$1${title}$2`)
+        .replace(/(<meta\s+property="og:description"\s+content=")[^"]*(")/i, `$1${description}$2`)
+        .replace(/(<meta\s+name="twitter:title"\s+content=")[^"]*(")/i, `$1${title}$2`)
+        .replace(/(<meta\s+name="twitter:description"\s+content=")[^"]*(")/i, `$1${description}$2`)
+        .replace(/(<link\s+rel="canonical"\s+href=")[^"]*(")/i, `$1${canonical}$2`)
+        .replace(/(<meta\s+property="og:url"\s+content=")[^"]*(")/i, `$1${canonical}$2`)
+        .replace(/<\/body>/i, `${seoFallback}</body>`);
+    }
+    res.type("html").send(html);
+  } catch (error) {
     // The dev workflows serve these apps through Vite, so their production
     // dist folders may not exist beside the API. Return a clean 404 instead
     // of logging an expected ENOENT stack trace on every health probe.
-    if (error && !res.headersSent) {
+    if (!res.headersSent) {
       const statusCode = (error as NodeJS.ErrnoException & { statusCode?: number }).statusCode;
       res.status(statusCode || 404).send("Not found");
     }
-  });
+  }
 }
 
 // Admin panel — served at /admin/* (no-cache for instant live updates)
@@ -220,8 +268,14 @@ app.get(["/customer-portal", "/customer-portal/*splat"], (_req, res) =>
 
 // Main site SPA — served at /*  (must come last)
 app.use(express.static(SITE_DIR, { maxAge: "1h" }));
-app.get("*splat", (_req, res) =>
-  sendSpaEntry(path.join(SITE_DIR, "index.html"), res)
-);
+app.get("*splat", (req, res) => {
+  const publicPath = req.path.replace(/\/+$/, "") || "/";
+  const seo = PUBLIC_SEO[publicPath];
+  return sendSpaEntry(
+    path.join(SITE_DIR, "index.html"),
+    res,
+    seo ? { ...seo, canonical: `${PUBLIC_SITE_ORIGIN}${publicPath}` } : undefined,
+  );
+});
 
 export default app;

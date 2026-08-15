@@ -8,7 +8,7 @@ import { TemplateRenderer, usePageTemplate } from "../components/ui/TemplateRend
 import { useListProducts, useListCategories } from "@workspace/api-client-react";
 import { useSEO } from "../lib/useSEO";
 
-const HERO_BG = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1400&q=50";
+const HERO_BG = "/api/uploads/cardboard-gift-boxes.webp";
 
 export default function ProductsPage() {
   const { content: templateContent } = usePageTemplate("shop");

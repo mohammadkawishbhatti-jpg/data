@@ -33,26 +33,26 @@ function currentTemplateContent(type: string, content: unknown): string {
 // Default templates
 const DEFAULTS: Record<string, any[]> = {
   category: [
-    { id: "d1", type: "dynamic_hero", data: { useTitle: true, useDescription: true, useImage: true, buttonText: "Get Free Quote", buttonLink: "/get-quote", bgColor: "#1a2f5a", mode: "category" } },
+    { id: "d1", type: "dynamic_hero", data: { useTitle: true, useDescription: true, useImage: true, buttonText: "Get Free Quote", buttonLink: "/get-a-quote", bgColor: "#1a2f5a", mode: "category" } },
     { id: "d2", type: "trust_bar", data: { items: ["🎨 Free Custom Design", "🚚 Free US Shipping", "⚡ 6-8 Day Turnaround", "✅ 100% Satisfaction Guaranteed", "📦 Low 100-Unit MOQ"] } },
     { id: "d3", type: "products_grid", data: { heading: "", showCategoryFilter: false, limit: 20 } },
-    { id: "d4", type: "cta", data: { heading: "Need a Custom Size?", text: "Tell us what you need and we'll create it for you.", buttonText: "Get a Free Quote", buttonLink: "/get-quote", bgColor: "#1a2f5a" } },
+    { id: "d4", type: "cta", data: { heading: "Need a Custom Size?", text: "Tell us what you need and we'll create it for you.", buttonText: "Get a Free Quote", buttonLink: "/get-a-quote", bgColor: "#1a2f5a" } },
   ],
   product: [
     { id: "d1", type: "dynamic_hero", data: { useTitle: true, useDescription: true, useImage: false, mode: "product", bgColor: "#1a2f5a" } },
     { id: "d2", type: "features", data: { heading: "Why Choose Our Packaging", items: [{ icon: "🎨", title: "Free Design Support", text: "Expert designers work with you at no cost." }, { icon: "📦", title: "Low MOQ", text: "Start from just 100 units. No huge minimums." }, { icon: "⚡", title: "Fast Turnaround", text: "6–8 business days from proof approval." }, { icon: "🚚", title: "Free US Shipping", text: "Free shipping on all orders to US addresses." }] } },
-    { id: "d3", type: "cta", data: { heading: "Ready to Order Your Custom Packaging?", text: "Get a free quote — no commitment required.", buttonText: "Get a Free Quote", buttonLink: "/get-quote", bgColor: "#e63329" } },
+    { id: "d3", type: "cta", data: { heading: "Ready to Order Your Custom Packaging?", text: "Get a free quote — no commitment required.", buttonText: "Get a Free Quote", buttonLink: "/get-a-quote", bgColor: "#e63329" } },
   ],
   shop: [
-    { id: "d1", type: "hero", data: { heading: "Shop All Products", subheading: "Premium custom packaging for every need. Low minimums, fast turnaround.", buttonText: "Get a Free Quote", buttonLink: "/get-quote", bgColor: "#1a2f5a" } },
+    { id: "d1", type: "hero", data: { heading: "Shop All Products", subheading: "Premium custom packaging for every need. Low minimums, fast turnaround.", buttonText: "Get a Free Quote", buttonLink: "/get-a-quote", bgColor: "#1a2f5a" } },
     { id: "d2", type: "trust_bar", data: { items: ["🎨 Free Custom Design", "🚚 Free US Shipping", "⚡ 6-8 Day Turnaround", "✅ 100% Satisfaction Guaranteed", "📦 Low 100-Unit MOQ"] } },
     { id: "d3", type: "products_grid", data: { heading: "All Products", showSearch: true, showCategoryFilter: true, limit: 50 } },
     { id: "d4", type: "cta", data: { heading: "Can't Find What You Need?", text: "We build completely custom packaging solutions.", buttonText: "Contact Us", buttonLink: "/contact", bgColor: "#1a2f5a" } },
   ],
   blog: [
-    { id: "d1", type: "hero", data: { heading: "Packaging Insights", subheading: "Tips, trends, and ideas for brands that care about their packaging.", buttonText: "Get a Free Quote", buttonLink: "/get-quote", bgColor: "#1a2f5a" } },
+    { id: "d1", type: "hero", data: { heading: "Packaging Insights", subheading: "Tips, trends, and ideas for brands that care about their packaging.", buttonText: "Get a Free Quote", buttonLink: "/get-a-quote", bgColor: "#1a2f5a" } },
     { id: "d2", type: "blog_grid", data: { heading: "Latest Articles", limit: 12, columns: 3 } },
-    { id: "d3", type: "cta", data: { heading: "Ready to Upgrade Your Packaging?", text: "Join 500+ brands using Prime Packaging Boxes.", buttonText: "Get a Free Quote", buttonLink: "/get-quote", bgColor: "#e63329" } },
+    { id: "d3", type: "cta", data: { heading: "Ready to Upgrade Your Packaging?", text: "Join 500+ brands using Prime Packaging Boxes.", buttonText: "Get a Free Quote", buttonLink: "/get-a-quote", bgColor: "#e63329" } },
   ],
 };
 

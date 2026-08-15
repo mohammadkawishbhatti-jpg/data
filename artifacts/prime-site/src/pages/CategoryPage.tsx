@@ -8,13 +8,13 @@ import { useGetCategory, useListProducts } from "@workspace/api-client-react";
 import { toAbsoluteUrl, useSEO, useSchemaOrg } from "../lib/useSEO";
 import { ArrowRight, Package, Phone, ShieldCheck, Zap, Truck } from "lucide-react";
 
-// Fallback packaging images (Unsplash, compressed w=1400 q=50)
+// Fallback packaging images served from the company's own upload library.
 const HERO_IMGS = [
-  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1400&q=50",
-  "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1400&q=50",
-  "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1400&q=50",
-  "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1400&q=50",
-  "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1400&q=50",
+  "/api/uploads/cardboard-gift-boxes.webp",
+  "/api/uploads/custom-cake-boxes.webp",
+  "/api/uploads/custom-kraft-boxes-wholesale.webp",
+  "/api/uploads/custom-corrugated-mailer-boxes-with-logo.webp",
+  "/api/uploads/luxury-chocolate-boxes.webp",
 ];
 
 // Pick a stable fallback image based on slug

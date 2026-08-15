@@ -942,22 +942,31 @@ export default function TemplateBuilderPage() {
     editorRef.current = editor;
     registerCustomBlocks(editor);
     let initialScrollLock = true;
+    let initialScrollReleaseTimer: number | null = null;
     const canvasContainer = getCanvasScrollContainer();
     const keepInitialCanvasAtTop = () => {
-      if (initialScrollLock && canvasContainer && canvasContainer.scrollTop !== 0) {
-        canvasContainer.scrollTop = 0;
+      if (initialScrollLock) {
+        if (canvasContainer && canvasContainer.scrollTop !== 0) canvasContainer.scrollTop = 0;
+        const frameWindow = editor.Canvas.getFrameEl()?.contentWindow;
+        if (frameWindow && frameWindow.scrollY !== 0) frameWindow.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       }
     };
+    const scheduleInitialScrollRelease = () => {
+      if (!initialScrollLock) return;
+      if (initialScrollReleaseTimer) window.clearTimeout(initialScrollReleaseTimer);
+      initialScrollReleaseTimer = window.setTimeout(() => {
+        initialScrollLock = false;
+        resetCanvasScrollToTop(editor);
+      }, 1500);
+    };
     canvasContainer?.addEventListener('scroll', keepInitialCanvasAtTop, { passive: true });
-    const releaseInitialScrollLock = window.setTimeout(() => {
-      initialScrollLock = false;
-      resetCanvasScrollToTop(editor);
-    }, 1800);
+    scheduleInitialScrollRelease();
 
     editor.on('load canvas:frame:load', () => {
       window.setTimeout(() => {
         if (!id) applySampleDataToCanvas(editor, 'cardboard-boxes');
         resetCanvasScrollToTop(editor);
+        scheduleInitialScrollRelease();
       }, 80);
     });
 
@@ -1017,7 +1026,10 @@ export default function TemplateBuilderPage() {
             wrapper.style.height = frameHeight;
             wrapper.style.minHeight = frameHeight;
           }
-          window.requestAnimationFrame(() => restoreCanvasScroll(editor, frameTop, canvasTop));
+          const restore = () => restoreCanvasScroll(editor, frameTop, canvasTop);
+          window.requestAnimationFrame(restore);
+          window.setTimeout(restore, 0);
+          scheduleInitialScrollRelease();
         }
       } catch {}
     };
@@ -1040,6 +1052,7 @@ export default function TemplateBuilderPage() {
         if (editorRef.current) {
           updateFrameHeight();
           resetCanvasScrollToTop(editorRef.current);
+          scheduleInitialScrollRelease();
         }
       }, 500);
       setTimeout(() => {
@@ -1054,7 +1067,7 @@ export default function TemplateBuilderPage() {
 
     editor.Keymaps.add('ns:save', 'ctrl+s', () => triggerSave());
     return () => {
-      window.clearTimeout(releaseInitialScrollLock);
+      if (initialScrollReleaseTimer) window.clearTimeout(initialScrollReleaseTimer);
       canvasContainer?.removeEventListener('scroll', keepInitialCanvasAtTop);
       frameResizeObserver.disconnect();
       labelObs.disconnect();
@@ -1523,8 +1536,8 @@ const GJS_CSS = `
     --gjs-font-color-active: #ffffff;
   }
   .gjs-editor { background: #070A12 !important; font-family: "Inter", system-ui, sans-serif !important; }
-  .gjs-cv-canvas { background: #070A12 !important; display: flex !important; justify-content: center !important; overflow: auto !important; padding: 20px 0 !important; }
-  .gjs-frame-wrapper { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; margin: 0 auto !important; box-shadow: none !important; border: none !important; height: auto !important; min-height: 100% !important; }
+  .gjs-cv-canvas { background: #070A12 !important; display: flex !important; justify-content: center !important; overflow: auto !important; overflow-anchor: none !important; padding: 20px 0 !important; }
+  .gjs-frame-wrapper { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; margin: 0 auto !important; box-shadow: none !important; border: none !important; height: auto !important; min-height: 100% !important; overflow-anchor: none !important; }
   .gjs-frame { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; display: block !important; }
 
   /* ── 1. HIDE NATIVE DUPLICATE TOP PANELS COMPLETELY ── */

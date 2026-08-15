@@ -81,7 +81,7 @@ export function ProductCard({ product }: ProductCardProps) {
           {excerpt}
         </p>
         <Link
-          href={`/get-quote?product=${encodeURIComponent(product.name)}`}
+          href={`/get-a-quote?product=${encodeURIComponent(product.name)}`}
           className="w-full bg-[#1a2f5a] hover:bg-[#e63329] text-white font-semibold py-2.5 rounded-lg transition-all text-center text-xs flex items-center justify-center gap-1.5"
         >
           Get a Quote <ArrowRight className="w-3 h-3" />

@@ -32,6 +32,22 @@ function setMeta(name: string, content: string, attr: "name" | "property" = "nam
   el.setAttribute("content", content);
 }
 
+function setOptionalMeta(name: string, content: string | undefined, attr: "name" | "property" = "name") {
+  const selector = `meta[${attr}="${name}"]`;
+  if (!content) {
+    document.querySelector(selector)?.remove();
+    return;
+  }
+  setMeta(name, content, attr);
+}
+
+function normalizeDescription(value: string): string {
+  const compact = value.replace(/\s+/g, " ").trim();
+  if (compact.length <= 160) return compact;
+  const shortened = compact.slice(0, 157).replace(/\s+\S*$/, "").trim();
+  return `${shortened}…`;
+}
+
 function setLink(rel: string, href: string) {
   let el = document.querySelector(`link[rel="${rel}"]`);
   if (!el) {
@@ -53,19 +69,20 @@ export function useSEO({
 }: SEOParams) {
   useEffect(() => {
     const fullTitle = title
-      ? `${title} | Prime Packaging Boxes`
+      ? (title.includes("Prime Packaging Boxes") ? title : `${title} | Prime Packaging Boxes`)
       : "Prime Packaging Boxes — Custom Packaging That Sells Your Brand";
+    const normalizedDescription = normalizeDescription(description);
 
     document.title = fullTitle;
 
-    setMeta("description", description);
-    if (keywords) setMeta("keywords", keywords);
+    setMeta("description", normalizedDescription);
+    setOptionalMeta("keywords", keywords);
     setMeta("robots", noindex ? "noindex,nofollow" : "index,follow,max-image-preview:large");
     setMeta("author", "Prime Packaging Boxes");
     const resolvedOgImage = toAbsoluteUrl(ogImage) || DEFAULT_OG_IMAGE;
 
     setMeta("og:title", fullTitle, "property");
-    setMeta("og:description", description, "property");
+    setMeta("og:description", normalizedDescription, "property");
     setMeta("og:type", ogType, "property");
     setMeta("og:image", resolvedOgImage, "property");
     setMeta("og:image:secure_url", resolvedOgImage, "property");
@@ -79,7 +96,7 @@ export function useSEO({
 
     setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", fullTitle);
-    setMeta("twitter:description", description);
+    setMeta("twitter:description", normalizedDescription);
     setMeta("twitter:image", resolvedOgImage);
 
     // Geo targeting — US + UK

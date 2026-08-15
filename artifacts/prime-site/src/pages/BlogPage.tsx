@@ -93,7 +93,7 @@ export default function BlogPage() {
     <>
       {/* ── Hero ── */}
       <section className="bg-[#0d1f3c] pt-16 pb-24 text-white relative overflow-hidden">
-        <img src="https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1400&q=50" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{opacity:0.18}} loading="eager" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
+        <img src="/api/uploads/custom-kraft-boxes-with-logo.webp" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{opacity:0.18}} loading="eager" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
         <div className="absolute inset-0" style={{background:"linear-gradient(135deg,#0d1f3c 0%,rgba(13,31,60,0.85) 100%)"}} />
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
         <div className="container mx-auto px-4 relative z-10 text-center">
