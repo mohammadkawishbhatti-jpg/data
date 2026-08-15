@@ -276,6 +276,35 @@ export const SubmitContactResponse = zod.object({
 
 
 /**
+ * @summary Get a public navigation menu
+ */
+export const GetMenuParams = zod.object({
+  "location": zod.coerce.string()
+})
+
+
+
+
+export const GetMenuResponse = zod.object({
+  "id": zod.number().int(),
+  "location": zod.string(),
+  "name": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string().min(1),
+  "href": zod.string(),
+  "parentId": zod.string().nullish(),
+  "group": zod.string().nullish(),
+  "order": zod.number().int(),
+  "isVisible": zod.boolean(),
+  "openInNewTab": zod.boolean()
+})),
+  "isActive": zod.boolean(),
+  "updatedAt": zod.string().nullish()
+})
+
+
+/**
  * @summary Admin login
  */
 export const AdminLoginBody = zod.object({
@@ -322,10 +351,10 @@ export const GetAdminStatsResponse = zod.object({
   "totalBlogPosts": zod.number().int(),
   "recentQuotes": zod.array(zod.object({
 
-})).optional(),
+}).passthrough()).optional(),
   "recentLeads": zod.array(zod.object({
 
-})).optional()
+}).passthrough()).optional()
 })
 
 
@@ -933,55 +962,11 @@ export const UpdateSettingsBody = zod.object({
   "siteName": zod.string().nullish(),
   "siteDescription": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
-  "faviconUrl": zod.string().nullish(),
   "email": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "address": zod.string().nullish(),
   "adminEmail": zod.string().nullish(),
-  "updatedAt": zod.string().nullish(),
-  // Extended fields
-  "robotsTxt": zod.string().nullish(),
-  "sitemapSettings": zod.string().nullish(),
-  "headerCode": zod.string().nullish(),
-  "footerCode": zod.string().nullish(),
-  "blockedCountries": zod.string().nullish(),
-  "countryBlockEnabled": zod.string().nullish(),
-  "geminiApiKey": zod.string().nullish(),
-  // SMTP
-  "smtpHost": zod.string().nullish(),
-  "smtpPort": zod.union([zod.string(), zod.number()]).nullish(),
-  "smtpUser": zod.string().nullish(),
-  "smtpPass": zod.string().nullish(),
-  "smtpFrom": zod.string().nullish(),
-  "smtpTo": zod.string().nullish(),
-  "smtpSecure": zod.union([zod.string(), zod.boolean()]).nullish(),
-  "smtp2Host": zod.string().nullish(),
-  "smtp2Port": zod.union([zod.string(), zod.number()]).nullish(),
-  "smtp2User": zod.string().nullish(),
-  "smtp2Pass": zod.string().nullish(),
-  "smtp2From": zod.string().nullish(),
-  "smtp2Secure": zod.union([zod.string(), zod.boolean()]).nullish(),
-  // Clark AI
-  "clarkEnabled": zod.union([zod.string(), zod.boolean()]).nullish(),
-  "clarkBotName": zod.string().nullish(),
-  "clarkGreeting": zod.string().nullish(),
-  "clarkCompanyPhone": zod.string().nullish(),
-  "clarkCompanyEmail": zod.string().nullish(),
-  "clarkCompanyAddress": zod.string().nullish(),
-  "clarkToneNotes": zod.string().nullish(),
-  "clarkQuoteHours": zod.string().nullish(),
-  "clarkCustomFaqs": zod.string().nullish(),
-  // Social & contact
-  "whatsapp": zod.string().nullish(),
-  "facebook": zod.string().nullish(),
-  "instagram": zod.string().nullish(),
-  "twitter": zod.string().nullish(),
-  "linkedin": zod.string().nullish(),
-  // Global SEO
-  "metaTitle": zod.string().nullish(),
-  "metaDescription": zod.string().nullish(),
-  // Announcement bar
-  "announcementBar": zod.string().nullish(),
+  "updatedAt": zod.string().nullish()
 })
 
 export const UpdateSettingsResponse = zod.object({
@@ -989,24 +974,88 @@ export const UpdateSettingsResponse = zod.object({
   "siteName": zod.string().nullish(),
   "siteDescription": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
-  "faviconUrl": zod.string().nullish(),
   "email": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "address": zod.string().nullish(),
   "adminEmail": zod.string().nullish(),
-  "updatedAt": zod.string().nullish(),
-  "robotsTxt": zod.string().nullish(),
-  "sitemapSettings": zod.string().nullish(),
-  "geminiApiKey": zod.string().nullish(),
-  "smtpHost": zod.string().nullish(),
-  "smtpPort": zod.number().nullish(),
-  "smtpUser": zod.string().nullish(),
-  "smtpFrom": zod.string().nullish(),
-  "smtpTo": zod.string().nullish(),
-  "smtpSecure": zod.union([zod.string(), zod.boolean()]).nullish(),
-  "clarkEnabled": zod.union([zod.string(), zod.boolean()]).nullish(),
-  "clarkBotName": zod.string().nullish(),
-  "clarkGreeting": zod.string().nullish(),
+  "updatedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary Get a navigation menu for editing
+ */
+export const AdminGetMenuParams = zod.object({
+  "location": zod.coerce.string()
+})
+
+
+
+
+export const AdminGetMenuResponse = zod.object({
+  "id": zod.number().int(),
+  "location": zod.string(),
+  "name": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string().min(1),
+  "href": zod.string(),
+  "parentId": zod.string().nullish(),
+  "group": zod.string().nullish(),
+  "order": zod.number().int(),
+  "isVisible": zod.boolean(),
+  "openInNewTab": zod.boolean()
+})),
+  "isActive": zod.boolean(),
+  "updatedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary Replace a navigation menu
+ */
+export const AdminUpdateMenuParams = zod.object({
+  "location": zod.coerce.string()
+})
+
+
+
+
+
+export const AdminUpdateMenuBody = zod.object({
+  "name": zod.string().min(1),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string().min(1),
+  "href": zod.string(),
+  "parentId": zod.string().nullish(),
+  "group": zod.string().nullish(),
+  "order": zod.number().int(),
+  "isVisible": zod.boolean(),
+  "openInNewTab": zod.boolean()
+})),
+  "isActive": zod.boolean().optional()
+})
+
+
+
+
+export const AdminUpdateMenuResponse = zod.object({
+  "id": zod.number().int(),
+  "location": zod.string(),
+  "name": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string().min(1),
+  "href": zod.string(),
+  "parentId": zod.string().nullish(),
+  "group": zod.string().nullish(),
+  "order": zod.number().int(),
+  "isVisible": zod.boolean(),
+  "openInNewTab": zod.boolean()
+})),
+  "isActive": zod.boolean(),
+  "updatedAt": zod.string().nullish()
 })
 
 

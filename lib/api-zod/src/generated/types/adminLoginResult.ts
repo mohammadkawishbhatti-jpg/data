@@ -5,9 +5,9 @@
  * Prime Packaging Boxes API
  * OpenAPI spec version: 0.1.0
  */
-import type { AdminLoginResponseUser } from './adminLoginResponseUser';
+import type { AdminLoginResultUser } from './adminLoginResultUser';
 
-export interface AdminLoginResponse {
+export interface AdminLoginResult {
   success: boolean;
-  user?: AdminLoginResponseUser;
+  user?: AdminLoginResultUser;
 }

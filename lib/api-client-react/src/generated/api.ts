@@ -22,7 +22,7 @@ import type {
 import type {
   AdminListProductsParams,
   AdminLoginInput,
-  AdminLoginResponse,
+  AdminLoginResult,
   AdminStats,
   AdminUser,
   Banner,
@@ -39,6 +39,8 @@ import type {
   Lead,
   ListBlogPostsParams,
   ListProductsParams,
+  Menu,
+  MenuUpdate,
   Page,
   PageInput,
   Product,
@@ -928,6 +930,83 @@ export const useSubmitContact = <TError = ErrorType<unknown>,
       return useMutation(getSubmitContactMutationOptions(options));
     }
 
+export const getGetMenuUrl = (location: string,) => {
+
+
+
+
+  return `/api/menus/${location}`
+}
+
+/**
+ * @summary Get a public navigation menu
+ */
+export const getMenu = async (location: string, options?: Parameters<typeof customFetch>[1]): Promise<Menu> => {
+
+  return customFetch<Menu>(getGetMenuUrl(location),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMenuQueryKey = (location: string,) => {
+    return [
+    `/api/menus/${location}`
+    ] as const;
+    }
+
+
+export const getGetMenuQueryOptions = <TData = Awaited<ReturnType<typeof getMenu>>, TError = ErrorType<unknown>>(location: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMenu>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMenuQueryKey(location);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMenu>>> = ({ signal }) => getMenu(location, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: location !== null && location !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMenu>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMenuQueryResult = NonNullable<Awaited<ReturnType<typeof getMenu>>>
+export type GetMenuQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a public navigation menu
+ */
+
+export function useGetMenu<TData = Awaited<ReturnType<typeof getMenu>>, TError = ErrorType<unknown>>(
+ location: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMenu>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMenuQueryOptions(location,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getAdminLoginUrl = () => {
 
 
@@ -939,9 +1018,9 @@ export const getAdminLoginUrl = () => {
 /**
  * @summary Admin login
  */
-export const adminLogin = async (adminLoginInput: AdminLoginInput, options?: Parameters<typeof customFetch>[1]): Promise<AdminLoginResponse> => {
+export const adminLogin = async (adminLoginInput: AdminLoginInput, options?: Parameters<typeof customFetch>[1]): Promise<AdminLoginResult> => {
 
-  return customFetch<AdminLoginResponse>(getAdminLoginUrl(),
+  return customFetch<AdminLoginResult>(getAdminLoginUrl(),
   {
     ...options,
     method: 'POST',
@@ -3083,7 +3162,7 @@ export const updateSettings = async (siteSettings: SiteSettings, options?: Param
   return customFetch<SiteSettings>(getUpdateSettingsUrl(),
   {
     ...options,
-    method: 'PATCH',
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(siteSettings)
   }
@@ -3136,5 +3215,154 @@ export const useUpdateSettings = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateSettingsMutationOptions(options));
+    }
+
+export const getAdminGetMenuUrl = (location: string,) => {
+
+
+
+
+  return `/api/admin/menus/${location}`
+}
+
+/**
+ * @summary Get a navigation menu for editing
+ */
+export const adminGetMenu = async (location: string, options?: Parameters<typeof customFetch>[1]): Promise<Menu> => {
+
+  return customFetch<Menu>(getAdminGetMenuUrl(location),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminGetMenuQueryKey = (location: string,) => {
+    return [
+    `/api/admin/menus/${location}`
+    ] as const;
+    }
+
+
+export const getAdminGetMenuQueryOptions = <TData = Awaited<ReturnType<typeof adminGetMenu>>, TError = ErrorType<unknown>>(location: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetMenu>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminGetMenuQueryKey(location);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetMenu>>> = ({ signal }) => adminGetMenu(location, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: location !== null && location !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminGetMenu>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminGetMenuQueryResult = NonNullable<Awaited<ReturnType<typeof adminGetMenu>>>
+export type AdminGetMenuQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a navigation menu for editing
+ */
+
+export function useAdminGetMenu<TData = Awaited<ReturnType<typeof adminGetMenu>>, TError = ErrorType<unknown>>(
+ location: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetMenu>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminGetMenuQueryOptions(location,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAdminUpdateMenuUrl = (location: string,) => {
+
+
+
+
+  return `/api/admin/menus/${location}`
+}
+
+/**
+ * @summary Replace a navigation menu
+ */
+export const adminUpdateMenu = async (location: string,
+    menuUpdate: MenuUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Menu> => {
+
+  return customFetch<Menu>(getAdminUpdateMenuUrl(location),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(menuUpdate)
+  }
+);}
+
+
+
+
+
+export const getAdminUpdateMenuMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateMenu>>, TError,{location: string;data: BodyType<MenuUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminUpdateMenu>>, TError,{location: string;data: BodyType<MenuUpdate>}, TContext> => {
+
+const mutationKey = ['adminUpdateMenu'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminUpdateMenu>>, {location: string;data: BodyType<MenuUpdate>}> = (props) => {
+          const {location,data} = props ?? {};
+
+          return  adminUpdateMenu(location,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminUpdateMenuMutationResult = NonNullable<Awaited<ReturnType<typeof adminUpdateMenu>>>
+    export type AdminUpdateMenuMutationBody = BodyType<MenuUpdate>
+    export type AdminUpdateMenuMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Replace a navigation menu
+ */
+export const useAdminUpdateMenu = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateMenu>>, TError,{location: string;data: BodyType<MenuUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminUpdateMenu>>,
+        TError,
+        {location: string;data: BodyType<MenuUpdate>},
+        TContext
+      > => {
+      return useMutation(getAdminUpdateMenuMutationOptions(options));
     }
 

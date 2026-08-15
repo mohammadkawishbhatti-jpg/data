@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type AdminLoginResponseUser = {
+export type AdminLoginResultUser = {
   username?: string;
   role?: string;
 };

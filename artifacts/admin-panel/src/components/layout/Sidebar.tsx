@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, FolderOpen, Image as ImageIcon,
   FileText, BookOpen, FileEdit, Settings, LogOut, X, Users,
   HardDrive, Shield, Layout, Palette, ShoppingBag, Receipt, FileOutput, Upload,
-  Bell, Bot, ChevronDown, TrendingUp, Inbox, Globe, Sparkles, Command
+  Bell, Bot, ChevronDown, TrendingUp, Inbox, Globe, Sparkles, Command, Menu as MenuIcon
 } from "lucide-react";
 import { useAdminLogout, useGetAdminStats } from "@workspace/api-client-react";
 
@@ -42,6 +42,7 @@ const sections = [
     items: [
       { name: "Pages",           href: "/pages",         icon: FileEdit },
       { name: "Page Templates",  href: "/templates",     icon: Layout },
+      { name: "Menus",           href: "/menus",         icon: MenuIcon },
       { name: "Blog",            href: "/blog",          icon: BookOpen },
       { name: "Media",           href: "/media",         icon: HardDrive },
       { name: "Popups",          href: "/popups",        icon: Globe },

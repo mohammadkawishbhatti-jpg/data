@@ -14,18 +14,7 @@ export interface Quote {
   company?: string | null;
   productType?: string | null;
   quantity?: string | null;
-  dimensions?: string | null;
-  material?: string | null;
-  printingDetails?: string | null;
   additionalNotes?: string | null;
   status: string;
-  source?: string | null;
-  clarkSessionId?: string | null;
-  clarkTranscript?: string | null;
-  message?: string | null;
-  notes?: string | null;
-  followUpDone?: boolean;
-  followUpDate?: string | null;
-  followUpNotes?: string | null;
   createdAt?: string;
 }

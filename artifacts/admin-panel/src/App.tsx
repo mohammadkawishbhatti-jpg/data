@@ -31,6 +31,7 @@ import FollowUpsPage from "./pages/FollowUpsPage";
 import SecurityPage from "./pages/SecurityPage";
 import DatabasePage from "./pages/DatabasePage";
 import ClarkPage from "./pages/ClarkPage";
+import MenusPage from "./pages/MenusPage";
 import { AdminLayout } from "./components/layout/AdminLayout";
 
 // Lazy-loaded full-screen builders (outside AdminLayout)
@@ -109,6 +110,9 @@ export default function App() {
         </Route>
         <Route path="/templates">
           <TemplatesPage />
+        </Route>
+        <Route path="/menus">
+          <MenusPage />
         </Route>
         <Route path="/pages">
           <PagesPage />

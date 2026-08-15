@@ -115,14 +115,14 @@ export interface AdminLoginInput {
   password: string;
 }
 
-export type AdminLoginResponseUser = {
+export type AdminLoginResultUser = {
   username?: string;
   role?: string;
 };
 
-export interface AdminLoginResponse {
+export interface AdminLoginResult {
   success: boolean;
-  user?: AdminLoginResponseUser;
+  user?: AdminLoginResultUser;
 }
 
 export interface AdminUser {
@@ -349,6 +349,37 @@ export interface SiteSettings {
   address?: string | null;
   adminEmail?: string | null;
   updatedAt?: string | null;
+}
+
+export interface MenuItem {
+  id: string;
+  /** @minLength 1 */
+  label: string;
+  href: string;
+  /** @nullable */
+  parentId?: string | null;
+  /** @nullable */
+  group?: string | null;
+  order: number;
+  isVisible: boolean;
+  openInNewTab: boolean;
+}
+
+export interface Menu {
+  id: number;
+  location: string;
+  name: string;
+  items: MenuItem[];
+  isActive: boolean;
+  /** @nullable */
+  updatedAt?: string | null;
+}
+
+export interface MenuUpdate {
+  /** @minLength 1 */
+  name: string;
+  items: MenuItem[];
+  isActive?: boolean;
 }
 
 export type ListProductsParams = {

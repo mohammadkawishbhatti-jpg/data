@@ -8,8 +8,8 @@
 
 export * from './adminListProductsParams';
 export * from './adminLoginInput';
-export * from './adminLoginResponse';
-export * from './adminLoginResponseUser';
+export * from './adminLoginResult';
+export * from './adminLoginResultUser';
 export * from './adminStats';
 export * from './adminStatsRecentLeadsItem';
 export * from './adminStatsRecentQuotesItem';
@@ -28,6 +28,9 @@ export * from './healthStatus';
 export * from './lead';
 export * from './listBlogPostsParams';
 export * from './listProductsParams';
+export * from './menu';
+export * from './menuItem';
+export * from './menuUpdate';
 export * from './page';
 export * from './pageInput';
 export * from './product';

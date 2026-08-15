@@ -291,3 +291,5 @@ export const adminUsersTable = pgTable("admin_users", {
   totpEnabled: boolean("totp_enabled").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export * from "./menus";

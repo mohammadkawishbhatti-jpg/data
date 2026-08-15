@@ -24,6 +24,7 @@ import securityRouter from "./security";
 import databaseRouter from "./database";
 import chatRouter from "./chat";
 import resolveRouter from "./resolve";
+import menusRouter from "./menus";
 
 const router: IRouter = Router();
 
@@ -31,6 +32,7 @@ router.use(healthRouter);
 router.use("/db-setup", dbSetupRouter);
 router.use(seoRouter);
 router.use(resolveRouter);
+router.use(menusRouter);
 router.use(productsRouter);
 router.use(categoriesRouter);
 router.use(bannersRouter);
