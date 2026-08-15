@@ -75,14 +75,17 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-[55%] relative z-10 flex-col justify-between p-12 lg:p-16 border-r border-white/5 bg-gradient-to-br from-[#0D1F3C]/40 to-[#070A12]/80 backdrop-blur-md">
         {/* Brand Header */}
         <div className="flex items-center gap-3.5">
-          <img
-            src="/api/uploads/prime-packaging-logo.svg"
-            alt="Prime Packaging Boxes"
-            className="h-14 w-auto max-w-[260px] object-contain"
-          />
-          <p className="text-xs font-bold text-[#FFB800] uppercase tracking-widest">
-            Admin Workspace
-          </p>
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#E63329] to-[#C42A21] flex items-center justify-center font-black text-2xl text-white shadow-xl shadow-[#E63329]/40 border border-white/20">
+            P
+          </div>
+          <div>
+            <h1 className="font-heading font-extrabold text-lg text-white tracking-widest leading-none">
+              PRIME PACKAGING
+            </h1>
+            <p className="text-xs font-bold text-[#FFB800] uppercase tracking-widest mt-1">
+              Admin Workspace
+            </p>
+          </div>
         </div>
 
         {/* Central Glass Card */}
@@ -133,17 +136,23 @@ export default function LoginPage() {
         
         {/* Mobile Header Logo */}
         <div className="lg:hidden flex items-center gap-3 mb-8">
-          <img
-            src="/api/uploads/prime-packaging-logo.svg"
-            alt="Prime Packaging Boxes"
-            className="h-10 w-auto max-w-[220px] object-contain"
-          />
-          <p className="text-[10px] text-[#FFB800] uppercase tracking-wider font-bold">Admin Workspace</p>
+          <div className="w-10 h-10 rounded-xl bg-[#E63329] font-black text-white text-xl flex items-center justify-center">
+            P
+          </div>
+          <div>
+            <h1 className="font-heading font-extrabold text-sm text-white">PRIME PACKAGING</h1>
+            <p className="text-[10px] text-[#FFB800] uppercase tracking-wider font-bold">Admin Workspace</p>
+          </div>
         </div>
 
         <div className="my-auto max-w-md w-full mx-auto">
           {/* Header */}
           <div className="mb-8">
+            <img
+              src="/api/uploads/prime-packaging-logo.svg"
+              alt="Prime Packaging Boxes"
+              className="h-9 w-auto max-w-[190px] rounded-md bg-white object-contain mb-5"
+            />
             <div className="w-12 h-12 rounded-2xl bg-[#E63329]/15 border border-[#E63329]/30 text-[#E63329] flex items-center justify-center mb-4">
               {requires2fa ? <ShieldCheck size={24} /> : <KeyRound size={24} />}
             </div>
