@@ -261,8 +261,9 @@ const PAGE_ID_TO_URL: Record<string, string> = {
 };
 
 /* ── Top Bar ── */
-function TopBar({ title, saving, lastSaved, saveError, viewport, themeColor, previewCategory, isPage, pageId, onSave, onBack, onUndo, onRedo, onViewport, onPreview, onOpenCode, onOpenHistory, onSaveBlock, onChangeTheme, onSelectSampleCategory }: {
+function TopBar({ title, saving, lastSaved, saveError, viewport, themeColor, previewCategory, isPage, contentOnly, pageId, onSave, onBack, onUndo, onRedo, onViewport, onPreview, onOpenCode, onOpenHistory, onSaveBlock, onChangeTheme, onSelectSampleCategory }: {
   title: string; saving: boolean; lastSaved: string; saveError: string; viewport: string; themeColor: string; previewCategory: string; isPage?: boolean; pageId?: string;
+  contentOnly?: boolean;
   onSave(): void; onBack(): void; onUndo(): void; onRedo(): void; onViewport(v: string): void; onPreview(): void;
   onOpenCode(): void; onOpenHistory(): void; onSaveBlock(): void; onChangeTheme(color: string): void; onSelectSampleCategory(cat: string): void;
 }) {
@@ -279,7 +280,7 @@ function TopBar({ title, saving, lastSaved, saveError, viewport, themeColor, pre
         </div>
         <div>
           <span style={{ color: '#FFFFFF', fontSize: 14, fontWeight: 800, display: 'block', lineHeight: 1 }}>{title}</span>
-          <span style={{ color: '#FFB800', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{isPage ? 'Custom Page Visual Editor' : 'Template Visual Editor'}</span>
+          <span style={{ color: '#FFB800', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{contentOnly ? 'Content Only Editor · Layout Locked' : 'Template Visual Editor'}</span>
         </div>
       </div>
 
@@ -298,16 +299,17 @@ function TopBar({ title, saving, lastSaved, saveError, viewport, themeColor, pre
         </div>
       )}
 
-      {/* Theme Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', borderRadius: 8, padding: '2px 8px', border: '1px solid rgba(255,255,255,0.08)', gap: 4 }}>
-        <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700 }}>🎨 Theme:</span>
-        <select value={themeColor} onChange={e => onChangeTheme(e.target.value)} style={{ background: 'transparent', color: '#FFF', border: 'none', fontSize: 11, fontWeight: 700, outline: 'none', cursor: 'pointer' }}>
-          <option value="#E63329" style={{ background: '#0D1F3C' }}>🔴 Crimson Red</option>
-          <option value="#2563EB" style={{ background: '#0D1F3C' }}>🔵 Royal Navy</option>
-          <option value="#10B981" style={{ background: '#0D1F3C' }}>🟢 Eco Green</option>
-          <option value="#D97706" style={{ background: '#0D1F3C' }}>🟡 Luxury Gold</option>
-        </select>
-      </div>
+      {!contentOnly && (
+        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', borderRadius: 8, padding: '2px 8px', border: '1px solid rgba(255,255,255,0.08)', gap: 4 }}>
+          <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700 }}>🎨 Theme:</span>
+          <select value={themeColor} onChange={e => onChangeTheme(e.target.value)} style={{ background: 'transparent', color: '#FFF', border: 'none', fontSize: 11, fontWeight: 700, outline: 'none', cursor: 'pointer' }}>
+            <option value="#E63329" style={{ background: '#0D1F3C' }}>🔴 Crimson Red</option>
+            <option value="#2563EB" style={{ background: '#0D1F3C' }}>🔵 Royal Navy</option>
+            <option value="#10B981" style={{ background: '#0D1F3C' }}>🟢 Eco Green</option>
+            <option value="#D97706" style={{ background: '#0D1F3C' }}>🟡 Luxury Gold</option>
+          </select>
+        </div>
+      )}
 
       {/* Device Switcher */}
       <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 3, gap: 2, border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -325,17 +327,21 @@ function TopBar({ title, saving, lastSaved, saveError, viewport, themeColor, pre
 
       <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
 
-      <button onClick={onSaveBlock} style={{ ...topBtn(), width: 'auto', padding: '0 10px', fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.06)', color: '#F8FAFC', borderRadius: 8, gap: 4 }} title="Save Selected Element to Reusable Block Library">
-        <span>⭐</span> Save Block
-      </button>
+      {!contentOnly && (
+        <button onClick={onSaveBlock} style={{ ...topBtn(), width: 'auto', padding: '0 10px', fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.06)', color: '#F8FAFC', borderRadius: 8, gap: 4 }} title="Save Selected Element to Reusable Block Library">
+          <span>⭐</span> Save Block
+        </button>
+      )}
 
       <button onClick={onOpenHistory} style={{ ...topBtn(), width: 'auto', padding: '0 10px', fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.06)', color: '#F8FAFC', borderRadius: 8, gap: 4 }} title="View Version History & Restore">
         <span>📜</span> History
       </button>
 
-      <button onClick={onOpenCode} style={{ ...topBtn(), width: 'auto', padding: '0 10px', fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.06)', color: '#F8FAFC', borderRadius: 8, gap: 4 }} title="View & Edit HTML/CSS Code">
-        <span>&lt;/&gt;</span> Code
-      </button>
+      {!contentOnly && (
+        <button onClick={onOpenCode} style={{ ...topBtn(), width: 'auto', padding: '0 10px', fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.06)', color: '#F8FAFC', borderRadius: 8, gap: 4 }} title="View & Edit HTML/CSS Code">
+          <span>&lt;/&gt;</span> Code
+        </button>
+      )}
 
       <button onClick={onPreview} style={{ ...topBtn(), gap: 4, padding: '0 10px', width: 'auto', background: 'rgba(255,255,255,0.08)', color: '#FFF', borderRadius: 8, fontSize: 11, fontWeight: 700 }}>
         {Ico.eye}
@@ -567,6 +573,108 @@ function RightPanel({ onApplyAnimation, onApplyWidth, onApplyAlign }: {
   );
 }
 
+function ContentOnlyPanel({ component }: { component: any }) {
+  const [text, setText] = useState('');
+  const [href, setHref] = useState('');
+  const [src, setSrc] = useState('');
+  const [alt, setAlt] = useState('');
+
+  useEffect(() => {
+    if (!component) {
+      setText('');
+      setHref('');
+      setSrc('');
+      setAlt('');
+      return;
+    }
+    const attrs = component.getAttributes?.() || {};
+    setText(String(component.get('content') || ''));
+    setHref(String(attrs.href || ''));
+    setSrc(String(attrs.src || ''));
+    setAlt(String(attrs.alt || ''));
+  }, [component]);
+
+  const tagName = String(component?.get?.('tagName') || '').toLowerCase();
+  const isImage = tagName === 'img';
+  const isLink = tagName === 'a' || Boolean(component?.getAttributes?.()?.href);
+  const isEditableText = Boolean(component) && ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'button', 'strong', 'em', 'li', 'label'].includes(tagName);
+
+  const updateText = (value: string) => {
+    setText(value);
+    try {
+      component?.set('content', value);
+      component?.components(value);
+    } catch {}
+  };
+
+  const updateAttribute = (name: string, value: string) => {
+    if (name === 'href') setHref(value);
+    if (name === 'src') setSrc(value);
+    if (name === 'alt') setAlt(value);
+    try { component?.addAttributes({ [name]: value }); } catch {}
+  };
+
+  const fieldStyle: React.CSSProperties = {
+    width: '100%',
+    boxSizing: 'border-box',
+    background: '#141A29',
+    border: '1px solid #26334A',
+    borderRadius: 8,
+    color: '#F8FAFC',
+    padding: '9px 10px',
+    fontSize: 12,
+    outline: 'none',
+  };
+
+  return (
+    <aside style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0B0F19', color: '#F8FAFC' }}>
+      <div style={{ padding: '14px 14px 12px', borderBottom: '1px solid #1E293B' }}>
+        <div style={{ color: '#34D399', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Content Only Mode</div>
+        <div style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 800, marginTop: 5 }}>Edit existing content</div>
+        <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 6 }}>Layout and sections are locked. Click text, images, or links on the page to edit them.</div>
+      </div>
+      {!component ? (
+        <div style={{ padding: 16, color: '#64748B', fontSize: 12, lineHeight: 1.6 }}>
+          Select an existing element in the canvas to see its editable fields here.
+        </div>
+      ) : (
+        <div style={{ padding: 14, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ background: '#101726', border: '1px solid #1E293B', borderRadius: 8, padding: '9px 10px', color: '#94A3B8', fontSize: 11 }}>
+            Selected element: <strong style={{ color: '#F8FAFC' }}>{tagName || 'content'}</strong>
+          </div>
+          {isEditableText && (
+            <label style={{ color: '#CBD5E1', fontSize: 11, fontWeight: 700 }}>
+              Text content
+              <textarea value={text} onChange={e => updateText(e.target.value)} rows={5} style={{ ...fieldStyle, resize: 'vertical', marginTop: 6, lineHeight: 1.5 }} />
+            </label>
+          )}
+          {isImage && (
+            <>
+              <label style={{ color: '#CBD5E1', fontSize: 11, fontWeight: 700 }}>
+                Image URL
+                <input value={src} onChange={e => updateAttribute('src', e.target.value)} style={{ ...fieldStyle, marginTop: 6 }} />
+              </label>
+              <label style={{ color: '#CBD5E1', fontSize: 11, fontWeight: 700 }}>
+                Alt text
+                <input value={alt} onChange={e => updateAttribute('alt', e.target.value)} style={{ ...fieldStyle, marginTop: 6 }} />
+              </label>
+            </>
+          )}
+          {isLink && (
+            <label style={{ color: '#CBD5E1', fontSize: 11, fontWeight: 700 }}>
+              Link URL
+              <input value={href} onChange={e => updateAttribute('href', e.target.value)} style={{ ...fieldStyle, marginTop: 6 }} />
+            </label>
+          )}
+          <div style={{ color: '#64748B', fontSize: 10, lineHeight: 1.5, borderTop: '1px solid #1E293B', paddingTop: 12 }}>
+            Changes are local until you click <strong style={{ color: '#34D399' }}>Save Page</strong>. The original layout remains protected.
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 /* ── Empty Overlay ── */
 function EmptyOverlay({ onAdd }: { onAdd(): void }) {
   return (
@@ -768,6 +876,23 @@ function restoreCanvasScroll(editor: Editor, frameTop: number, canvasTop: number
   } catch {}
 }
 
+function lockContentOnlyComponent(component: any): void {
+  if (!component || typeof component.set !== 'function') return;
+  component.set({
+    draggable: false,
+    droppable: false,
+    removable: false,
+    copyable: false,
+    stylable: false,
+    resizable: false,
+    badgable: false,
+    toolbar: [],
+  });
+  if (typeof component.components === 'function') {
+    component.components().forEach((child: any) => lockContentOnlyComponent(child));
+  }
+}
+
 export default function TemplateBuilderPage() {
   const { type, id } = useParams<{ type?: string; id?: string }>();
   const [, nav] = useLocation();
@@ -781,7 +906,9 @@ export default function TemplateBuilderPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [isEmpty, setIsEmpty] = useState(false);
+  const [selectedComponent, setSelectedComponent] = useState<any>(null);
   const [pageTitle, setPageTitle] = useState('');
+  const contentOnly = Boolean(id);
 
   const title = pageTitle || (type ? (TEMPLATE_LABELS[type] ?? type) : 'Page Builder');
 
@@ -916,9 +1043,9 @@ export default function TemplateBuilderPage() {
         ],
       },
       panels: { defaults: [] },
-      layerManager: { appendTo: '#tpl-layers' },
-      blockManager: { appendTo: '#tpl-blocks' },
-      styleManager: {
+      layerManager: contentOnly ? {} : { appendTo: '#tpl-layers' },
+      blockManager: contentOnly ? { blocks: [] } : { appendTo: '#tpl-blocks' },
+      styleManager: contentOnly ? { sectors: [] } : {
         appendTo: '#tpl-styles',
         sectors: [
           { name: 'Dimension',   open: true,  buildProps: ['width', 'min-height', 'padding', 'margin'] },
@@ -928,8 +1055,8 @@ export default function TemplateBuilderPage() {
           { name: 'Layout',      open: false, buildProps: ['display', 'flex-direction', 'justify-content', 'align-items', 'gap'] },
         ],
       },
-      traitManager:    { appendTo: '#tpl-traits' },
-      selectorManager: { appendTo: '#tpl-selectors' },
+      traitManager:    contentOnly ? {} : { appendTo: '#tpl-traits' },
+      selectorManager: contentOnly ? {} : { appendTo: '#tpl-selectors' },
       deviceManager: {
         devices: [
           { id: 'desktop', name: 'Desktop', width: '' },
@@ -940,6 +1067,9 @@ export default function TemplateBuilderPage() {
     });
 
     editorRef.current = editor;
+    if (contentOnly) {
+      try { (editor as any).getModel?.().set('dragMode', 'none'); } catch {}
+    }
     registerCustomBlocks(editor);
     let initialScrollLock = true;
     let initialScrollReleaseTimer: number | null = null;
@@ -992,6 +1122,11 @@ export default function TemplateBuilderPage() {
     const blocksContainer = document.getElementById('tpl-blocks') || document.getElementById('gjs-blocks');
     if (blocksContainer) labelObs.observe(blocksContainer, { childList: true, subtree: true });
     editor.on('component:selected', (comp: any) => {
+      setSelectedComponent(comp || null);
+      if (contentOnly) {
+        lockContentOnlyComponent(comp);
+        return;
+      }
       if (comp && typeof comp.set === 'function') {
         comp.set('resizable', {
           tc: 1, cr: 1, bc: 1, cl: 1,
@@ -1004,6 +1139,7 @@ export default function TemplateBuilderPage() {
         });
       }
     });
+    editor.on('component:deselected', () => setSelectedComponent(null));
 
     // Auto-adjust GrapesJS iframe canvas height to keep the complete saved
     // page/template available to scroll. Images and custom HTML can change
@@ -1035,6 +1171,7 @@ export default function TemplateBuilderPage() {
     };
 
     editor.on('load component:add component:remove component:update style:update', () => {
+      if (contentOnly) lockContentOnlyComponent(editor.getWrapper());
       setTimeout(updateFrameHeight, 250);
     });
     const frameResizeObserver = new ResizeObserver(() => updateFrameHeight());
@@ -1350,7 +1487,7 @@ function getDefaultPageHtml(pageId: string): string {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#0B0F19', fontFamily: 'Inter, sans-serif' }}>
       <style>{GJS_CSS}</style>
-      <TopBar title={title} saving={saving} lastSaved={lastSaved} saveError={saveError} viewport={viewport} themeColor={themeColor} previewCategory={previewCategory} isPage={!!id} pageId={id}
+      <TopBar title={title} saving={saving} lastSaved={lastSaved} saveError={saveError} viewport={viewport} themeColor={themeColor} previewCategory={previewCategory} isPage={!!id} contentOnly={contentOnly} pageId={id}
         onSave={triggerSave} onBack={() => nav(id ? '/pages' : '/templates')}
         onUndo={() => editorRef.current?.UndoManager.undo()}
         onRedo={() => editorRef.current?.UndoManager.redo()}
@@ -1453,13 +1590,15 @@ function getDefaultPageHtml(pageId: string): string {
       )}
 
         <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
-        <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid #1E293B' }}>
-          <LeftPanel />
-        </div>
+        {!contentOnly && (
+          <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid #1E293B' }}>
+            <LeftPanel />
+          </div>
+        )}
         <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: '#070A12' }}>
           <div ref={containerRef} style={{ width: '100%', flex: 1, minHeight: 0 }} />
 
-          {!loading && (
+          {!loading && !contentOnly && (
             <div style={{
               padding: '10px 20px',
               background: '#0B0F19',
@@ -1510,12 +1649,14 @@ function getDefaultPageHtml(pageId: string): string {
             </div>
           )}
 
-          {!loading && isEmpty && (
+          {!loading && isEmpty && !contentOnly && (
             <EmptyOverlay onAdd={() => addSection('1col')} />
           )}
         </div>
-        <div style={{ width: 290, flexShrink: 0, borderLeft: '1px solid #1E293B' }}>
-          <RightPanel onApplyAnimation={handleApplyAnimation} onApplyWidth={handleApplyColumnWidth} onApplyAlign={handleApplyAlign} />
+        <div style={{ width: contentOnly ? 300 : 290, flexShrink: 0, borderLeft: '1px solid #1E293B' }}>
+          {contentOnly
+            ? <ContentOnlyPanel component={selectedComponent} />
+            : <RightPanel onApplyAnimation={handleApplyAnimation} onApplyWidth={handleApplyColumnWidth} onApplyAlign={handleApplyAlign} />}
         </div>
       </div>
     </div>
