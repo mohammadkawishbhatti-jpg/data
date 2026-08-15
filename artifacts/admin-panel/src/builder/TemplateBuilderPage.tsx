@@ -14,6 +14,8 @@ const TEMPLATE_LABELS: Record<string, string> = {
   blog:     'Blog Listing Page',
 };
 
+const BUILDER_CONTENT_VERSION = 2;
+
 /* ══════════════════════════════════════════
    BLOCK ICON MAP
    ══════════════════════════════════════════ */
@@ -838,7 +840,10 @@ export default function TemplateBuilderPage() {
 
       setRevisions(prev => [{ id: `rev_${Date.now()}`, time, html: html ?? '', css: css ?? '' }, ...prev.slice(0, 9)]);
 
-      const content = JSON.stringify({ gjs: { html, css } });
+      const content = JSON.stringify({
+        builderVersion: BUILDER_CONTENT_VERSION,
+        gjs: { html, css },
+      });
       const endpoint = id ? `/api/admin/pages/${id}` : `/api/admin/templates/${type}`;
       const res = await fetch(endpoint, {
         method: 'PUT', credentials: 'include',
@@ -1049,16 +1054,14 @@ function getDefaultPageHtml(pageId: string): string {
   /* ── Load template or page ── */
   useEffect(() => {
     const endpoint = id ? `/api/admin/pages/${id}` : `/api/admin/templates/${type}`;
-    fetch(endpoint, { credentials: 'include' })
+    fetch(endpoint, { credentials: 'include', cache: 'no-store' })
       .then(r => {
         if (r.status === 401) {
           window.location.href = '/admin/login';
           return null;
         }
         if (!r.ok) {
-          if (id) {
-            return { title: `Custom Page ${id}`, content: getDefaultPageHtml(id) };
-          }
+          if (id) return { title: `Custom Page ${id}`, content: '' };
           throw new Error(`HTTP ${r.status}`);
         }
         return r.json();
@@ -1080,7 +1083,7 @@ function getDefaultPageHtml(pageId: string): string {
           [0, 100, 350, 800].forEach(delay => {
             window.setTimeout(() => {
               if (editorRef.current) {
-                applySampleDataToCanvas(editorRef.current, previewCategory);
+                if (!id) applySampleDataToCanvas(editorRef.current, previewCategory);
                 // Token replacement causes another iframe layout. Reset
                 // after the final pass so long pages open at their start.
                 if (delay >= 350) resetCanvasScrollToTop(editorRef.current);
@@ -1172,13 +1175,22 @@ function getDefaultPageHtml(pageId: string): string {
     } else if (layout === 'cta') {
       html = `<section style="padding:60px 40px; background:#0F172A; border-radius:16px; text-align:center; color:#FFFFFF; margin:24px 0;"><h2 style="font-size:28px; font-weight:800; margin:0 0 12px;">Need a Custom Box Size?</h2><p style="font-size:15px; color:#94A3B8; margin:0 0 20px;">Tell us what you need and we will create a tailored packaging quote for you.</p><a href="/get-a-quote" style="display:inline-block; background:#E63329; color:#FFFFFF; text-decoration:none; padding:12px 24px; border-radius:8px; font-weight:700; font-size:14px;">Request Instant Quote</a></section>`;
     }
-    ed.addComponents(html);
-    setTimeout(() => {
-      try {
-        const iframeWin = ed.Canvas.getFrameEl()?.contentWindow;
-        if (iframeWin) iframeWin.scrollTo({ top: iframeWin.document.body.scrollHeight, behavior: 'smooth' });
-      } catch {}
-    }, 100);
+     const iframeWindow = ed.Canvas.getFrameEl()?.contentWindow;
+     const previousScrollTop = iframeWindow?.scrollY ?? 0;
+     ed.addComponents(html);
+     setTimeout(() => {
+       try {
+         // Adding a section must not hijack the user's current canvas position.
+         // GrapesJS may focus the new component after the model update, so
+         // restore the exact scroll position after that focus pass completes.
+         iframeWindow?.scrollTo({ top: previousScrollTop, left: 0, behavior: 'auto' });
+       } catch {}
+     }, 0);
+     setTimeout(() => {
+       try {
+         iframeWindow?.scrollTo({ top: previousScrollTop, left: 0, behavior: 'auto' });
+       } catch {}
+     }, 120);
   }, []);
 
   /* ── Apply Motion FX Animation ── */

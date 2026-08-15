@@ -31,6 +31,7 @@ router.get("/pages/:slug", async (req, res) => {
 router.get("/admin/pages", requireAdmin, async (req, res) => {
   try {
     const rows = await db.select().from(pagesTable).orderBy(pagesTable.title);
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.json(rows.map(fmt));
   } catch (e) {
     req.log.error(e);
@@ -57,6 +58,7 @@ router.get("/admin/pages/:id", requireAdmin, async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
     const [row] = await db.select().from(pagesTable).where(eq(pagesTable.id, id));
     if (!row) return res.status(404).json({ error: "Not found" });
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.json(fmt(row));
   } catch (e) {
     req.log.error(e);
@@ -87,6 +89,7 @@ router.put("/admin/pages/:id", requireAdmin, async (req, res) => {
       .set({ ...data, updatedAt: new Date() })
       .where(eq(pagesTable.id, id)).returning();
     if (!row) return res.status(404).json({ error: "Not found" });
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.json(fmt(row));
   } catch (e) {
     req.log.error(e);

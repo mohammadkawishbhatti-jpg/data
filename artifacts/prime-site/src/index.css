@@ -112,7 +112,7 @@ html, body {
 
 
 
-  --app-font-sans: 'Inter', sans-serif;
+   --app-font-sans: 'Outfit', 'Inter', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
   --radius: 0.5rem; /* 8px */

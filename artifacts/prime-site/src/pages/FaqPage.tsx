@@ -20,7 +20,9 @@ const FAQ_CATEGORIES = [
       { q: "Can I order a sample before placing a bulk order?", a: "Yes! We encourage samples before bulk orders. Visit our Request a Sample page to order a custom printed sample. Sample costs are fully credited toward your bulk order." },
       { q: "How long does the ordering process take?", a: "Standard turnaround is 7–10 business days after artwork approval. We also offer 3-5 day rush production for USA brands needing fast delivery." },
       { q: "Can I reorder my previous design easily?", a: "Absolutely. We keep your approved artwork securely on file. Just reference your past order number and we will process the reorder 20% faster." },
-      { q: "What if I need to cancel my order?", a: "Cancellations are accepted within 24 hours of confirmation. Once production begins at our USA facility, changes may incur additional charges." }
+       { q: "What if I need to cancel my order?", a: "Cancellations are accepted within 24 hours of confirmation. Once production begins at our USA facility, changes may incur additional charges." },
+       { q: "Can you help me choose the right box style?", a: "Yes. Share your product dimensions, weight, retail setting, and shipping needs. Our packaging team will recommend the structure, board, insert, and finish that fit your use case." },
+       { q: "Do you support small businesses and startups?", a: "Absolutely. Our 100-unit minimum, free design guidance, and sample process are designed to help growing brands launch professionally without committing to a large first run." }
     ]
   },
   {
@@ -33,7 +35,9 @@ const FAQ_CATEGORIES = [
       { q: "Do you provide dieline templates?", a: "Yes. Once you confirm box dimensions, we provide an exact blank dieline template tailored for your packaging." },
       { q: "What is a dieline?", a: "A dieline is a flat 2D blueprint showing all cut, fold, and glue lines to ensure your artwork aligns perfectly on the assembled box." },
       { q: "Will I see a proof before printing?", a: "Always. We provide a digital 3D and 2D proof for your approval before full production begins." },
-      { q: "Can you color match my brand?", a: "We use CMYK printing and offer Pantone (PMS) matching for precise USA brand consistency at a small additional fee." }
+       { q: "Can you color match my brand?", a: "We use CMYK printing and offer Pantone (PMS) matching for precise USA brand consistency at a small additional fee." },
+       { q: "Can you work from an existing logo or brand guide?", a: "Yes. Send your logo, colors, fonts, dieline, or brand guide and our designers will prepare artwork that follows your existing identity." },
+       { q: "Do you offer design revisions?", a: "Yes. We review the artwork with you and make revisions during the proofing stage before production starts, so the final approved file is clear and production-ready." }
     ]
   },
   {
@@ -46,7 +50,9 @@ const FAQ_CATEGORIES = [
       { q: "Are your materials eco-friendly?", a: "Yes, our Kraft boxes are made from recycled content, and we use soy-based inks for all our sustainable packaging lines." },
       { q: "Cardboard vs Corrugated?", a: "Cardboard is thinner for retail display; Corrugated has fluting for shipping strength. We manufacture both in our US facilities." },
       { q: "Can you print inside the box?", a: "Yes! Full inside printing or spot interior printing is available to maximize the unboxing experience." },
-      { q: "How thick is the cardstock?", a: "We offer 14pt, 18pt, and 24pt standard cardstock, plus heavy-duty corrugated board up to double-wall thickness." }
+       { q: "How thick is the cardstock?", a: "We offer 14pt, 18pt, and 24pt standard cardstock, plus heavy-duty corrugated board up to double-wall thickness." },
+       { q: "Can you add windows, inserts, or dividers?", a: "Yes. We can add die-cut windows, product inserts, foam, paperboard dividers, trays, and custom-fit compartments depending on the structure." },
+       { q: "Are samples made with the final materials?", a: "We explain the sample type before production. Structural and material samples use the selected board whenever possible, while final print and finish samples are confirmed during proofing." }
     ]
   },
   {
@@ -59,7 +65,9 @@ const FAQ_CATEGORIES = [
       { q: "What payment methods are accepted?", a: "We accept all major Credit Cards, ACH, and wire transfers. Net-30 terms are available for approved established US brands." },
       { q: "Are there setup or plate fees?", a: "Our digital printing process requires zero plate fees! Offset runs may have one-time setup costs." },
       { q: "Do you price match?", a: "We offer highly competitive pricing and will try to match written quotes from other US-based manufacturers." },
-      { q: "Is shipping included in the price?", a: "Standard shipping across all 50 US states is always free. Expedited shipping is calculated at checkout." }
+       { q: "Is shipping included in the price?", a: "Standard shipping across all 50 US states is always free. Expedited shipping is calculated at checkout." },
+       { q: "Can I pay a deposit and the balance later?", a: "Payment timing depends on the order and account review. Ask our team about the available deposit, milestone, or approved business-account options before production." },
+       { q: "Will I receive an invoice and order confirmation?", a: "Yes. We provide a written quote first, followed by order confirmation and invoice details once the specifications and payment terms are approved." }
     ]
   },
   {
@@ -72,7 +80,9 @@ const FAQ_CATEGORIES = [
       { q: "Do you ship internationally?", a: "While we primarily serve USA brands from our Torrance, CA hub, we can arrange international freight upon request." },
       { q: "What if my order is damaged in transit?", a: "Contact us immediately with photos. We fully guarantee our shipments and will reprint damaged items for free." },
       { q: "Can I track my order?", a: "Yes, a tracking link is provided as soon as your packaging leaves our facility." },
-      { q: "Can you ship to multiple locations?", a: "Yes, we offer split shipments to multiple US distribution centers or fulfillment houses." }
+       { q: "Can you ship to multiple locations?", a: "Yes, we offer split shipments to multiple US distribution centers or fulfillment houses." },
+       { q: "How are shipping charges calculated for rush orders?", a: "Standard shipping is included for eligible bulk orders. Rush production or expedited freight is quoted separately after we review the deadline and delivery destination." },
+       { q: "What information is needed to check delivery timing?", a: "Tell us the quantity, box style, delivery ZIP code, artwork status, and required arrival date. We will confirm the realistic production and transit window." }
     ]
   },
   {
@@ -85,7 +95,9 @@ const FAQ_CATEGORIES = [
       { q: "How do I file a claim?", a: "Use our Returns & Support page to submit details and photos. We typically resolve claims within 3-5 business days." },
       { q: "Can I return boxes if I changed my mind?", a: "Because packaging is custom-manufactured for your brand, we cannot accept returns for non-defective items." },
       { q: "How do you handle color mismatches?", a: "We adhere to strict printing tolerances. If the color severely deviates from the approved proof, we will correct it." },
-      { q: "Is my satisfaction guaranteed?", a: "Yes. Our Torrance, CA team stands behind our 100% Quality Guarantee for every single order." }
+       { q: "Is my satisfaction guaranteed?", a: "Yes. Our Torrance, CA team stands behind our 100% Quality Guarantee for every single order." },
+       { q: "What should I do when my order arrives?", a: "Inspect the cartons promptly, compare them with the approved proof, and keep photos of the shipment. Contact support quickly if anything looks damaged or incorrect." },
+       { q: "How long do I have to report a problem?", a: "Please contact us as soon as possible after delivery, ideally within seven days, with the order number and clear photos so we can investigate and resolve it quickly." }
     ]
   }
 ];
@@ -150,7 +162,7 @@ export default function FaqPage() {
                 <div className="absolute -bottom-4 -right-4 bg-white rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
                   <HelpCircle className="w-8 h-8 text-[#e63329]" />
                   <div>
-                    <div className="font-bold text-[#1a2f5a] text-sm">36+ Questions</div>
+                    <div className="font-bold text-[#1a2f5a] text-sm">48+ Questions</div>
                     <div className="text-xs text-gray-500">Answered In Detail</div>
                   </div>
                 </div>

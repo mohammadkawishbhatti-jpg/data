@@ -139,8 +139,8 @@ function _Header() {
       <div className="header-trust-rail bg-[#112b4b] text-white">
         <div className="mx-auto flex h-8 max-w-[1440px] items-center overflow-hidden px-4 sm:px-6 lg:px-8">
           <div className="header-ticker flex min-w-max items-center">
-            {[...TICKER, ...TICKER].map(({ Icon, text }, index) => (
-              <span key={`${text}-${index}`} className="inline-flex items-center gap-2 px-5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70 first:pl-0">
+            {TICKER.slice(0, 6).map(({ Icon, text }) => (
+              <span key={text} className="inline-flex shrink-0 items-center gap-2 px-5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70 first:pl-0">
                 <Icon className="h-3 w-3 shrink-0 text-[#f1b45a]" strokeWidth={1.8} />
                 {text}
               </span>
@@ -189,7 +189,7 @@ function _Header() {
               </button>
               {dropOpen && (
                 <div
-                  className="absolute left-1/2 top-full z-[9999] mt-2 w-[min(1120px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-2xl border border-[#dfe7ed] bg-[#fbfcfd] shadow-[0_25px_70px_rgba(17,43,75,0.19)]"
+                  className="absolute inset-x-4 top-full z-[9999] mx-auto mt-2 max-w-[1120px] overflow-hidden rounded-2xl border border-[#dfe7ed] bg-[#fbfcfd] shadow-[0_25px_70px_rgba(17,43,75,0.19)]"
                   onMouseEnter={openDrop}
                   onMouseLeave={closeDrop}
                   style={{ animation: "megaFadeIn 180ms ease-out both" }}
@@ -286,11 +286,9 @@ function _Header() {
       )}
 
       <style>{`
-        @keyframes headerTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        @keyframes megaFadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes megaFadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes drawerIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
-        .header-ticker { animation: headerTicker 42s linear infinite; }
-        .header-ticker:hover { animation-play-state: paused; }
+        .header-ticker { overflow: hidden; }
       `}</style>
     </header>
   );

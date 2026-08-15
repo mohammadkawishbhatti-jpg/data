@@ -777,7 +777,11 @@ async function main() {
   let upserted = 0;
   for (const [slug, html] of Object.entries(MODERN_PAGE_HTML)) {
     const title   = PAGE_TITLES[slug] ?? slug;
-    const content = JSON.stringify({ gjs: { html: html.trim(), css: "" } });
+    const content = JSON.stringify({
+      source: "prime-packaging-modern-pages",
+      builderVersion: 2,
+      gjs: { html: html.trim(), css: "" },
+    });
     // UPSERT: insert if missing, force-update content if already there
     await client.query(
       `INSERT INTO pages (title, slug, content, is_published, updated_at)

@@ -13,6 +13,23 @@ const TEMPLATE_NAMES: Record<string, string> = {
   blog: "Blog Listing Template",
 };
 
+const CURRENT_TEMPLATE_VERSION = 2;
+
+function isCurrentTemplateContent(content: unknown): boolean {
+  if (typeof content !== "string") return false;
+  try {
+    return JSON.parse(content)?.builderVersion === CURRENT_TEMPLATE_VERSION;
+  } catch {
+    return false;
+  }
+}
+
+function currentTemplateContent(type: string, content: unknown): string {
+  return isCurrentTemplateContent(content)
+    ? String(content)
+    : JSON.stringify(DEFAULTS[type] || []);
+}
+
 // Default templates
 const DEFAULTS: Record<string, any[]> = {
   category: [
@@ -46,8 +63,9 @@ router.get("/admin/templates/:type", requireAdmin, async (req, res) => {
     if (!TEMPLATE_NAMES[type]) return res.status(404).json({ error: "Unknown template type" });
 
     const [row] = await db.select().from(pageTemplatesTable).where(eq(pageTemplatesTable.type, type));
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     if (row) {
-      res.json({ type: row.type, name: row.name, content: row.content || JSON.stringify(DEFAULTS[type] || []), updatedAt: row.updatedAt });
+      res.json({ type: row.type, name: row.name, content: currentTemplateContent(type, row.content), updatedAt: row.updatedAt });
     } else {
       res.json({ type, name: TEMPLATE_NAMES[type], content: JSON.stringify(DEFAULTS[type] || []), updatedAt: null });
     }
@@ -63,7 +81,8 @@ router.get("/templates/:type", async (req, res) => {
     if (!TEMPLATE_NAMES[type]) return res.status(404).json({ error: "Unknown template type" });
 
     const [row] = await db.select().from(pageTemplatesTable).where(eq(pageTemplatesTable.type, type));
-    const content = row?.content || JSON.stringify(DEFAULTS[type] || []);
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    const content = currentTemplateContent(type, row?.content);
     res.json({ type, content });
   } catch (e) {
     res.status(500).json({ error: "Internal server error" });
