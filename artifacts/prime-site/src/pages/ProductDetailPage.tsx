@@ -6,7 +6,7 @@ import { ProductCard } from "../components/ui/ProductCard";
 import { useGetProduct, useSubmitQuote, useListProducts } from "@workspace/api-client-react";
 import { TemplateRenderer, usePageTemplate } from "../components/ui/TemplateRenderer";
 import { useMemo } from "react";
-import { useSEO, useSchemaOrg } from "../lib/useSEO";
+import { toAbsoluteUrl, useSEO, useSchemaOrg } from "../lib/useSEO";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CARD_MATERIALS = ["Cardboard","Kraft","Corrugated","Rigid / Chipboard","Eco Kraft","White SBS"];
@@ -209,7 +209,9 @@ export default function ProductDetailPage() {
     "@type": "Product",
     name: product.name,
     description: (product.shortDescription || (product.description || "").replace(/<[^>]+>/g, " ").substring(0, 300)),
-    image: product.images?.filter(Boolean).length ? product.images.filter(Boolean) : undefined,
+    image: product.images?.filter(Boolean).length
+      ? product.images.filter(Boolean).map(image => toAbsoluteUrl(image)).filter(Boolean)
+      : product.imageUrl ? [toAbsoluteUrl(product.imageUrl)] : undefined,
     url: `https://www.primepackagingboxes.com/${product.slug}`,
     brand: { "@type": "Brand", name: "Prime Packaging Boxes" },
   } : {});

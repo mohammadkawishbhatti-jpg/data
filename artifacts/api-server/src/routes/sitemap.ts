@@ -19,12 +19,23 @@ function xmlEscape(s: string) {
     .replace(/"/g, "&quot;");
 }
 
-function url(loc: string, lastmod?: string, priority = "0.7", changefreq = "weekly") {
+function absoluteImageUrl(image?: string | null) {
+  if (!image) return "";
+  try {
+    return new URL(image, BASE).toString();
+  } catch {
+    return image;
+  }
+}
+
+function url(loc: string, lastmod?: string, priority = "0.7", changefreq = "weekly", image?: string | null) {
+  const imageUrl = absoluteImageUrl(image);
   return `  <url>
     <loc>${xmlEscape(BASE + loc)}</loc>
     ${lastmod ? `<lastmod>${lastmod.slice(0, 10)}</lastmod>` : ""}
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
+    ${imageUrl ? `<image:image><image:loc>${xmlEscape(imageUrl)}</image:loc></image:image>` : ""}
   </url>`;
 }
 
@@ -33,11 +44,11 @@ export async function sitemapHandler(req: Request, res: Response) {
     const today = new Date().toISOString().slice(0, 10);
 
     const [products, categories, posts] = await Promise.all([
-      db.select({ slug: productsTable.slug, updatedAt: productsTable.updatedAt })
+      db.select({ slug: productsTable.slug, updatedAt: productsTable.updatedAt, imageUrl: productsTable.imageUrl })
         .from(productsTable).where(eq(productsTable.isActive, true)),
-      db.select({ slug: categoriesTable.slug, updatedAt: categoriesTable.updatedAt })
+      db.select({ slug: categoriesTable.slug, updatedAt: categoriesTable.updatedAt, imageUrl: categoriesTable.imageUrl })
         .from(categoriesTable).where(eq(categoriesTable.isActive, true)),
-      db.select({ slug: blogPostsTable.slug, updatedAt: blogPostsTable.updatedAt })
+      db.select({ slug: blogPostsTable.slug, updatedAt: blogPostsTable.updatedAt, imageUrl: blogPostsTable.imageUrl })
         .from(blogPostsTable).where(eq(blogPostsTable.status, "published")),
     ]);
 
@@ -60,12 +71,12 @@ export async function sitemapHandler(req: Request, res: Response) {
 
     // ── Products: /:slug (no prefix — matches live site structure) ──────────
     const productUrls = products.map(p =>
-      url(`/${p.slug}`, p.updatedAt?.toISOString(), "0.8", "weekly")
+      url(`/${p.slug}`, p.updatedAt?.toISOString(), "0.8", "weekly", p.imageUrl)
     );
 
     // ── Categories: /:slug (no prefix — matches live site structure) ─────────
     const categoryUrls = categories.map(c =>
-      url(`/${c.slug}`, c.updatedAt?.toISOString(), "0.7", "weekly")
+      url(`/${c.slug}`, c.updatedAt?.toISOString(), "0.7", "weekly", c.imageUrl)
     );
 
     // ── Blog: only add /blog index + posts when published posts exist ──────────
@@ -74,12 +85,13 @@ export async function sitemapHandler(req: Request, res: Response) {
     if (posts.length > 0) {
       blogUrls.push(url("/blog", today, "0.8", "daily"));
       posts.forEach(p =>
-        blogUrls.push(url(`/${p.slug}`, p.updatedAt?.toISOString(), "0.6", "weekly"))
+        blogUrls.push(url(`/${p.slug}`, p.updatedAt?.toISOString(), "0.6", "weekly", p.imageUrl))
       );
     }
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+ <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${[...staticUrls, ...productUrls, ...categoryUrls, ...blogUrls].join("\n")}
 </urlset>`;
 

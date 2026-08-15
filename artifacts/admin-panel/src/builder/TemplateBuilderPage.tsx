@@ -966,7 +966,7 @@ export default function TemplateBuilderPage() {
     // the final height after the initial component event.
     const updateFrameHeight = () => {
       try {
-        const frameEl = editor.Canvas.getFrameEl();
+        const frameEl = editor?.Canvas?.getFrameEl?.();
         const win = frameEl?.contentWindow;
         if (win && win.document && win.document.body) {
           const bodyH = win.document.body.scrollHeight || 0;
@@ -989,7 +989,7 @@ export default function TemplateBuilderPage() {
     });
     const frameResizeObserver = new ResizeObserver(() => updateFrameHeight());
     const observeFrameBody = () => {
-      const frameBody = editor.Canvas.getFrameEl()?.contentDocument?.body;
+      const frameBody = editor?.Canvas?.getFrameEl?.()?.contentDocument?.body;
       if (frameBody) frameResizeObserver.observe(frameBody);
     };
     window.setTimeout(observeFrameBody, 300);

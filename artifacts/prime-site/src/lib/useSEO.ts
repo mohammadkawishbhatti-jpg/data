@@ -1,5 +1,17 @@
 import { useEffect } from "react";
 
+export const SITE_ORIGIN = "https://www.primepackagingboxes.com";
+export const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/api/uploads/cardboard-gift-boxes.webp`;
+
+export function toAbsoluteUrl(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  try {
+    return new URL(value, SITE_ORIGIN).toString();
+  } catch {
+    return value;
+  }
+}
+
 interface SEOParams {
   title: string;
   description?: string;
@@ -34,7 +46,7 @@ export function useSEO({
   title,
   description = "Custom packaging boxes with free design support, low minimums, and fast US shipping. Get a free quote today.",
   canonical,
-  ogImage = "https://www.primepackagingboxes.com/wp-content/uploads/2026/04/prime-packaging-og.webp",
+  ogImage = DEFAULT_OG_IMAGE,
   ogType = "website",
   noindex = false,
   keywords,
@@ -48,13 +60,19 @@ export function useSEO({
 
     setMeta("description", description);
     if (keywords) setMeta("keywords", keywords);
-    setMeta("robots", noindex ? "noindex,nofollow" : "index,follow");
+    setMeta("robots", noindex ? "noindex,nofollow" : "index,follow,max-image-preview:large");
     setMeta("author", "Prime Packaging Boxes");
+    const resolvedOgImage = toAbsoluteUrl(ogImage) || DEFAULT_OG_IMAGE;
 
     setMeta("og:title", fullTitle, "property");
     setMeta("og:description", description, "property");
     setMeta("og:type", ogType, "property");
-    setMeta("og:image", ogImage, "property");
+    setMeta("og:image", resolvedOgImage, "property");
+    setMeta("og:image:secure_url", resolvedOgImage, "property");
+    setMeta("og:image:type", resolvedOgImage.endsWith(".webp") ? "image/webp" : "image/jpeg", "property");
+    setMeta("og:image:width", "1200", "property");
+    setMeta("og:image:height", "630", "property");
+    setMeta("og:image:alt", `${title} — Prime Packaging Boxes`, "property");
     setMeta("og:site_name", "Prime Packaging Boxes", "property");
     setMeta("og:locale", "en_US", "property");
     setMeta("og:locale:alternate", "en_GB", "property");
@@ -62,14 +80,14 @@ export function useSEO({
     setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", fullTitle);
     setMeta("twitter:description", description);
-    setMeta("twitter:image", ogImage);
+    setMeta("twitter:image", resolvedOgImage);
 
     // Geo targeting — US + UK
     setMeta("geo.region",    "US");
     setMeta("geo.country",   "US");
     setMeta("geo.placename", "United States");
 
-    const canon = canonical || window.location.href.split("?")[0];
+    const canon = toAbsoluteUrl(canonical || window.location.href.split("?")[0]) || window.location.href.split("?")[0];
     setLink("canonical", canon);
     setMeta("og:url", canon, "property");
 
@@ -86,8 +104,15 @@ export function useSEO({
       }
       el.setAttribute("href", href);
     };
-    const base = "https://www.primepackagingboxes.com";
-    const path = canonical || window.location.pathname;
+    const base = SITE_ORIGIN;
+    let path = window.location.pathname;
+    if (canonical) {
+      try {
+        path = new URL(canonical, SITE_ORIGIN).pathname;
+      } catch {
+        path = canonical;
+      }
+    }
     setHreflang("en-us",    base + path);
     setHreflang("en-gb",    base + path);
     setHreflang("en",       base + path);

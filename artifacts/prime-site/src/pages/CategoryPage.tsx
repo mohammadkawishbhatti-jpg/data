@@ -5,7 +5,7 @@ import { PageHero } from "../components/ui/PageHero";
 import { CategorySections } from "../components/ui/CategorySections";
 import { TemplateRenderer, usePageTemplate } from "../components/ui/TemplateRenderer";
 import { useGetCategory, useListProducts } from "@workspace/api-client-react";
-import { useSEO, useSchemaOrg } from "../lib/useSEO";
+import { toAbsoluteUrl, useSEO, useSchemaOrg } from "../lib/useSEO";
 import { ArrowRight, Package, Phone, ShieldCheck, Zap, Truck } from "lucide-react";
 
 // Fallback packaging images (Unsplash, compressed w=1400 q=50)
@@ -56,6 +56,7 @@ export default function CategoryPage() {
     name: `${category.name} | Prime Packaging Boxes`,
     description: category.metaDescription || `Custom ${category.name} — free design, low minimums.`,
     url: `https://www.primepackagingboxes.com/${category.slug}`,
+    image: category.imageUrl ? [toAbsoluteUrl(category.imageUrl)] : undefined,
     provider: { "@type": "Organization", name: "Prime Packaging Boxes" },
   } : {});
 

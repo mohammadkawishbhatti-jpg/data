@@ -9,7 +9,7 @@ import { ProductCard } from "../components/ui/ProductCard";
 import { CategoryCard } from "../components/ui/CategoryCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { useGetFeaturedProducts, useListCategories } from "@workspace/api-client-react";
-import { useSEO, useSchemaOrg } from "../lib/useSEO";
+import { DEFAULT_OG_IMAGE, useSEO, useSchemaOrg } from "../lib/useSEO";
 import { useSettings } from "../lib/useSettings";
 
 /* ── Count-up number animation ──────────────────────────────────────────────── */
@@ -137,6 +137,7 @@ export default function HomePage() {
     title: "Custom Packaging Boxes | Free Design, Low MOQ, Fast US & UK Shipping",
     description: "Premium custom packaging boxes with free design support, low minimums from 100 units, and 7–10 day turnaround. Trusted by 500+ brands across the USA and UK. Get a free quote today.",
     ogType: "website",
+    ogImage: DEFAULT_OG_IMAGE,
     keywords: "custom packaging boxes, custom boxes USA, custom boxes UK, custom mailer boxes, branded packaging, custom box printing, packaging boxes UK, custom packaging UK",
   });
 
@@ -145,7 +146,7 @@ export default function HomePage() {
     "@type": "Organization",
     name: "Prime Packaging Boxes",
     url: "https://www.primepackagingboxes.com",
-    logo: "https://www.primepackagingboxes.com/wp-content/uploads/2024/09/Prime-Packaging-Boxes-Logo.svg",
+     logo: "https://www.primepackagingboxes.com/api/uploads/prime-packaging-logo.svg",
     contactPoint: [
       { "@type": "ContactPoint", telephone: "+1-818-758-4076", contactType: "customer service", areaServed: "US", availableLanguage: "English" },
       { "@type": "ContactPoint", telephone: "+1-818-758-4076", contactType: "customer service", areaServed: "GB", availableLanguage: "English" },

@@ -2,7 +2,7 @@ import { useParams, Link } from "wouter";
 import { format } from "date-fns";
 import { ArrowLeft, User, Calendar } from "lucide-react";
 import { useGetBlogPost } from "@workspace/api-client-react";
-import { useSEO, useSchemaOrg } from "../lib/useSEO";
+import { toAbsoluteUrl, useSEO, useSchemaOrg } from "../lib/useSEO";
 
 export default function BlogPostPage() {
   const params = useParams<{ slug: string }>();
@@ -24,7 +24,7 @@ export default function BlogPostPage() {
     "@type": "BlogPosting",
     headline: post.title,
     description: post.metaDescription || post.excerpt || undefined,
-    image: post.imageUrl ? [post.imageUrl] : undefined,
+    image: post.imageUrl ? [toAbsoluteUrl(post.imageUrl)] : undefined,
     url: `https://www.primepackagingboxes.com/${post.slug}`,
     datePublished: post.createdAt || undefined,
     dateModified: post.updatedAt || post.createdAt || undefined,
