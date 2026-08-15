@@ -44,7 +44,6 @@ const QuotePage            = lazy(() => import("./pages/QuotePage"));
 const FaqPage              = lazy(() => import("./pages/FaqPage"));
 const PortalLoginPage      = lazy(() => import("./pages/PortalLoginPage"));
 const PortalDashboardPage  = lazy(() => import("./pages/PortalDashboardPage"));
-const SmartPage            = lazy(() => import("./pages/SmartPage"));
 
 function PageLoader() {
   return (
@@ -68,17 +67,19 @@ function MainSite() {
           <Route path="/shop" component={ShopPage} />
           <Route path="/products" component={ProductsPage} />
           <Route path="/blog" component={BlogPage} />
-          {/* Smart pages — show builder content if saved, else hardcoded fallback */}
-          <Route path="/about"                  component={() => <SmartPage slug="about-us"               fallback={AboutPage} />} />
-          <Route path="/contact"                component={() => <SmartPage slug="contact-us"             fallback={ContactPage} />} />
-          <Route path="/faq"                    component={() => <SmartPage slug="faq"                    fallback={FaqPage} />} />
-          <Route path="/privacy-policy"         component={() => <SmartPage slug="privacy-policy"         fallback={PrivacyPage} />} />
-          <Route path="/terms-and-conditions"   component={() => <SmartPage slug="terms-and-conditions"   fallback={TermsPage} />} />
-          <Route path="/delivery-policy"        component={() => <SmartPage slug="delivery-policy"        fallback={DeliveryPolicyPage} />} />
-          <Route path="/refund-return-policy"   component={() => <SmartPage slug="refund-return-policy"   fallback={RefundPolicyPage} />} />
-          <Route path="/disclaimer"             component={() => <SmartPage slug="disclaimer"             fallback={DisclaimerPage} />} />
-          <Route path="/request-sample"         component={() => <SmartPage slug="request-sample"         fallback={RequestSamplePage} />} />
-          <Route path="/returns-claims-support" component={() => <SmartPage slug="returns-claims-support" fallback={ReturnsSupportPage} />} />
+          {/* Public static pages use the backed-up detailed React designs.
+              The CMS editor remains available through /pages/:slug, while
+              these canonical routes must not be replaced by generic seed HTML. */}
+          <Route path="/about"                  component={AboutPage} />
+          <Route path="/contact"                component={ContactPage} />
+          <Route path="/faq"                    component={FaqPage} />
+          <Route path="/privacy-policy"         component={PrivacyPage} />
+          <Route path="/terms-and-conditions"   component={TermsPage} />
+          <Route path="/delivery-policy"        component={DeliveryPolicyPage} />
+          <Route path="/refund-return-policy"   component={RefundPolicyPage} />
+          <Route path="/disclaimer"             component={DisclaimerPage} />
+          <Route path="/request-sample"         component={RequestSamplePage} />
+          <Route path="/returns-claims-support" component={ReturnsSupportPage} />
           <Route path="/cart" component={CartPage} />
           <Route path="/get-a-quote" component={QuotePage} />
           <Route path="/sitemap" component={HtmlSitemapPage} />
