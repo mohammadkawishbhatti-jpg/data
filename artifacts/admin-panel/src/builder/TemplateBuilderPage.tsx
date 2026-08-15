@@ -865,6 +865,12 @@ function resetCanvasScrollToTop(editor: Editor): void {
   } catch {}
 }
 
+function clearEditorSelection(editor: Editor): void {
+  try {
+    (editor as any).select(null);
+  } catch {}
+}
+
 function getCanvasScrollContainer(): HTMLElement | null {
   return document.querySelector('.gjs-cv-canvas') as HTMLElement | null;
 }
@@ -1074,6 +1080,13 @@ export default function TemplateBuilderPage() {
     let initialScrollLock = true;
     let initialScrollReleaseTimer: number | null = null;
     const canvasContainer = getCanvasScrollContainer();
+    const releaseInitialCanvasLock = () => {
+      initialScrollLock = false;
+      if (initialScrollReleaseTimer) {
+        window.clearTimeout(initialScrollReleaseTimer);
+        initialScrollReleaseTimer = null;
+      }
+    };
     const keepInitialCanvasAtTop = () => {
       if (initialScrollLock) {
         if (canvasContainer && canvasContainer.scrollTop !== 0) canvasContainer.scrollTop = 0;
@@ -1083,18 +1096,33 @@ export default function TemplateBuilderPage() {
     };
     const scheduleInitialScrollRelease = () => {
       if (!initialScrollLock) return;
-      if (initialScrollReleaseTimer) window.clearTimeout(initialScrollReleaseTimer);
+      if (initialScrollReleaseTimer) return;
       initialScrollReleaseTimer = window.setTimeout(() => {
-        initialScrollLock = false;
+        initialScrollReleaseTimer = null;
         resetCanvasScrollToTop(editor);
-      }, 1500);
+        initialScrollLock = false;
+      }, 2200);
     };
     canvasContainer?.addEventListener('scroll', keepInitialCanvasAtTop, { passive: true });
-    scheduleInitialScrollRelease();
+    // GrapesJS can scroll a selected component into view while it is parsing
+    // the page. Only real user interaction should release the initial lock;
+    // otherwise the editor opens at a random lower section.
+    canvasContainer?.addEventListener('pointerdown', releaseInitialCanvasLock, { passive: true });
+    canvasContainer?.addEventListener('wheel', releaseInitialCanvasLock, { passive: true });
+    canvasContainer?.addEventListener('touchstart', releaseInitialCanvasLock, { passive: true });
+    let frameDocument: Document | null = null;
+    const attachFrameInteractionListeners = () => {
+      frameDocument = editor.Canvas.getFrameEl()?.contentDocument ?? null;
+      frameDocument?.addEventListener('pointerdown', releaseInitialCanvasLock, true);
+      frameDocument?.addEventListener('wheel', releaseInitialCanvasLock, { passive: true });
+      frameDocument?.addEventListener('touchstart', releaseInitialCanvasLock, { passive: true });
+    };
 
     editor.on('load canvas:frame:load', () => {
+      attachFrameInteractionListeners();
       window.setTimeout(() => {
         if (!id) applySampleDataToCanvas(editor, 'cardboard-boxes');
+        clearEditorSelection(editor);
         resetCanvasScrollToTop(editor);
         scheduleInitialScrollRelease();
       }, 80);
@@ -1171,7 +1199,6 @@ export default function TemplateBuilderPage() {
     };
 
     editor.on('load component:add component:remove component:update style:update', () => {
-      if (contentOnly) lockContentOnlyComponent(editor.getWrapper());
       setTimeout(updateFrameHeight, 250);
     });
     const frameResizeObserver = new ResizeObserver(() => updateFrameHeight());
@@ -1184,17 +1211,14 @@ export default function TemplateBuilderPage() {
     if (pendingContent.current) {
       editor.setComponents(pendingContent.current.html);
       if (pendingContent.current.css) editor.setStyle(pendingContent.current.css);
+      clearEditorSelection(editor);
       resetCanvasScrollToTop(editor);
       setTimeout(() => {
         if (editorRef.current) {
           updateFrameHeight();
-          resetCanvasScrollToTop(editorRef.current);
           scheduleInitialScrollRelease();
         }
       }, 500);
-      setTimeout(() => {
-        if (editorRef.current) resetCanvasScrollToTop(editorRef.current);
-      }, 950);
       pendingContent.current = null;
     }
 
@@ -1206,6 +1230,12 @@ export default function TemplateBuilderPage() {
     return () => {
       if (initialScrollReleaseTimer) window.clearTimeout(initialScrollReleaseTimer);
       canvasContainer?.removeEventListener('scroll', keepInitialCanvasAtTop);
+      canvasContainer?.removeEventListener('pointerdown', releaseInitialCanvasLock);
+      canvasContainer?.removeEventListener('wheel', releaseInitialCanvasLock);
+      canvasContainer?.removeEventListener('touchstart', releaseInitialCanvasLock);
+      frameDocument?.removeEventListener('pointerdown', releaseInitialCanvasLock, true);
+      frameDocument?.removeEventListener('wheel', releaseInitialCanvasLock);
+      frameDocument?.removeEventListener('touchstart', releaseInitialCanvasLock);
       frameResizeObserver.disconnect();
       labelObs.disconnect();
       editor.destroy();
@@ -1265,13 +1295,17 @@ function getDefaultPageHtml(pageId: string): string {
           // parses those styles into its CSS composer; clearing the composer
           // here makes a valid saved page look like unstyled plain HTML.
           if (cssToLoad) editorRef.current.setStyle(cssToLoad);
+           if (id) {
+             lockContentOnlyComponent(editorRef.current.getWrapper());
+             clearEditorSelection(editorRef.current);
+           }
           [0, 100, 350, 800].forEach(delay => {
             window.setTimeout(() => {
               if (editorRef.current) {
                 if (!id) applySampleDataToCanvas(editorRef.current, previewCategory);
                 // Token replacement causes another iframe layout. Reset
                 // after the final pass so long pages open at their start.
-                if (delay >= 350) resetCanvasScrollToTop(editorRef.current);
+                 if (delay === 0) resetCanvasScrollToTop(editorRef.current);
               }
             }, delay);
           });
@@ -1292,9 +1326,6 @@ function getDefaultPageHtml(pageId: string): string {
               }
             } catch {}
           }, 350);
-          window.setTimeout(() => {
-            if (editorRef.current) resetCanvasScrollToTop(editorRef.current);
-          }, 950);
         } else {
           pendingContent.current = { html: htmlToLoad, css: cssToLoad };
         }
