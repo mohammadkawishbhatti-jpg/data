@@ -527,9 +527,9 @@ const LEGACY_PAGE_HTML: Record<string, string> = {
 /* ════════════════════════════════════════════════════════════════
    CURRENT PUBLIC PAGE SYSTEM
 
-   The first seed above is retained only as historical source material.
-   Published pages are now written from this single modern system so an
-   old builder export cannot silently bring the legacy look back.
+    The first seed above contains the canonical detailed page designs used by
+    the public React routes. Published pages are written from that same source
+    so the builder and live pages do not drift apart.
    ════════════════════════════════════════════════════════════════ */
 type ModernPage = {
   eyebrow: string;
@@ -775,10 +775,13 @@ async function main() {
   console.log("✓ Connected to database");
 
   let upserted = 0;
-  for (const [slug, html] of Object.entries(MODERN_PAGE_HTML)) {
+  // The detailed page designs are the canonical source for both the public
+  // React routes and the admin builder. The compact modernPage variants above
+  // remain available as reference data, but must not overwrite these pages.
+  for (const [slug, html] of Object.entries(LEGACY_PAGE_HTML)) {
     const title   = PAGE_TITLES[slug] ?? slug;
     const content = JSON.stringify({
-      source: "prime-packaging-modern-pages",
+      source: "prime-packaging-react-backup-pages",
       builderVersion: 2,
       gjs: { html: html.trim(), css: "" },
     });

@@ -740,17 +740,31 @@ function resetCanvasPreviewFromModel(editor: Editor): void {
   // GrapesJS model HTML before applying another sample so switching samples
   // never leaves the previous sample text in the canvas.
   try {
+    const frameTop = editor.Canvas.getFrameEl()?.contentWindow?.scrollY ?? 0;
+    const canvasTop = getCanvasScrollContainer()?.scrollTop ?? 0;
     const html = editor.getHtml();
     const css = editor.getCss();
     editor.setComponents(html);
     if (css) editor.setStyle(css);
+    requestAnimationFrame(() => restoreCanvasScroll(editor, frameTop, canvasTop));
   } catch {}
 }
 
 function resetCanvasScrollToTop(editor: Editor): void {
   try {
-    editor.Canvas.getFrameEl()?.contentWindow?.scrollTo({ top: 0, left: 0 });
-    document.querySelector('.gjs-cv-canvas')?.scrollTo({ top: 0, left: 0 });
+    editor.Canvas.getFrameEl()?.contentWindow?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    getCanvasScrollContainer()?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  } catch {}
+}
+
+function getCanvasScrollContainer(): HTMLElement | null {
+  return document.querySelector('.gjs-cv-canvas') as HTMLElement | null;
+}
+
+function restoreCanvasScroll(editor: Editor, frameTop: number, canvasTop: number): void {
+  try {
+    editor.Canvas.getFrameEl()?.contentWindow?.scrollTo({ top: frameTop, left: 0, behavior: 'auto' });
+    getCanvasScrollContainer()?.scrollTo({ top: canvasTop, left: 0, behavior: 'auto' });
   } catch {}
 }
 
@@ -927,8 +941,24 @@ export default function TemplateBuilderPage() {
 
     editorRef.current = editor;
     registerCustomBlocks(editor);
+    let initialScrollLock = true;
+    const canvasContainer = getCanvasScrollContainer();
+    const keepInitialCanvasAtTop = () => {
+      if (initialScrollLock && canvasContainer && canvasContainer.scrollTop !== 0) {
+        canvasContainer.scrollTop = 0;
+      }
+    };
+    canvasContainer?.addEventListener('scroll', keepInitialCanvasAtTop, { passive: true });
+    const releaseInitialScrollLock = window.setTimeout(() => {
+      initialScrollLock = false;
+      resetCanvasScrollToTop(editor);
+    }, 1800);
+
     editor.on('load canvas:frame:load', () => {
-      window.setTimeout(() => applySampleDataToCanvas(editor, 'cardboard-boxes'), 80);
+      window.setTimeout(() => {
+        if (!id) applySampleDataToCanvas(editor, 'cardboard-boxes');
+        resetCanvasScrollToTop(editor);
+      }, 80);
     });
 
     const fixLabels = () => {
@@ -974,6 +1004,8 @@ export default function TemplateBuilderPage() {
         const frameEl = editor?.Canvas?.getFrameEl?.();
         const win = frameEl?.contentWindow;
         if (win && win.document && win.document.body) {
+          const canvasTop = initialScrollLock ? 0 : (canvasContainer?.scrollTop ?? 0);
+          const frameTop = initialScrollLock ? 0 : (win.scrollY ?? 0);
           const bodyH = win.document.body.scrollHeight || 0;
           const docH = win.document.documentElement?.scrollHeight || 0;
           const fullHeight = Math.max(bodyH, docH, 600);
@@ -985,6 +1017,7 @@ export default function TemplateBuilderPage() {
             wrapper.style.height = frameHeight;
             wrapper.style.minHeight = frameHeight;
           }
+          window.requestAnimationFrame(() => restoreCanvasScroll(editor, frameTop, canvasTop));
         }
       } catch {}
     };
@@ -1021,6 +1054,8 @@ export default function TemplateBuilderPage() {
 
     editor.Keymaps.add('ns:save', 'ctrl+s', () => triggerSave());
     return () => {
+      window.clearTimeout(releaseInitialScrollLock);
+      canvasContainer?.removeEventListener('scroll', keepInitialCanvasAtTop);
       frameResizeObserver.disconnect();
       labelObs.disconnect();
       editor.destroy();
@@ -1176,19 +1211,21 @@ function getDefaultPageHtml(pageId: string): string {
       html = `<section style="padding:60px 40px; background:#0F172A; border-radius:16px; text-align:center; color:#FFFFFF; margin:24px 0;"><h2 style="font-size:28px; font-weight:800; margin:0 0 12px;">Need a Custom Box Size?</h2><p style="font-size:15px; color:#94A3B8; margin:0 0 20px;">Tell us what you need and we will create a tailored packaging quote for you.</p><a href="/get-a-quote" style="display:inline-block; background:#E63329; color:#FFFFFF; text-decoration:none; padding:12px 24px; border-radius:8px; font-weight:700; font-size:14px;">Request Instant Quote</a></section>`;
     }
      const iframeWindow = ed.Canvas.getFrameEl()?.contentWindow;
-     const previousScrollTop = iframeWindow?.scrollY ?? 0;
+     const canvasContainer = getCanvasScrollContainer();
+     const previousFrameScrollTop = iframeWindow?.scrollY ?? 0;
+     const previousCanvasScrollTop = canvasContainer?.scrollTop ?? 0;
      ed.addComponents(html);
      setTimeout(() => {
        try {
          // Adding a section must not hijack the user's current canvas position.
          // GrapesJS may focus the new component after the model update, so
          // restore the exact scroll position after that focus pass completes.
-         iframeWindow?.scrollTo({ top: previousScrollTop, left: 0, behavior: 'auto' });
+         restoreCanvasScroll(ed, previousFrameScrollTop, previousCanvasScrollTop);
        } catch {}
      }, 0);
      setTimeout(() => {
        try {
-         iframeWindow?.scrollTo({ top: previousScrollTop, left: 0, behavior: 'auto' });
+         restoreCanvasScroll(ed, previousFrameScrollTop, previousCanvasScrollTop);
        } catch {}
      }, 120);
   }, []);
