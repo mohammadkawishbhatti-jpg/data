@@ -90,10 +90,13 @@ export default function CategoryPage() {
 
   if (templateContent && !isLoadingProducts) {
     return (
-      <TemplateRenderer
-        content={templateContent}
-        dynamicData={{ category: category as any, products: products as any[] }}
-      />
+      <>
+        <TemplateRenderer
+          content={templateContent}
+          dynamicData={{ category: category as any, products: products as any[] }}
+        />
+        <CategorySections categoryName={category.name} productCount={productCount} />
+      </>
     );
   }
 
@@ -178,7 +181,7 @@ export default function CategoryPage() {
       </section>
 
       {/* ── 9 Extra Sections ── */}
-      <CategorySections categoryName={category.name} />
+      <CategorySections categoryName={category.name} productCount={productCount} />
 
       {/* ── Final CTA ── */}
       <section className="py-10 md:py-16 bg-white">

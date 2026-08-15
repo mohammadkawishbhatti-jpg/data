@@ -107,7 +107,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 // ─── Main Export ──────────────────────────────────────────────────
-export function CategorySections({ categoryName }: { categoryName: string }) {
+export function CategorySections({ categoryName, productCount = 0 }: { categoryName: string; productCount?: number }) {
   const { data: settings } = useSettings();
   const phone = settings?.phone || "818-758-4076";
   const cn = categoryName;
@@ -318,7 +318,105 @@ export function CategorySections({ categoryName }: { categoryName: string }) {
         </div>
       </section>
 
-      {/* 9 ── Free Sample CTA ────────────────────────────────────── */}
+      {/* 9 ── Size & Specification Guide ──────────────────────────── */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-10 items-start">
+            <div>
+              <span className="inline-block bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4">Specification Guide</span>
+              <h2 className="text-3xl font-extrabold text-[#1a2f5a] mb-4">Built Around Your Product, Not a Standard Shelf Size</h2>
+              <p className="text-gray-500 text-sm leading-relaxed mb-5">
+                Every {cn.toLowerCase()} project starts with the product it needs to protect. Share your product dimensions, quantity, and shipping needs and our team will recommend the right footprint, board strength, insert, and opening style.
+              </p>
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#1a2f5a]">
+                <Package className="w-4 h-4 text-[#e63329]" />
+                {productCount > 0 ? `${productCount} ready-to-browse ${cn.toLowerCase()} styles` : `Custom ${cn.toLowerCase()} styles available`}
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {[
+                { icon: Ruler, title: "Exact dimensions", text: "Inside length, width, and depth are matched to your product for a secure fit and polished presentation." },
+                { icon: Layers, title: "Right board strength", text: "Choose a lightweight retail board or reinforced construction for heavier products and shipping." },
+                { icon: Box, title: "Protection inside", text: "Add trays, partitions, foam, paper wrap, or custom inserts to keep every item in place." },
+                { icon: Palette, title: "Brand-ready finish", text: "Select print coverage, coatings, foil, embossing, windows, and interior details in one brief." },
+              ].map(item => (
+                <div key={item.title} className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center mb-3 shadow-sm">
+                    <item.icon className="w-5 h-5 text-[#e63329]" />
+                  </div>
+                  <h3 className="font-bold text-[#1a2f5a] text-sm mb-1">{item.title}</h3>
+                  <p className="text-gray-500 text-xs leading-relaxed">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 10 ── Quality & Sustainability Standards ─────────────────── */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-11">
+            <span className="inline-block bg-green-50 text-green-700 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-3">Confidence at Every Step</span>
+            <h2 className="text-3xl font-extrabold text-[#1a2f5a] mb-3">Quality You Can See, Materials You Can Stand Behind</h2>
+            <p className="text-gray-500 max-w-2xl mx-auto text-sm leading-relaxed">
+              From the first digital proof to the final carton, your {cn.toLowerCase()} order is reviewed for structure, color, finish, and presentation before it leaves our facility.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              { icon: ShieldCheck, title: "Pre-production review", text: "A digital proof confirms sizing, artwork placement, copy, and finishing details before production begins." },
+              { icon: CheckCircle, title: "Batch inspection", text: "Production teams check print consistency, die-cuts, folds, glue points, and overall presentation." },
+              { icon: Leaf, title: "Responsible options", text: "Ask about FSC-certified stocks, recyclable boards, kraft alternatives, and lower-impact finishing choices." },
+              { icon: Award, title: "Ready for retail", text: "We help you create packaging that arrives clean, consistent, and ready for your shelf or fulfillment line." },
+            ].map(item => (
+              <div key={item.title} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                <item.icon className="w-6 h-6 text-[#e63329] mb-4" />
+                <h3 className="font-bold text-[#1a2f5a] text-sm mb-2">{item.title}</h3>
+                <p className="text-gray-500 text-xs leading-relaxed">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 11 ── Project Brief Checklist ────────────────────────────── */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col lg:flex-row gap-10 items-center">
+            <div className="lg:w-1/2">
+              <span className="inline-block bg-[#e63329]/10 text-[#e63329] text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4">Start With a Better Brief</span>
+              <h2 className="text-3xl font-extrabold text-[#1a2f5a] mb-4">Tell Us What You Want Your {cn} to Do</h2>
+              <p className="text-gray-500 text-sm leading-relaxed mb-6">
+                A few practical details help us return a more accurate recommendation and quote. You do not need finished artwork — our design team can take it from here.
+              </p>
+              <Link href="/get-a-quote" className="inline-flex items-center gap-2 bg-[#e63329] hover:bg-[#c42a21] text-white px-6 py-3 rounded-lg font-bold text-sm transition-all shadow-md">
+                Start Your Project <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="lg:w-1/2 w-full rounded-2xl bg-[#1a2f5a] p-7">
+              <h3 className="text-white font-extrabold text-lg mb-5">Helpful details to include</h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {[
+                  "Product dimensions and weight",
+                  "Order quantity and target date",
+                  "Preferred material or finish",
+                  "Shipping and storage requirements",
+                  "Reference artwork or brand files",
+                  "Insert, window, or closure needs",
+                ].map(item => (
+                  <div key={item} className="flex items-start gap-2.5 text-white/75 text-xs leading-relaxed">
+                    <CheckCircle className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 12 ── Free Sample CTA ────────────────────────────────────── */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="rounded-3xl overflow-hidden"
