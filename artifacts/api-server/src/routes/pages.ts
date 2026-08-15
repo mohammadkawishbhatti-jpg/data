@@ -12,14 +12,14 @@ import { requireAdmin } from "../middlewares/auth";
 
 const router = Router();
 
-// GET /pages/:slug — cached 5 min, stale-while-revalidate 10 min
+// GET /pages/:slug — CMS edits must be visible immediately in the storefront.
 router.get("/pages/:slug", async (req, res) => {
   try {
     const { slug } = GetPageParams.parse(req.params);
     const [row] = await db.select().from(pagesTable)
       .where(eq(pagesTable.slug, slug));
     if (!row || !row.isPublished) return res.status(404).json({ error: "Not found" });
-    res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.json(fmt(row));
   } catch (e) {
     req.log.error(e);

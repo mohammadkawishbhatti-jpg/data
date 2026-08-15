@@ -129,7 +129,11 @@ function publicCache(seconds: number) {
 }
 app.use("/api/products",   publicCache(300));
 app.use("/api/categories", publicCache(300));
-app.use("/api/pages",      publicCache(600));
+// CMS pages are edited from the admin builder and must never serve stale HTML.
+app.use("/api/pages",      (_req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  next();
+});
 app.use("/api/banners",    publicCache(600));
 // /api/settings intentionally NOT cached publicly — it may contain sensitive admin config fields
 
