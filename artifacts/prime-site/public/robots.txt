@@ -1,2 +1,10 @@
 User-agent: *
 Allow: /
+
+# Keep private application areas out of search results.
+Disallow: /admin
+Allow: /api/sitemap.xml
+Disallow: /api
+Disallow: /customer-portal
+
+Sitemap: https://www.primepackagingboxes.com/sitemap.xml

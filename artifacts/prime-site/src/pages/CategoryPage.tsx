@@ -46,6 +46,7 @@ export default function CategoryPage() {
     description: category
       ? (category.metaDescription || `Custom ${category.name} — free design support, low MOQ from 100 units, fast shipping across all 50 US states.`)
       : "Browse our packaging categories",
+    ogImage: category?.imageUrl || undefined,
     keywords: category ? `${category.name?.toLowerCase()}, custom packaging, branded boxes USA` : undefined,
   });
 
@@ -54,7 +55,7 @@ export default function CategoryPage() {
     "@type": "CollectionPage",
     name: `${category.name} | Prime Packaging Boxes`,
     description: category.metaDescription || `Custom ${category.name} — free design, low minimums.`,
-    url: `https://www.primepackagingboxes.com/category/${category.slug}`,
+    url: `https://www.primepackagingboxes.com/${category.slug}`,
     provider: { "@type": "Organization", name: "Prime Packaging Boxes" },
   } : {});
 

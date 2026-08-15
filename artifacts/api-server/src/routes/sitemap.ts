@@ -2,7 +2,7 @@
  * XML Sitemap — dynamically generated from DB
  * GET /sitemap.xml  (mounted at root, NOT under /api)
  */
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { productsTable, categoriesTable, blogPostsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -28,7 +28,7 @@ function url(loc: string, lastmod?: string, priority = "0.7", changefreq = "week
   </url>`;
 }
 
-router.get("/sitemap.xml", async (req, res) => {
+export async function sitemapHandler(req: Request, res: Response) {
   try {
     const today = new Date().toISOString().slice(0, 10);
 
@@ -91,6 +91,10 @@ ${[...staticUrls, ...productUrls, ...categoryUrls, ...blogUrls].join("\n")}
     (req as any).log?.error(e);
     res.status(500).send("Error generating sitemap");
   }
-});
+}
+
+// Canonical sitemap endpoint for deployments where the API server owns the
+// public root. The static site also exposes a sitemap index that points here.
+router.get("/sitemap.xml", sitemapHandler);
 
 export default router;

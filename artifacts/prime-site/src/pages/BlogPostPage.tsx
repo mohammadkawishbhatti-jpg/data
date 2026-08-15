@@ -13,9 +13,24 @@ export default function BlogPostPage() {
   });
 
   useSEO({
-    title: post ? `${post.title} | Prime Packaging Boxes` : "Blog Post | Prime Packaging Boxes",
-    description: post ? (post.excerpt || "Read our latest article").substring(0, 160) : "Packaging insights",
+    title: post ? (post.metaTitle || post.title) : "Blog Post | Prime Packaging Boxes",
+    description: post ? (post.metaDescription || post.excerpt || "Read our latest article").substring(0, 160) : "Packaging insights",
+    ogType: "article",
+    ogImage: post?.imageUrl || undefined,
   });
+
+  useSchemaOrg(post ? {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.metaDescription || post.excerpt || undefined,
+    image: post.imageUrl ? [post.imageUrl] : undefined,
+    url: `https://www.primepackagingboxes.com/${post.slug}`,
+    datePublished: post.createdAt || undefined,
+    dateModified: post.updatedAt || post.createdAt || undefined,
+    author: { "@type": "Person", name: post.author || "Prime Packaging Boxes" },
+    publisher: { "@type": "Organization", name: "Prime Packaging Boxes" },
+  } : {});
 
   if (isLoading) {
     return (

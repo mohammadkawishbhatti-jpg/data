@@ -200,6 +200,7 @@ export default function ProductDetailPage() {
     title: product ? (product.metaTitle || `${product.name} | Custom Packaging Boxes`) : "Product",
     description: product ? (product.metaDescription || product.shortDescription || (product.description || "").replace(/<[^>]+>/g, " ").substring(0, 160)) : "Custom packaging details",
     ogType: "product",
+    ogImage: product?.images?.[0] || product?.imageUrl || undefined,
     keywords: product ? `${product.name}, custom packaging boxes, custom ${product.name?.toLowerCase()}, branded packaging USA` : undefined,
   });
 
@@ -208,17 +209,9 @@ export default function ProductDetailPage() {
     "@type": "Product",
     name: product.name,
     description: (product.shortDescription || (product.description || "").replace(/<[^>]+>/g, " ").substring(0, 300)),
-    image: product.images?.[0],
+    image: product.images?.filter(Boolean).length ? product.images.filter(Boolean) : undefined,
+    url: `https://www.primepackagingboxes.com/${product.slug}`,
     brand: { "@type": "Brand", name: "Prime Packaging Boxes" },
-    offers: {
-      "@type": "Offer",
-      priceCurrency: "USD",
-      price: "0",
-      priceSpecification: { "@type": "UnitPriceSpecification", priceType: "https://schema.org/MinimumAdvertisedPrice", price: "Contact for pricing" },
-      availability: "https://schema.org/InStock",
-      seller: { "@type": "Organization", name: "Prime Packaging Boxes" },
-    },
-    aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "127" },
   } : {});
 
   const { register, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<OrderForm>({
