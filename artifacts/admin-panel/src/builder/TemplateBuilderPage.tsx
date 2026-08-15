@@ -634,16 +634,87 @@ const SAMPLE_CATEGORIES: Record<string, { name: string; description: string }> =
   }
 };
 
+const SAMPLE_PRODUCTS: Record<string, {
+  name: string;
+  description: string;
+  shortDescription: string;
+  imageUrl: string;
+  categoryName: string;
+  categorySlug: string;
+  minOrder: string;
+}> = {
+  'cardboard-boxes': {
+    name: 'Custom Cardboard Boxes',
+    description: 'High quality custom printed cardboard boxes with custom die-cut dimensions, free design support, and wholesale pricing across the USA.',
+    shortDescription: 'Premium custom cardboard boxes with full-color printing and fast turnaround.',
+    imageUrl: '/api/uploads/cardboard-gift-boxes.webp',
+    categoryName: 'Cardboard Boxes',
+    categorySlug: 'cardboard-boxes',
+    minOrder: '100',
+  },
+  'custom-paper-bags': {
+    name: 'Custom Paper Bags',
+    description: 'Eco-friendly custom printed paper bags with handles, custom logos, and premium finishing for retail and events.',
+    shortDescription: 'Eco-friendly printed paper bags with custom handles and branding.',
+    imageUrl: '/api/uploads/brown-paper-bags.webp',
+    categoryName: 'Paper Bags',
+    categorySlug: 'custom-paper-bags',
+    minOrder: '100',
+  },
+  'custom-pillow-boxes': {
+    name: 'Custom Pillow Boxes',
+    description: 'Elegant pillow-shaped gift and favor packaging boxes with custom branding and gloss/matte lamination.',
+    shortDescription: 'Elegant pillow boxes with custom branding for gifts, favors, and retail.',
+    imageUrl: '/api/uploads/custom-pillow-boxes-with-handle-wholesale.webp',
+    categoryName: 'Pillow Boxes',
+    categorySlug: 'custom-pillow-boxes',
+    minOrder: '100',
+  },
+  'cbd-boxes': {
+    name: 'Custom CBD Boxes',
+    description: 'Child-resistant and luxury custom CBD packaging boxes with foil stamping and custom insert trays.',
+    shortDescription: 'Compliant custom CBD packaging with premium finishes and protective inserts.',
+    imageUrl: '/api/uploads/cbd-oil-boxes.webp',
+    categoryName: 'CBD Boxes',
+    categorySlug: 'cbd-boxes',
+    minOrder: '100',
+  },
+  'bakery-boxes': {
+    name: 'Custom Bakery Boxes',
+    description: 'Food-safe custom printed bakery boxes with clear display windows for cakes, donuts, and pastries.',
+    shortDescription: 'Food-safe bakery boxes with clear windows and custom print.',
+    imageUrl: '/api/uploads/custom-cake-boxes.webp',
+    categoryName: 'Bakery Boxes',
+    categorySlug: 'bakery-boxes',
+    minOrder: '100',
+  },
+};
+
 function applySampleDataToCanvas(editor: Editor, slug: string): void {
   const sample = SAMPLE_CATEGORIES[slug] || SAMPLE_CATEGORIES['cardboard-boxes'];
+  const product = SAMPLE_PRODUCTS[slug] || SAMPLE_PRODUCTS['cardboard-boxes'];
   try {
     const frame = editor.Canvas.getFrameEl();
     const doc = frame?.contentDocument;
     if (!doc?.body) return;
 
-    const replaceTokens = (value: string) => value
-      .replace(/\{\{\s*category\.name\s*\}\}/gi, sample.name)
-      .replace(/\{\{\s*category\.description\s*\}\}/gi, sample.description);
+    const values: Record<string, string> = {
+      'category.name': sample.name,
+      'category.description': sample.description,
+      'category.imageUrl': product.imageUrl,
+      'category.slug': product.categorySlug,
+      'product.name': product.name,
+      'product.description': product.description,
+      'product.shortDescription': product.shortDescription,
+      'product.imageUrl': product.imageUrl,
+      'product.categoryName': product.categoryName,
+      'product.categorySlug': product.categorySlug,
+      'product.minOrder': product.minOrder,
+    };
+    const replaceTokens = (value: string) => value.replace(
+      /\{\{\s*([a-z]+\.[a-zA-Z]+)\s*\}\}/g,
+      (_token, key: string) => values[key] ?? _token,
+    );
 
     const walker = doc.createTreeWalker(doc.body, 4);
     const textNodes: Text[] = [];
@@ -659,6 +730,25 @@ function applySampleDataToCanvas(editor: Editor, slug: string): void {
         if (nextValue !== attribute.value) element.setAttribute(attribute.name, nextValue);
       });
     });
+  } catch {}
+}
+
+function resetCanvasPreviewFromModel(editor: Editor): void {
+  // Direct DOM replacements are intentionally preview-only. Restore the
+  // GrapesJS model HTML before applying another sample so switching samples
+  // never leaves the previous sample text in the canvas.
+  try {
+    const html = editor.getHtml();
+    const css = editor.getCss();
+    editor.setComponents(html);
+    if (css) editor.setStyle(css);
+  } catch {}
+}
+
+function resetCanvasScrollToTop(editor: Editor): void {
+  try {
+    editor.Canvas.getFrameEl()?.contentWindow?.scrollTo({ top: 0, left: 0 });
+    document.querySelector('.gjs-cv-canvas')?.scrollTo({ top: 0, left: 0 });
   } catch {}
 }
 
@@ -696,7 +786,8 @@ export default function TemplateBuilderPage() {
     // Replace only inside the preview iframe. The underlying GrapesJS model
     // keeps its {{category.*}} tokens so saving does not bake sample data into
     // the production template.
-    [0, 80, 250].forEach(delay => {
+    resetCanvasPreviewFromModel(ed);
+    [0, 100, 350, 800].forEach(delay => {
       window.setTimeout(() => applySampleDataToCanvas(ed, slug), delay);
     });
   }, []);
@@ -802,7 +893,6 @@ export default function TemplateBuilderPage() {
       `,
       canvas: {
         styles: [
-          'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css',
           'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;700;800;900&display=swap',
         ],
       },
@@ -871,7 +961,9 @@ export default function TemplateBuilderPage() {
       }
     });
 
-    // Auto-adjust GrapesJS iframe canvas height to prevent cutting off bottom sections
+    // Auto-adjust GrapesJS iframe canvas height to keep the complete saved
+    // page/template available to scroll. Images and custom HTML can change
+    // the final height after the initial component event.
     const updateFrameHeight = () => {
       try {
         const frameEl = editor.Canvas.getFrameEl();
@@ -879,8 +971,15 @@ export default function TemplateBuilderPage() {
         if (win && win.document && win.document.body) {
           const bodyH = win.document.body.scrollHeight || 0;
           const docH = win.document.documentElement?.scrollHeight || 0;
-          const fullHeight = Math.max(bodyH, docH, 1200);
-          frameEl.style.minHeight = `${fullHeight + 100}px`;
+          const fullHeight = Math.max(bodyH, docH, 600);
+          const frameHeight = `${fullHeight + 120}px`;
+          frameEl.style.height = frameHeight;
+          frameEl.style.minHeight = frameHeight;
+          const wrapper = frameEl.parentElement as HTMLElement | null;
+          if (wrapper) {
+            wrapper.style.height = frameHeight;
+            wrapper.style.minHeight = frameHeight;
+          }
         }
       } catch {}
     };
@@ -888,11 +987,18 @@ export default function TemplateBuilderPage() {
     editor.on('load component:add component:remove component:update style:update', () => {
       setTimeout(updateFrameHeight, 250);
     });
+    const frameResizeObserver = new ResizeObserver(() => updateFrameHeight());
+    const observeFrameBody = () => {
+      const frameBody = editor.Canvas.getFrameEl()?.contentDocument?.body;
+      if (frameBody) frameResizeObserver.observe(frameBody);
+    };
+    window.setTimeout(observeFrameBody, 300);
 
     if (pendingContent.current) {
       editor.setComponents(pendingContent.current.html);
-      if (pendingContent.current.css) editor.setStyle(pendingContent.current.css);
-      setTimeout(updateFrameHeight, 300);
+      editor.setStyle(pendingContent.current.css || '');
+      resetCanvasScrollToTop(editor);
+      setTimeout(updateFrameHeight, 500);
       pendingContent.current = null;
     }
 
@@ -901,7 +1007,12 @@ export default function TemplateBuilderPage() {
     checkEmpty();
 
     editor.Keymaps.add('ns:save', 'ctrl+s', () => triggerSave());
-    return () => { editor.destroy(); editorRef.current = null; };
+    return () => {
+      frameResizeObserver.disconnect();
+      labelObs.disconnect();
+      editor.destroy();
+      editorRef.current = null;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -954,10 +1065,13 @@ function getDefaultPageHtml(pageId: string): string {
         // hard-coded demo page. Real starter content is seeded in the DB.
         if (editorRef.current) {
           editorRef.current.setComponents(htmlToLoad);
-          if (cssToLoad) editorRef.current.setStyle(cssToLoad);
-          [0, 100, 350].forEach(delay => {
+          editorRef.current.setStyle(cssToLoad || '');
+            [0, 100, 350, 800].forEach(delay => {
             window.setTimeout(() => {
-              if (editorRef.current) applySampleDataToCanvas(editorRef.current, previewCategory);
+              if (editorRef.current) {
+                applySampleDataToCanvas(editorRef.current, previewCategory);
+                if (delay === 350) resetCanvasScrollToTop(editorRef.current);
+              }
             }, delay);
           });
           setTimeout(() => {
@@ -966,7 +1080,14 @@ function getDefaultPageHtml(pageId: string): string {
               const win = frameEl?.contentWindow;
               if (win && win.document && win.document.body) {
                 const fullH = Math.max(win.document.body.scrollHeight, win.document.documentElement.scrollHeight, 1200);
-                frameEl.style.minHeight = `${fullH + 100}px`;
+                const frameHeight = `${fullH + 120}px`;
+                frameEl.style.height = frameHeight;
+                frameEl.style.minHeight = frameHeight;
+                const wrapper = frameEl.parentElement as HTMLElement | null;
+                if (wrapper) {
+                  wrapper.style.height = frameHeight;
+                  wrapper.style.minHeight = frameHeight;
+                }
               }
             } catch {}
           }, 350);
@@ -1253,12 +1374,12 @@ function getDefaultPageHtml(pageId: string): string {
         </div>
       )}
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
         <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid #1E293B' }}>
           <LeftPanel />
         </div>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: '#070A12' }}>
-          <div ref={containerRef} style={{ width: '100%', flex: 1 }} />
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: '#070A12' }}>
+          <div ref={containerRef} style={{ width: '100%', flex: 1, minHeight: 0 }} />
 
           {!loading && (
             <div style={{
@@ -1338,8 +1459,8 @@ const GJS_CSS = `
   }
   .gjs-editor { background: #070A12 !important; font-family: "Inter", system-ui, sans-serif !important; }
   .gjs-cv-canvas { background: #070A12 !important; display: flex !important; justify-content: center !important; overflow: auto !important; padding: 20px 0 !important; }
-  .gjs-frame-wrapper { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; margin: 0 auto !important; box-shadow: none !important; border: none !important; }
-  .gjs-frame { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; }
+  .gjs-frame-wrapper { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; margin: 0 auto !important; box-shadow: none !important; border: none !important; height: auto !important; min-height: 100% !important; }
+  .gjs-frame { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; display: block !important; }
 
   /* ── 1. HIDE NATIVE DUPLICATE TOP PANELS COMPLETELY ── */
   .gjs-pn-commands, 
