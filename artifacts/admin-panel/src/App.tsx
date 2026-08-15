@@ -1,6 +1,5 @@
 import "./lib/api";
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { lazy, Suspense, useEffect } from "react";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -15,16 +14,12 @@ import BlogPage from "./pages/BlogPage";
 import BlogEditPage from "./pages/BlogEditPage";
 import MediaPage from "./pages/MediaPage";
 import CountryBlockerPage from "./pages/CountryBlockerPage";
-import TemplatesPage from "./pages/TemplatesPage";
 import PagesPage from "./pages/PagesPage";
 import SettingsPage from "./pages/SettingsPage";
 import UsersPage from "./pages/UsersPage";
 import GlobalStylesPage from "./pages/GlobalStylesPage";
-import PopupBuilderPage from "./pages/PopupBuilderPage";
 import CustomersPage from "./pages/CustomersPage";
 import OrdersPage from "./pages/OrdersPage";
-import QuoteBuilderPage from "./pages/QuoteBuilderPage";
-import InvoiceBuilderPage from "./pages/InvoiceBuilderPage";
 import ImportProductsPage from "./pages/ImportProductsPage";
 import QuotePipelinePage from "./pages/QuotePipelinePage";
 import FollowUpsPage from "./pages/FollowUpsPage";
@@ -34,9 +29,6 @@ import ClarkPage from "./pages/ClarkPage";
 import MenusPage from "./pages/MenusPage";
 import { AdminLayout } from "./components/layout/AdminLayout";
 
-// Lazy-loaded full-screen builders (outside AdminLayout)
-const TemplateBuilderPage = lazy(() => import("./builder/TemplateBuilderPage"));
-
 export default function App() {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   return (
@@ -44,24 +36,6 @@ export default function App() {
     <WouterRouter base={base}>
       <Switch>
         <Route path="/login" component={LoginPage} />
-
-        {/* Full-screen template builder — MUST be before /builder/:id */}
-        <Route path="/builder/template/:type">
-          {() => (
-            <Suspense fallback={<div className="flex items-center justify-center h-screen bg-[#0f1117]"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>}>
-              <TemplateBuilderPage />
-            </Suspense>
-          )}
-        </Route>
-
-        {/* Full-screen page builder — NEW Elementor-style Builder */}
-        <Route path="/builder/:id">
-          {() => (
-            <Suspense fallback={<div className="flex items-center justify-center h-screen bg-[#0f1117]"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>}>
-              <TemplateBuilderPage />
-            </Suspense>
-          )}
-        </Route>
 
         <Route path="/">
           <DashboardPage />
@@ -108,9 +82,6 @@ export default function App() {
         <Route path="/country-blocker">
           <CountryBlockerPage />
         </Route>
-        <Route path="/templates">
-          <TemplatesPage />
-        </Route>
         <Route path="/menus">
           <MenusPage />
         </Route>
@@ -126,20 +97,11 @@ export default function App() {
         <Route path="/global-styles">
           <GlobalStylesPage />
         </Route>
-        <Route path="/popups">
-          <PopupBuilderPage />
-        </Route>
         <Route path="/customers">
           <CustomersPage />
         </Route>
         <Route path="/orders">
           <OrdersPage />
-        </Route>
-        <Route path="/quote-builder">
-          <QuoteBuilderPage />
-        </Route>
-        <Route path="/invoice-builder">
-          <InvoiceBuilderPage />
         </Route>
         <Route path="/import-products">
           <ImportProductsPage />

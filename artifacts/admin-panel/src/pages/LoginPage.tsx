@@ -106,7 +106,7 @@ export default function LoginPage() {
           <div className="grid grid-cols-1 gap-3.5 pt-2">
             {[
               "Complete Product & Dynamic Category Management",
-              "Instant Quote Builder & PDF Tax Invoice Generation",
+              "Quote estimates and PDF invoice generation",
               "CRM Sales Pipeline, Leads & Customer Accounts",
               "Customer support and sales tools in one place",
             ].map(feat => (

@@ -11,7 +11,7 @@ import {
   Loader2, Plus, Settings, Bell, CheckCircle,
   Clock, Zap, TrendingUp, Users, ArrowRight,
   AlertCircle, Database, MessageSquare, Download, Activity,
-  Sparkles, Layers, ShieldCheck, FileOutput, Receipt, ChevronRight, Inbox
+  Sparkles, Layers, ShieldCheck, ChevronRight, Inbox
 } from "lucide-react";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "").replace("/admin", "") + "/api";
@@ -220,8 +220,6 @@ export default function DashboardPage() {
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { name: "Quote Builder", icon: FileOutput, href: "/quote-builder", color: "text-rose-400" },
-              { name: "Invoice Builder", icon: Receipt, href: "/invoice-builder", color: "text-emerald-400" },
               { name: "Import Products", icon: Download, href: "/import-products", color: "text-indigo-400" },
               { name: "Clark AI Assistant", icon: MessageSquare, href: "/clark", color: "text-amber-400" },
               { name: "Follow Ups", icon: Bell, href: "/follow-ups", color: "text-cyan-400" },

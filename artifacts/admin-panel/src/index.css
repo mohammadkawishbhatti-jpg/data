@@ -433,54 +433,6 @@
   }
 }
 
-/* ── GrapesJS CSS variable override — must NOT use !important on custom properties ── */
-/* This block loads after grapes.min.css import so these values win in the cascade */
-:root {
-  --gjs-main-color: #13141b;
-  --gjs-primary-color: #13141b;
-  --gjs-secondary-color: #c9cdd3;
-  --gjs-tertiary-color: #4f46e5;
-  --gjs-quaternary-color: #818cf8;
-  --gjs-font-color: #c9cdd3;
-  --gjs-font-color-active: #f8f8f8;
-  --gjs-main-dark-color: rgba(0,0,0,0.35);
-  --gjs-main-light-color: rgba(255,255,255,0.05);
-  --gjs-secondary-dark-color: rgba(0,0,0,0.2);
-  --gjs-soft-light-color: rgba(255,255,255,0.015);
-  --gjs-light-border: rgba(255,255,255,0.05);
-}
-
-/* Fix selector manager brownish background — aggressive specificity */
-#gjs-selectors,
-#gjs-selectors *,
-#tpl-selectors,
-#tpl-selectors * {
-  background-color: #111116 !important;
-  color: #6b7280;
-}
-/* Target the inner selector-info wrapper GrapesJS renders */
-.gjs-clm-sels-info { background: #111116 !important; padding: 6px 10px !important; }
-.gjs-clm-el         { background: #111116 !important; }
-.gjs-clm-sels       { background: #111116 !important; }
-.gjs-clm-b          { background: #111116 !important; }
-/* The actual grey/brownish row */
-[class^="gjs-clm"],
-[class*=" gjs-clm"] { background-color: #111116 !important; }
-.gjs-clm-states {
-  background: #252530 !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
-  border-radius: 5px !important;
-  color: #c9cdd3 !important;
-  padding: 2px 7px !important;
-  cursor: pointer !important;
-}
-.gjs-clm-label,
-.gjs-clm-header { color: #4b5563 !important; font-size: 10px !important; }
-/* Hide the duplicate selector manager row (GrapesJS renders 2 for some reason) */
-#gjs-selectors > *:nth-child(2),
-#tpl-selectors > *:nth-child(2) { display: none !important; }
-.gjs-pn-views-container { background: transparent !important; }
-
 /* ── Heavy UI & Ultra-Premium Glassmorphism Utilities ── */
 .glass-panel {
   background: rgba(15, 23, 42, 0.75);

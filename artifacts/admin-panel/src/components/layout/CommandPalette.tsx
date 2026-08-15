@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import {
   Search, LayoutDashboard, Package, FolderOpen, ImageIcon,
   FileText, Mail, BookOpen, Settings, Users, HardDrive, Shield,
-  Palette, ShoppingBag, Receipt, FileOutput, Upload, Bell, Bot,
+  Palette, ShoppingBag, Upload, Bell, Bot,
   Inbox, ArrowRight, X, Sparkles
 } from "lucide-react";
 
@@ -23,8 +23,6 @@ const commands: CommandItem[] = [
   { name: "Orders Management", category: "Commerce", href: "/orders", icon: ShoppingBag, shortcut: "G O" },
   { name: "Quotes & Requests", category: "Commerce", href: "/quotes", icon: FileText, shortcut: "G Q" },
   { name: "Lead Inquiries", category: "Commerce", href: "/leads", icon: Inbox, shortcut: "G L" },
-  { name: "Custom Quote Builder", category: "Tools", href: "/quote-builder", icon: FileOutput },
-  { name: "Invoice Builder & PDF", category: "Tools", href: "/invoice-builder", icon: Receipt },
   { name: "WordPress Product Import", category: "Tools", href: "/import-products", icon: Upload },
   { name: "Categories Manager", category: "Catalog", href: "/categories", icon: FolderOpen },
   { name: "Banners & Hero Media", category: "Catalog", href: "/banners", icon: ImageIcon },

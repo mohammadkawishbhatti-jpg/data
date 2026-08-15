@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
 import { AdminLayout } from "../components/layout/AdminLayout";
 import { 
   useAdminListPages, 
@@ -8,11 +7,10 @@ import {
   getAdminListPagesQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit, Check, X, Trash2, ExternalLink, Layout as LayoutIcon, Pencil } from "lucide-react";
+import { Plus, Edit, Trash2, ExternalLink, Layout as LayoutIcon } from "lucide-react";
 import { Modal } from "../components/ui/Modal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { RichTextEditor } from "../components/ui/RichTextEditor";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 
 const slugify = (text: string) => text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-');
@@ -36,7 +34,6 @@ const pageUrl = (slug: string) => SLUG_TO_URL[slug] ?? `/pages/${slug}`;
 
 export default function PagesPage() {
   const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
   const { data: pages = [], isLoading } = useAdminListPages();
   
   const createPage = useCreatePage();
@@ -81,10 +78,6 @@ export default function PagesPage() {
     setModalOpen(true);
   };
 
-  const openBuilder = (page: any) => {
-    navigate(`/builder/${page.id}`);
-  };
-
   const onSubmit = handleSubmit((data) => {
     if (editingId) {
       updatePage.mutate({ id: editingId, data }, {
@@ -98,8 +91,6 @@ export default function PagesPage() {
         onSuccess: (newPage: any) => {
           queryClient.invalidateQueries({ queryKey: getAdminListPagesQueryKey() });
           setModalOpen(false);
-          // Navigate to builder after creating
-          if (newPage?.id) navigate(`/builder/${newPage.id}`);
         }
       });
     }
@@ -184,14 +175,6 @@ export default function PagesPage() {
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                       <button
-                        onClick={() => openBuilder(page)}
-                        title="Open Visual Builder"
-                        className="flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded transition-colors font-medium"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Edit
-                      </button>
-                      <button
                         onClick={() => openEditModal(page)}
                         title="Page settings"
                         className="p-1.5 text-muted-foreground hover:text-primary rounded hover:bg-muted"
@@ -270,7 +253,7 @@ export default function PagesPage() {
             </button>
             <button type="submit" disabled={isSubmitting}
               className="px-5 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
-              {editingId ? "Save Settings" : "Create & Open Builder"}
+              {editingId ? "Save Settings" : "Create Page"}
             </button>
           </div>
         </form>
