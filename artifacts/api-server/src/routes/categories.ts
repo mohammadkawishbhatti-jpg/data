@@ -130,6 +130,7 @@ function formatCat(c: any) {
     description: c.description ?? null,
     imageUrl: c.imageUrl ?? null,
     isActive: c.isActive,
+    isFeatured: c.isFeatured,
     sortOrder: c.sortOrder,
     metaTitle: c.metaTitle ?? null,
     metaDescription: c.metaDescription ?? null,

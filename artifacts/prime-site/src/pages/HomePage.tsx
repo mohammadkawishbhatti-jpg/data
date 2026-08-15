@@ -85,21 +85,6 @@ const HERO_MOSAIC = [
   { src: "/api/uploads/custom-magnetic-closure-boxes-with-logo.webp", alt: "Magnetic Closure Boxes" },
 ];
 
-const SHOWCASE_PRODUCTS = [
-  { img: "/api/uploads/custom-magnetic-closure-boxes-with-logo.webp",  name: "Magnetic Closure Boxes", slug: "custom-magnetic-closure-boxes" },
-  { img: "/api/uploads/luxury-chocolate-boxes.webp",                   name: "Luxury Chocolate Boxes", slug: "luxury-chocolate-boxes" },
-  { img: "/api/uploads/custom-kraft-boxes-wholesale.webp",             name: "Custom Kraft Boxes",     slug: "custom-kraft-boxes" },
-  { img: "/api/uploads/custom-cake-boxes.webp",                        name: "Custom Cake Boxes",      slug: "custom-cake-boxes" },
-  { img: "/api/uploads/candle-packaging-box.webp",                     name: "Luxury Candle Boxes",    slug: "luxury-candle-packaging" },
-  { img: "/api/uploads/corrugated-mailer-boxes.webp",                  name: "Mailer Boxes",           slug: "corrugated-mailer-boxes" },
-  { img: "/api/uploads/custom-clothing-boxes-with-logo.webp",          name: "Clothing Boxes",         slug: "custom-clothing-boxes" },
-  { img: "/api/uploads/cardboard-gift-boxes.webp",                     name: "Gift Boxes",             slug: "cardboard-gift-boxes" },
-  { img: "/api/uploads/custom-coffee-bags-with-logo.webp",             name: "Coffee Bags",            slug: "custom-coffee-bags" },
-  { img: "/api/uploads/cbd-oil-boxes.webp",                            name: "CBD Oil Boxes",          slug: "cbd-oil-boxes" },
-  { img: "/api/uploads/custom-cream-jars-wholesale.webp",              name: "Cream Jars",             slug: "custom-cream-jars" },
-  { img: "/api/uploads/christmas-gift-boxes-wholesale.webp",           name: "Christmas Gift Boxes",   slug: "christmas-gift-boxes" },
-];
-
 const STATS = [
   { num: "500+", label: "Happy Clients" },
   { num: "1M+",  label: "Boxes Shipped" },
@@ -158,7 +143,7 @@ export default function HomePage() {
 
   const { data: featuredProducts, isLoading: isLoadingProducts } = useGetFeaturedProducts();
   const { data: categoriesData, isLoading: isLoadingCategories } = useListCategories();
-  const categories = categoriesData || [];
+  const categories = (categoriesData || []).filter(category => category.isFeatured);
   const { data: settings } = useSettings();
   const phone = settings?.phone || "818-758-4076";
 
@@ -310,7 +295,11 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             {isLoadingProducts
               ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
-              : (featuredProducts || []).slice(0, 8).map(p => <ProductCard key={p.id} product={p} />)}
+              : (featuredProducts || []).slice(0, 8).map(p => (
+                <div key={p.id} data-inline-dynamic="true">
+                  <ProductCard product={p} />
+                </div>
+              ))}
           </div>
         </div>
       </section>
@@ -324,17 +313,19 @@ export default function HomePage() {
             <p className="text-gray-500 mt-2 max-w-xl mx-auto text-sm">Explore our most popular custom box styles — each fully customizable to your brand, size, and finish.</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {SHOWCASE_PRODUCTS.map(p => (
-              <Link key={p.slug} href={`/${p.slug}`} className="group relative rounded-2xl overflow-hidden bg-gray-100 aspect-square shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+             {isLoadingProducts
+               ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="aspect-square rounded-2xl bg-gray-100 animate-pulse" />)
+               : (featuredProducts || []).slice(0, 12).map(p => (
+               <div key={p.id} data-inline-dynamic="true">
+               <Link href={`/${p.slug}`} className="group relative rounded-2xl overflow-hidden bg-gray-100 aspect-square shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                 <img
-                  src={p.img}
+                   src={p.imageUrl || "/api/uploads/placeholder-product.webp"}
                   alt={p.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
                   onError={(e) => {
                     const t = e.target as HTMLImageElement;
-                    if ((p as any).fallback) t.src = (p as any).fallback;
-                    else t.style.opacity = "0.3";
+                     t.style.opacity = "0.3";
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -343,7 +334,8 @@ export default function HomePage() {
                   <span className="text-white/70 text-[10px]">View Product →</span>
                 </div>
               </Link>
-            ))}
+               </div>
+             ))}
           </div>
         </div>
       </section>
@@ -359,7 +351,11 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             {isLoadingCategories
               ? Array.from({ length: 8 }).map((_, i) => <div key={i} className="aspect-square bg-gray-200 rounded-xl animate-pulse" style={{ aspectRatio: "4/3" }} />)
-              : categories.slice(0, 8).map(c => <CategoryCard key={c.id} category={c} productCount={c.productCount} />)}
+               : categories.slice(0, 8).map(c => (
+                 <div key={c.id} data-inline-dynamic="true">
+                   <CategoryCard category={c} productCount={c.productCount} />
+                 </div>
+               ))}
           </div>
           {categories.length > 8 && (
             <div className="text-center mt-10">

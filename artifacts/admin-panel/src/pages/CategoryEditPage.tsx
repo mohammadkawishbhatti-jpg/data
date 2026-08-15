@@ -44,7 +44,7 @@ export default function CategoryEditPage() {
   const { register, handleSubmit, reset, watch, setValue, control, formState: { isSubmitting } } = useForm({
     defaultValues: {
       name: "", slug: "", description: "", imageUrl: "",
-      isActive: true, sortOrder: 0,
+      isActive: true, isFeatured: false, sortOrder: 0,
       metaTitle: "", metaDescription: "", focusKeyword: "",
     },
   });
@@ -57,6 +57,7 @@ export default function CategoryEditPage() {
         description: (category as any).description || "",
         imageUrl: (category as any).imageUrl || "",
         isActive: (category as any).isActive !== false,
+        isFeatured: (category as any).isFeatured === true,
         sortOrder: (category as any).sortOrder || 0,
         metaTitle: (category as any).metaTitle || "",
         metaDescription: (category as any).metaDescription || "",
@@ -246,6 +247,10 @@ export default function CategoryEditPage() {
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" {...register("isActive")} className="h-4 w-4 rounded border-border text-primary focus:ring-primary" />
                 <span className="font-medium">Active (visible on site)</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" {...register("isFeatured")} className="h-4 w-4 rounded border-border text-primary focus:ring-primary" />
+                <span className="font-medium">Featured (show on homepage)</span>
               </label>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Sort Order</label>

@@ -949,6 +949,8 @@ components:
           nullable: true
         isActive:
           type: boolean
+        isFeatured:
+          type: boolean
         sortOrder:
           type: integer
         metaTitle:
@@ -963,7 +965,7 @@ components:
           type: string
         updatedAt:
           type: string
-      required: [id, name, slug, isActive, sortOrder]
+      required: [id, name, slug, isActive, isFeatured, sortOrder]
 
     CategoryWithProducts:
       allOf:

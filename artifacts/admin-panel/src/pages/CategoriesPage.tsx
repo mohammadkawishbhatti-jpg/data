@@ -63,6 +63,7 @@ export default function CategoriesPage() {
       description: "",
       imageUrl: "",
       isActive: true,
+      isFeatured: false,
       sortOrder: 0,
       metaTitle: "",
       metaDescription: ""
@@ -80,7 +81,7 @@ export default function CategoriesPage() {
     setEditingId(null);
     reset({
       name: "", slug: "", description: "", 
-      imageUrl: "", isActive: true, 
+      imageUrl: "", isActive: true, isFeatured: false,
       sortOrder: 0, metaTitle: "", metaDescription: ""
     });
     setModalOpen(true);
@@ -92,6 +93,7 @@ export default function CategoriesPage() {
       ...category,
       description: category.description || "",
       imageUrl: category.imageUrl || "",
+      isFeatured: category.isFeatured === true,
       metaTitle: category.metaTitle || "",
       metaDescription: category.metaDescription || "",
     });
@@ -188,6 +190,7 @@ export default function CategoriesPage() {
                 <th className="px-4 py-3 font-medium w-[60px]">Image</th>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium text-center">Products</th>
+                <th className="px-4 py-3 font-medium text-center">Featured</th>
                 <th className="px-4 py-3 font-medium text-center">Active</th>
                 <th className="px-4 py-3 font-medium text-center">Sort</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
@@ -195,9 +198,9 @@ export default function CategoriesPage() {
             </thead>
             <tbody className="divide-y">
               {isLoading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>
               ) : filteredCategories.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No categories found.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No categories found.</td></tr>
               ) : (
                 filteredCategories.map(category => {
                   const productCount = products.filter(p => p.categoryId === category.id).length;
@@ -218,6 +221,11 @@ export default function CategoriesPage() {
                         <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium bg-muted rounded-full">
                           {productCount}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {category.isFeatured
+                          ? <Check className="h-4 w-4 text-green-600 mx-auto" />
+                          : <X className="h-4 w-4 text-muted-foreground/30 mx-auto" />}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {category.isActive ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <X className="h-4 w-4 text-muted-foreground/30 mx-auto" />}
@@ -285,6 +293,10 @@ export default function CategoriesPage() {
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
               <input type="checkbox" {...register("isActive")} className="rounded border-input text-primary focus:ring-primary h-4 w-4" />
               Active
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+              <input type="checkbox" {...register("isFeatured")} className="rounded border-input text-primary focus:ring-primary h-4 w-4" />
+              Featured on homepage
             </label>
           </div>
 

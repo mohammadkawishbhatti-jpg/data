@@ -13,6 +13,7 @@ export interface Category {
   description?: string | null;
   imageUrl?: string | null;
   isActive: boolean;
+  isFeatured: boolean;
   sortOrder: number;
   metaTitle?: string | null;
   metaDescription?: string | null;

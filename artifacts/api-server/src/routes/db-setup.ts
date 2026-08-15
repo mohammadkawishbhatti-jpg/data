@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS categories (
   description text,
   image_url text,
   is_active boolean NOT NULL DEFAULT true,
+  is_featured boolean NOT NULL DEFAULT false,
   sort_order integer NOT NULL DEFAULT 0,
   meta_title text,
   meta_description text,
@@ -311,6 +312,21 @@ CREATE TABLE IF NOT EXISTS invoices (
 `;
 
     await client.query(schema);
+    // Add homepage selection to databases created before this field existed.
+    // Existing active categories start selected so the current homepage does
+    // not disappear; subsequent setup calls preserve admin choices.
+    const categoryFeatureColumn = await client.query(
+      `SELECT 1 FROM information_schema.columns
+       WHERE table_schema='public' AND table_name='categories' AND column_name='is_featured'`
+    );
+    if (categoryFeatureColumn.rowCount === 0) {
+      await client.query(
+        `ALTER TABLE categories ADD COLUMN is_featured boolean NOT NULL DEFAULT false`
+      );
+      await client.query(
+        `UPDATE categories SET is_featured = true WHERE is_active = true`
+      );
+    }
     results.push("All 14 tables created (or already existed)");
 
     // ── Seed admin user ────────────────────────────────────────────────────
@@ -380,8 +396,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     let categoriesInserted = 0;
     for (const [name, slug, image_url, sort_order, meta_title, meta_description] of categories) {
       const r = await client.query(
-        `INSERT INTO categories (name, slug, image_url, is_active, sort_order, meta_title, meta_description)
-         VALUES ($1, $2, $3, true, $4, $5, $6) ON CONFLICT (slug) DO NOTHING`,
+        `INSERT INTO categories (name, slug, image_url, is_active, is_featured, sort_order, meta_title, meta_description)
+         VALUES ($1, $2, $3, true, true, $4, $5, $6) ON CONFLICT (slug) DO NOTHING`,
         [name, slug, image_url, sort_order, meta_title, meta_description]
       );
       if (r.rowCount && r.rowCount > 0) categoriesInserted++;

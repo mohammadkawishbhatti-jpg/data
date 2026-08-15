@@ -8,6 +8,7 @@ export const categoriesTable = pgTable("categories", {
   description: text("description"),
   imageUrl: text("image_url"),
   isActive: boolean("is_active").notNull().default(true),
+  isFeatured: boolean("is_featured").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),
