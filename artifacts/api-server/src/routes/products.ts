@@ -21,6 +21,7 @@ router.get("/products", async (req, res) => {
     const conditions = [];
 
     if (query.featured === "true") conditions.push(eq(productsTable.isFeatured, true));
+    if (query.showcase === "true") conditions.push(eq(productsTable.isShowcase, true));
     if (query.category) conditions.push(eq(categoriesTable.slug, query.category));
     // Push search into SQL — avoids fetching all rows then JS-filtering
     if (query.search) {
@@ -39,6 +40,7 @@ router.get("/products", async (req, res) => {
         categorySlug: categoriesTable.slug,
         imageUrl: productsTable.imageUrl,
         isFeatured: productsTable.isFeatured,
+        isShowcase: productsTable.isShowcase,
         isActive: productsTable.isActive,
         minOrder: productsTable.minOrder,
         sortOrder: productsTable.sortOrder,
@@ -71,6 +73,7 @@ router.get("/products/featured", async (req, res) => {
         categorySlug: categoriesTable.slug,
         imageUrl: productsTable.imageUrl,
         isFeatured: productsTable.isFeatured,
+        isShowcase: productsTable.isShowcase,
         isActive: productsTable.isActive,
         minOrder: productsTable.minOrder,
         sortOrder: productsTable.sortOrder,
@@ -104,6 +107,7 @@ router.get("/products/:slug", async (req, res) => {
         imageUrl: productsTable.imageUrl,
         images: productsTable.images,
         isFeatured: productsTable.isFeatured,
+        isShowcase: productsTable.isShowcase,
         isActive: productsTable.isActive,
         minOrder: productsTable.minOrder,
         metaTitle: productsTable.metaTitle,
@@ -183,6 +187,7 @@ router.get("/admin/products/:id", requireAdmin, async (req, res) => {
         categoryId: productsTable.categoryId, categoryName: categoriesTable.name,
         categorySlug: categoriesTable.slug, imageUrl: productsTable.imageUrl,
         images: productsTable.images, isFeatured: productsTable.isFeatured,
+        isShowcase: productsTable.isShowcase,
         isActive: productsTable.isActive, minOrder: productsTable.minOrder,
         metaTitle: productsTable.metaTitle, metaDescription: productsTable.metaDescription,
         sortOrder: productsTable.sortOrder, regularPrice: productsTable.regularPrice,
@@ -258,6 +263,7 @@ function formatProduct(r: any) {
     imageUrl: rewriteImageUrl(r.imageUrl),
     images: rewriteImages(r.images),
     isFeatured: r.isFeatured,
+    isShowcase: r.isShowcase,
     isActive: r.isActive,
     minOrder: r.minOrder ?? null,
     metaTitle: r.metaTitle ?? null,

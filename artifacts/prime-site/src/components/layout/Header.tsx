@@ -124,7 +124,7 @@ function _Header() {
     if (productChildren.length === 0) return fallback;
     return productChildren
       .filter(child => child.group === group || (group === "By industry" && !["Hot selling", "By style / material"].includes(child.group ?? "")))
-      .map(child => ({ label: child.label, slug: child.id, href: child.href }));
+      .map(child => ({ label: child.label, slug: child.id, href: child.href || `/${child.id}` }));
   };
   const productSections: ProductMenuSection[] = [
     { heading: "By industry", items: productItemsFor("By industry", BY_INDUSTRY) },

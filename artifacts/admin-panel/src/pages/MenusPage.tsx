@@ -222,11 +222,11 @@ export default function MenusPage() {
           <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-rose-600">
             <MenuIcon className="h-3.5 w-3.5" /> WordPress-style navigation
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-white">Menu Manager</h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-400">Add, remove, rename, reorder and nest links in the public header. Changes are saved to the primary menu and appear after the next refresh.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Menu Manager</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Add, remove, rename, reorder and nest links in the public header. Changes are saved to the primary menu and appear after the next refresh.</p>
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => openAdd()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-bold text-slate-200 transition hover:bg-white/10">
+          <button type="button" onClick={() => openAdd()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm font-bold text-foreground transition hover:bg-muted">
             <Plus className="h-4 w-4" /> Add menu item
           </button>
           <button type="button" onClick={saveMenu} disabled={!menu || updateMenu.isPending || saveMessage.startsWith("Saved")} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50">
@@ -237,20 +237,20 @@ export default function MenusPage() {
 
       {saveMessage && <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-semibold ${saveMessage.startsWith("Could") ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"}`}>{saveMessage}</div>}
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-4">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+        <div className="flex items-center justify-between border-b border-border bg-muted/40 px-5 py-4">
           <div>
-            <h2 className="font-extrabold text-slate-800">{menu?.name || "Primary navigation"}</h2>
-            <p className="mt-0.5 text-xs text-slate-500">Header menu · {items.length} item{items.length === 1 ? "" : "s"}</p>
+            <h2 className="font-extrabold text-foreground">{menu?.name || "Primary navigation"}</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Header menu · {items.length} item{items.length === 1 ? "" : "s"}</p>
           </div>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">Live location: primary</span>
         </div>
         {isLoading ? (
-          <div className="px-5 py-16 text-center text-sm text-slate-500">Loading menu…</div>
+          <div className="px-5 py-16 text-center text-sm text-muted-foreground">Loading menu…</div>
         ) : isError ? (
           <div className="px-5 py-16 text-center text-sm text-red-600">Could not load the menu. Check your admin session and try again.</div>
         ) : topLevelItems.length === 0 ? (
-          <div className="px-5 py-16 text-center text-sm text-slate-500">No menu items yet. Add your first link.</div>
+          <div className="px-5 py-16 text-center text-sm text-muted-foreground">No menu items yet. Add your first link.</div>
         ) : topLevelItems.map(item => renderItem(item))}
       </div>
 

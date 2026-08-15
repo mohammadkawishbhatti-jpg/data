@@ -72,7 +72,7 @@ function NavSection({
     <div className="mb-2">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400/80 hover:text-slate-200 transition-colors"
+         className="w-full flex items-center justify-between px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
       >
         {section.label}
         <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${open ? "" : "-rotate-90"}`} />
@@ -96,11 +96,11 @@ function NavSection({
                 onClick={onClose}
                 className={`group relative flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
                   isActive
-                    ? "bg-gradient-to-r from-rose-500/20 via-rose-500/10 to-transparent text-white border-l-2 border-rose-500 shadow-md shadow-rose-500/10"
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                     ? "bg-sidebar-primary/15 text-sidebar-foreground border-l-2 border-sidebar-primary shadow-md shadow-sidebar-primary/10"
+                     : "text-sidebar-foreground/65 hover:bg-sidebar-accent/45 hover:text-sidebar-foreground"
                 }`}
               >
-                <Icon className={`h-4 w-4 flex-shrink-0 transition-transform group-hover:scale-110 ${isActive ? "text-rose-400" : "text-slate-400 group-hover:text-slate-200"}`} />
+                 <Icon className={`h-4 w-4 flex-shrink-0 transition-transform group-hover:scale-110 ${isActive ? "text-sidebar-primary" : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"}`} />
                 <span className="truncate">{item.name}</span>
                 {badge > 0 && (
                   <span className="ml-auto bg-gradient-to-r from-rose-500 to-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md shadow-rose-500/30">
@@ -138,9 +138,9 @@ export function Sidebar({
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-[#090d16]/95 backdrop-blur-xl text-slate-100 w-64 border-r border-white/10 shadow-2xl">
+     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground w-64 border-r border-sidebar-border shadow-2xl">
       {/* Brand Header */}
-      <div className="flex items-center justify-between px-5 py-5 border-b border-white/10 bg-white/5">
+       <div className="flex items-center justify-between px-5 py-5 border-b border-sidebar-border bg-sidebar-accent/20">
         <div className="flex items-center gap-3">
           <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 shadow-lg shadow-rose-500/30 border border-rose-400/30">
             <Package className="h-5 w-5 text-white" />
@@ -150,11 +150,11 @@ export function Sidebar({
             </span>
           </div>
           <div>
-            <h2 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+             <h2 className="text-sm font-bold tracking-tight text-sidebar-foreground flex items-center gap-1.5">
               Prime Admin
               <Sparkles className="h-3 w-3 text-rose-400" />
             </h2>
-            <p className="text-[10px] text-slate-400 mt-0.5">primepackagingboxes.com</p>
+             <p className="text-[10px] text-sidebar-foreground/60 mt-0.5">primepackagingboxes.com</p>
           </div>
         </div>
       </div>
@@ -164,13 +164,13 @@ export function Sidebar({
         <div className="px-3 pt-3">
           <button
             onClick={onOpenCommandPalette}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/90 border border-white/10 text-xs text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all duration-150 group shadow-inner"
+             className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-sidebar-accent/45 border border-sidebar-border text-xs text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-sidebar-accent/75 transition-all duration-150 group shadow-inner"
           >
             <span className="flex items-center gap-2">
               <Command className="h-3.5 w-3.5 text-rose-400" />
               Quick Search
             </span>
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-slate-800 border border-slate-700 rounded group-hover:border-rose-500/40">
+             <kbd className="px-1.5 py-0.5 text-[10px] font-mono text-sidebar-foreground/65 bg-sidebar-accent border border-sidebar-border rounded group-hover:border-sidebar-primary/40">
               ⌘K
             </kbd>
           </button>
@@ -191,12 +191,12 @@ export function Sidebar({
       </nav>
 
       {/* Footer / Sign Out */}
-      <div className="px-3 pb-4 pt-3 border-t border-white/10 bg-white/5">
+       <div className="px-3 pb-4 pt-3 border-t border-sidebar-border bg-sidebar-accent/20">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-xl text-xs font-semibold text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 border border-transparent hover:border-rose-500/20 transition-all duration-150 group"
+           className="flex items-center gap-2.5 px-3 py-2 w-full rounded-xl text-xs font-semibold text-sidebar-foreground/65 hover:bg-sidebar-primary/10 hover:text-sidebar-primary border border-transparent hover:border-sidebar-primary/20 transition-all duration-150 group"
         >
-          <LogOut className="h-4 w-4 text-slate-400 group-hover:text-rose-400 transition-colors" />
+           <LogOut className="h-4 w-4 text-sidebar-foreground/60 group-hover:text-sidebar-primary transition-colors" />
           Sign Out
         </button>
       </div>

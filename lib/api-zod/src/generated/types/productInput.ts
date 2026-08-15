@@ -19,6 +19,7 @@ export interface ProductInput {
   imageUrl?: string | null;
   images?: string[];
   isFeatured?: boolean;
+  isShowcase?: boolean;
   isActive?: boolean;
   /** @nullable */
   minOrder?: number | null;

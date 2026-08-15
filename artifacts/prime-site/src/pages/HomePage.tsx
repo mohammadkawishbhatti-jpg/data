@@ -8,7 +8,7 @@ import {
 import { ProductCard } from "../components/ui/ProductCard";
 import { CategoryCard } from "../components/ui/CategoryCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
-import { useGetFeaturedProducts, useListCategories } from "@workspace/api-client-react";
+import { useGetFeaturedProducts, useListCategories, useListProducts } from "@workspace/api-client-react";
 import { DEFAULT_OG_IMAGE, useSEO, useSchemaOrg } from "../lib/useSEO";
 import { useSettings } from "../lib/useSettings";
 
@@ -142,6 +142,9 @@ export default function HomePage() {
   });
 
   const { data: featuredProducts, isLoading: isLoadingProducts } = useGetFeaturedProducts();
+  const { data: showcaseProducts, isLoading: isLoadingShowcase } = useListProducts({
+    showcase: "true", limit: 12,
+  });
   const { data: categoriesData, isLoading: isLoadingCategories } = useListCategories();
   const categories = (categoriesData || []).filter(category => category.isFeatured);
   const { data: settings } = useSettings();
@@ -293,7 +296,7 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-            {isLoadingProducts
+              {isLoadingProducts
               ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
               : (featuredProducts || []).slice(0, 8).map(p => (
                 <div key={p.id} data-inline-dynamic="true">
@@ -313,9 +316,9 @@ export default function HomePage() {
             <p className="text-gray-500 mt-2 max-w-xl mx-auto text-sm">Explore our most popular custom box styles — each fully customizable to your brand, size, and finish.</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-             {isLoadingProducts
+             {isLoadingShowcase
                ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="aspect-square rounded-2xl bg-gray-100 animate-pulse" />)
-               : (featuredProducts || []).slice(0, 12).map(p => (
+                : (showcaseProducts || []).slice(0, 12).map(p => (
                <div key={p.id} data-inline-dynamic="true">
                <Link href={`/${p.slug}`} className="group relative rounded-2xl overflow-hidden bg-gray-100 aspect-square shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                 <img

@@ -47,6 +47,10 @@ paths:
           in: query
           schema:
             type: string
+        - name: showcase
+          in: query
+          schema:
+            type: string
         - name: search
           in: query
           schema:
@@ -913,6 +917,8 @@ components:
             type: string
         isFeatured:
           type: boolean
+        isShowcase:
+          type: boolean
         isActive:
           type: boolean
         minOrder:
@@ -1387,6 +1393,8 @@ components:
             type: string
         isFeatured:
           type: boolean
+        isShowcase:
+          type: boolean
         isActive:
           type: boolean
         minOrder:
@@ -1427,6 +1435,8 @@ components:
           items:
             type: string
         isFeatured:
+          type: boolean
+        isShowcase:
           type: boolean
         isActive:
           type: boolean

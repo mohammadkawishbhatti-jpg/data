@@ -22,7 +22,7 @@ export function AdminLayout({ children, title }: { children: React.ReactNode; ti
 
   return (
     <AuthGuard>
-      <div className="flex h-[100dvh] w-full bg-[#0b0f19] text-slate-100 overflow-hidden font-sans">
+      <div className="flex h-[100dvh] w-full bg-background text-foreground overflow-hidden font-sans">
         <Sidebar
           mobileOpen={mobileOpen}
           setMobileOpen={setMobileOpen}
@@ -34,8 +34,8 @@ export function AdminLayout({ children, title }: { children: React.ReactNode; ti
             onMenuClick={() => setMobileOpen(true)}
             onOpenCommandPalette={() => setCmdOpen(true)}
           />
-          <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#0b0f19] via-[#0d1322] to-[#0b0f19]">
-            <div className="p-4 sm:p-6 lg:p-8 mx-auto max-w-7xl">
+          <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-background">
+            <div className="mx-auto min-w-0 max-w-7xl p-4 sm:p-6 lg:p-8">
               {children}
             </div>
           </main>

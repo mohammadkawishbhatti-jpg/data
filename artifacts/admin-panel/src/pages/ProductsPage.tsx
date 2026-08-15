@@ -3,12 +3,13 @@ import { AdminLayout } from "../components/layout/AdminLayout";
 import {
   useAdminListProducts,
   useDeleteProduct,
+  useUpdateProduct,
   useAdminListCategories,
   getAdminListProductsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Plus, Edit, Trash2, Check, X, Search, ExternalLink, Download, ChevronDown } from "lucide-react";
+import { Plus, Edit, Trash2, Check, X, Search, ExternalLink, Download, ChevronDown, Star, LayoutGrid } from "lucide-react";
 import { useState as useMenuState } from "react";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
@@ -18,6 +19,7 @@ export default function ProductsPage() {
   const { data: products = [], isLoading } = useAdminListProducts();
   const { data: categories = [] } = useAdminListCategories();
   const deleteProduct = useDeleteProduct();
+  const updateProduct = useUpdateProduct();
 
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("");
@@ -50,6 +52,13 @@ export default function ProductsPage() {
         setDeleteId(null);
       }
     });
+  };
+
+  const togglePlacement = (product: any, field: "isFeatured" | "isShowcase") => {
+    updateProduct.mutate(
+      { id: product.id, data: { [field]: !product[field] } },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListProductsQueryKey() }) },
+    );
   };
 
   const catMap: Record<number, string> = {};
@@ -121,16 +130,17 @@ export default function ProductsPage() {
                 <th className="px-4 py-3 font-medium w-[56px]">Img</th>
                 <th className="px-4 py-3 font-medium">Name / Slug</th>
                 <th className="px-4 py-3 font-medium">Category</th>
-                <th className="px-4 py-3 font-medium text-center">Featured</th>
+                <th className="px-4 py-3 font-medium text-center">Best Selling</th>
+                <th className="px-4 py-3 font-medium text-center">Showcase</th>
                 <th className="px-4 py-3 font-medium text-center">Active</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {isLoading ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">Loading products...</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">Loading products...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">No products found.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">No products found.</td></tr>
               ) : filtered.map((product: any) => (
                 <tr key={product.id} className="hover:bg-muted/5 transition-colors">
                   <td className="px-4 py-3">
@@ -146,9 +156,18 @@ export default function ProductsPage() {
                     {product.categoryId ? catMap[product.categoryId] || "—" : "—"}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {product.isFeatured
-                      ? <Check className="h-4 w-4 text-green-600 mx-auto" />
-                      : <X className="h-4 w-4 text-muted-foreground/30 mx-auto" />}
+                     <button type="button" onClick={() => togglePlacement(product, "isFeatured")} disabled={updateProduct.isPending}
+                       title={product.isFeatured ? "Remove from Best Selling" : "Add to Best Selling"}
+                       className="rounded-md p-1.5 transition-colors hover:bg-amber-50 disabled:opacity-50">
+                       <Star className={`h-4 w-4 mx-auto ${product.isFeatured ? "fill-amber-400 text-amber-500" : "text-muted-foreground/30"}`} />
+                     </button>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                     <button type="button" onClick={() => togglePlacement(product, "isShowcase")} disabled={updateProduct.isPending}
+                       title={product.isShowcase ? "Remove from Product Showcase" : "Add to Product Showcase"}
+                       className="rounded-md p-1.5 transition-colors hover:bg-primary/10 disabled:opacity-50">
+                       <LayoutGrid className={`h-4 w-4 mx-auto ${product.isShowcase ? "text-primary" : "text-muted-foreground/30"}`} />
+                     </button>
                   </td>
                   <td className="px-4 py-3 text-center">
                     {product.isActive

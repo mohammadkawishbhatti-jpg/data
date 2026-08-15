@@ -95,7 +95,7 @@ export default function ProductEditPage() {
   const { register, handleSubmit, reset, watch, setValue, control, formState: { errors } } = useForm({
     defaultValues: {
       name:"", slug:"", shortDescription:"", description:"", categoryId:"",
-      imageUrl:"", isFeatured:false, isActive:true, minOrder:100, sortOrder:0,
+      imageUrl:"", isFeatured:false, isShowcase:false, isActive:true, minOrder:100, sortOrder:0,
       metaTitle:"", metaDescription:"", focusKeyword:"",
       regularPrice:"", salePrice:"", sku:"", weight:"",
       boxLength:"", boxWidth:"", boxHeight:"",
@@ -126,6 +126,7 @@ export default function ProductEditPage() {
           categoryId: p.categoryId?.toString() || "",
           imageUrl: p.imageUrl || "",
           isFeatured: p.isFeatured || false,
+          isShowcase: (p as any).isShowcase || false,
           isActive: p.isActive !== false,
           minOrder: p.minOrder || 100,
           sortOrder: p.sortOrder || 0,
@@ -167,7 +168,7 @@ export default function ProductEditPage() {
       shortDescription: data.shortDescription, description: data.description,
       categoryId: data.categoryId ? Number(data.categoryId) : undefined,
       imageUrl: data.imageUrl || undefined, images: imgs,
-      isFeatured: data.isFeatured, isActive: data.status !== "draft",
+      isFeatured: data.isFeatured, isShowcase: data.isShowcase, isActive: data.status !== "draft",
       minOrder: Number(data.minOrder), sortOrder: Number(data.sortOrder),
       metaTitle: data.metaTitle || undefined, metaDescription: data.metaDescription || undefined,
       focusKeyword: data.focusKeyword || undefined,
@@ -196,7 +197,7 @@ export default function ProductEditPage() {
 
   return (
     <AdminLayout title={isNew ? "Add New Product" : "Edit Product"}>
-      <form onSubmit={onSubmit}>
+      <form onSubmit={onSubmit} className="min-w-0">
         {/* Top bar */}
         <div className="flex items-center justify-between mb-6 gap-4">
           <button type="button" onClick={() => setLocation("/products")}
@@ -222,9 +223,9 @@ export default function ProductEditPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
+        <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
           {/* LEFT COLUMN */}
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             {/* Title */}
             <div className="bg-card border rounded-xl p-5 shadow-sm">
               <input
@@ -310,9 +311,13 @@ export default function ProductEditPage() {
                       <label className="text-sm font-medium text-muted-foreground">Sort Order</label>
                       <input type="number" {...register("sortOrder")} className="mt-1 w-full h-9 border border-border rounded px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
-                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer col-span-2">
+                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                       <input type="checkbox" {...register("isFeatured")} className="h-4 w-4 rounded border-input text-primary" />
-                      Featured Product
+                      Best-selling product
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                      <input type="checkbox" {...register("isShowcase")} className="h-4 w-4 rounded border-input text-primary" />
+                      Product Showcase
                     </label>
                   </div>
                 )}

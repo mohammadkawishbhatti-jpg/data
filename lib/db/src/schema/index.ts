@@ -30,6 +30,7 @@ export const productsTable = pgTable("products", {
   imageUrl: text("image_url"),
   images: json("images").$type<string[]>().default([]),
   isFeatured: boolean("is_featured").notNull().default(false),
+  isShowcase: boolean("is_showcase").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
   minOrder: integer("min_order").default(100),
   metaTitle: text("meta_title"),
@@ -51,6 +52,7 @@ export const productsTable = pgTable("products", {
   index("idx_products_is_active").on(t.isActive),
   index("idx_products_category_id").on(t.categoryId),
   index("idx_products_is_featured").on(t.isFeatured),
+  index("idx_products_is_showcase").on(t.isShowcase),
   index("idx_products_sort_order").on(t.sortOrder),
   index("idx_products_active_category").on(t.isActive, t.categoryId),
 ]);

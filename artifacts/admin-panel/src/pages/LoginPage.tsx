@@ -148,11 +148,13 @@ export default function LoginPage() {
         <div className="my-auto max-w-md w-full mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <img
-              src="/api/uploads/prime-packaging-logo.svg"
-              alt="Prime Packaging Boxes"
-              className="h-9 w-auto max-w-[190px] rounded-md bg-white object-contain mb-5"
-            />
+            <div className="mb-5 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2.5 shadow-xl shadow-black/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#E63329] to-[#A91F19] text-xl font-black text-white shadow-lg shadow-[#E63329]/20">P</div>
+              <div className="leading-tight">
+                <div className="text-[13px] font-black tracking-[0.12em] text-white">PRIME PACKAGING</div>
+                <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#FFB800]">Admin Workspace</div>
+              </div>
+            </div>
             <div className="w-12 h-12 rounded-2xl bg-[#E63329]/15 border border-[#E63329]/30 text-[#E63329] flex items-center justify-center mb-4">
               {requires2fa ? <ShieldCheck size={24} /> : <KeyRound size={24} />}
             </div>

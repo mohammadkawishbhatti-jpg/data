@@ -31,11 +31,17 @@ router.get("/", async (req, res) => {
           const adminCheck = await client.query("SELECT count(*) AS c FROM admin_users");
           if (Number(adminCheck.rows[0]?.c) > 0) {
             const prodCheck = await client.query("SELECT count(*) AS c FROM products");
-            return res.json({
-              success: true,
-              alreadySetUp: true,
-              message: `DB already initialized. admin_users: ${adminCheck.rows[0].c}, products: ${prodCheck.rows[0].c}. Add ?force=1 to re-seed (safe — won't overwrite existing rows).`,
-            });
+            const showcaseColumn = await client.query(
+              `SELECT 1 FROM information_schema.columns
+               WHERE table_schema='public' AND table_name='products' AND column_name='is_showcase'`
+            );
+            if (showcaseColumn.rowCount > 0) {
+              return res.json({
+                success: true,
+                alreadySetUp: true,
+                message: `DB already initialized. admin_users: ${adminCheck.rows[0].c}, products: ${prodCheck.rows[0].c}. Add ?force=1 to re-seed (safe — won't overwrite existing rows).`,
+              });
+            }
           }
         }
       } catch (_) { /* tables may not exist yet — continue */ }
@@ -87,6 +93,7 @@ CREATE TABLE IF NOT EXISTS products (
   images json DEFAULT '[]',
   is_active boolean NOT NULL DEFAULT true,
   is_featured boolean NOT NULL DEFAULT false,
+  is_showcase boolean NOT NULL DEFAULT false,
   min_order integer DEFAULT 100,
   meta_title text,
   meta_description text,
@@ -327,6 +334,18 @@ CREATE TABLE IF NOT EXISTS invoices (
         `UPDATE categories SET is_featured = true WHERE is_active = true`
       );
     }
+    const productShowcaseColumn = await client.query(
+      `SELECT 1 FROM information_schema.columns
+       WHERE table_schema='public' AND table_name='products' AND column_name='is_showcase'`
+    );
+    if (productShowcaseColumn.rowCount === 0) {
+      await client.query(
+        `ALTER TABLE products ADD COLUMN is_showcase boolean NOT NULL DEFAULT false`
+      );
+      await client.query(
+        `UPDATE products SET is_showcase = is_featured WHERE is_featured = true`
+      );
+    }
     results.push("All 14 tables created (or already existed)");
 
     // ── Seed admin user ────────────────────────────────────────────────────
@@ -394,11 +413,11 @@ CREATE TABLE IF NOT EXISTS invoices (
       ["Magnetic Closure Boxes", "magnetic-closure-boxes", "/api/uploads/custom-magnetic-closure-boxes-wholesale.webp", true, 38, "Custom Magnetic Closure Boxes | Luxury Gift Boxes USA", "Premium magnetic closure boxes for luxury packaging. Custom sizes, colors, and finishes."]
     ];
     let categoriesInserted = 0;
-    for (const [name, slug, image_url, sort_order, meta_title, meta_description] of categories) {
+    for (const [name, slug, image_url, is_active, sort_order, meta_title, meta_description] of categories) {
       const r = await client.query(
         `INSERT INTO categories (name, slug, image_url, is_active, is_featured, sort_order, meta_title, meta_description)
-         VALUES ($1, $2, $3, true, true, $4, $5, $6) ON CONFLICT (slug) DO NOTHING`,
-        [name, slug, image_url, sort_order, meta_title, meta_description]
+         VALUES ($1, $2, $3, $4, true, $5, $6, $7) ON CONFLICT (slug) DO NOTHING`,
+        [name, slug, image_url, is_active, sort_order, meta_title, meta_description]
       );
       if (r.rowCount && r.rowCount > 0) categoriesInserted++;
     }

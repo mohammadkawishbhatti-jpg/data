@@ -9,6 +9,7 @@
 export type ListProductsParams = {
 category?: string;
 featured?: string;
+showcase?: string;
 search?: string;
 limit?: number;
 offset?: number;

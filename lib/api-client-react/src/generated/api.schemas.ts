@@ -21,6 +21,7 @@ export interface Product {
   imageUrl?: string | null;
   images: string[];
   isFeatured: boolean;
+  isShowcase?: boolean;
   isActive: boolean;
   minOrder?: number | null;
   metaTitle?: string | null;
@@ -287,6 +288,7 @@ export interface ProductInput {
   imageUrl?: string | null;
   images?: string[];
   isFeatured?: boolean;
+  isShowcase?: boolean;
   isActive?: boolean;
   /** @nullable */
   minOrder?: number | null;
@@ -318,6 +320,7 @@ export interface ProductUpdate {
   imageUrl?: string | null;
   images?: string[];
   isFeatured?: boolean;
+  isShowcase?: boolean;
   isActive?: boolean;
   /** @nullable */
   minOrder?: number | null;
@@ -386,6 +389,7 @@ export interface MenuUpdate {
 export type ListProductsParams = {
 category?: string;
 featured?: string;
+showcase?: string;
 search?: string;
 limit?: number;
 offset?: number;

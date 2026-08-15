@@ -18,6 +18,7 @@ export interface Product {
   imageUrl?: string | null;
   images: string[];
   isFeatured: boolean;
+  isShowcase?: boolean;
   isActive: boolean;
   minOrder?: number | null;
   metaTitle?: string | null;
