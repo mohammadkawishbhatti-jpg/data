@@ -157,7 +157,7 @@ function _Header() {
         </div>
       </div>
 
-      <div className={`border-b transition-all duration-300 ${scrolled ? "border-[#dce4eb]/80 bg-[#fbfcfd]/95 shadow-[0_10px_30px_rgba(17,43,75,0.09)] backdrop-blur-md" : "border-[#e5ebf0] bg-[#fbfcfd]"}`}>
+      <div className={`relative border-b transition-all duration-300 ${scrolled ? "border-[#dce4eb]/80 bg-[#fbfcfd]/95 shadow-[0_10px_30px_rgba(17,43,75,0.09)] backdrop-blur-md" : "border-[#e5ebf0] bg-[#fbfcfd]"}`}>
         <div className="mx-auto flex h-[74px] max-w-[1440px] items-center gap-5 px-4 sm:px-6 lg:px-8">
           <Link href="/" onClick={closeAll} className="group shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3483e] focus-visible:ring-offset-2">
             {logoFailed ? (
@@ -176,7 +176,7 @@ function _Header() {
 
           <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex" aria-label="Primary navigation">
             <NavLink href="/" label="Home" active={isActive("/")} onClick={closeAll} />
-            <div className="relative" onMouseEnter={openDrop} onMouseLeave={closeDrop}>
+            <div onMouseEnter={openDrop} onMouseLeave={closeDrop}>
               <button
                 type="button"
                 aria-expanded={dropOpen}
@@ -189,7 +189,7 @@ function _Header() {
               </button>
               {dropOpen && (
                 <div
-                  className="absolute left-1/2 top-[calc(100%+15px)] z-[9999] w-[min(1120px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-2xl border border-[#dfe7ed] bg-[#fbfcfd] shadow-[0_25px_70px_rgba(17,43,75,0.19)]"
+                  className="absolute left-1/2 top-full z-[9999] mt-2 w-[min(1120px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-2xl border border-[#dfe7ed] bg-[#fbfcfd] shadow-[0_25px_70px_rgba(17,43,75,0.19)]"
                   onMouseEnter={openDrop}
                   onMouseLeave={closeDrop}
                   style={{ animation: "megaFadeIn 180ms ease-out both" }}
