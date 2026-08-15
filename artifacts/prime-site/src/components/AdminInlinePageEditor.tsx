@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 const INLINE_DOCUMENT_MARKER = "__prime_inline_page_v1";
 
 const CANONICAL_PAGE_SLUGS: Record<string, string> = {
+  "/": "home",
   "/about": "about-us",
   "/contact": "contact-us",
   "/faq": "faq",
@@ -195,13 +196,21 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
         if (adminResponse.ok) {
           admin = true;
           if (pageSlug) {
-            const adminPagesResponse = await fetch("/api/admin/pages", { credentials: "include" });
-            if (adminPagesResponse.ok) {
-              const adminPages = await adminPagesResponse.json();
-              const adminPage = adminPages.find((item: any) => item.slug === pageSlug);
-              if (adminPage) {
-                page = adminPage;
-                nextResource = { kind: "page", slug: pageSlug, id: adminPage.id };
+            if (pageSlug === "home") {
+              const adminHomeResponse = await fetch("/api/admin/pages/home", { credentials: "include" });
+              if (adminHomeResponse.ok) {
+                page = await adminHomeResponse.json();
+                nextResource = { kind: "page", slug: pageSlug, id: page.id };
+              }
+            } else {
+              const adminPagesResponse = await fetch("/api/admin/pages", { credentials: "include" });
+              if (adminPagesResponse.ok) {
+                const adminPages = await adminPagesResponse.json();
+                const adminPage = adminPages.find((item: any) => item.slug === pageSlug);
+                if (adminPage) {
+                  page = adminPage;
+                  nextResource = { kind: "page", slug: pageSlug, id: adminPage.id };
+                }
               }
             }
           } else if (resolvedTemplateType) {
@@ -368,7 +377,13 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-[#e63329] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c42a21] disabled:opacity-60"
               >
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                {isSaving ? "Saving..." : resource.kind === "template" ? "Save Template" : "Save Page"}
+                {isSaving
+                  ? "Saving..."
+                  : resource.kind === "template"
+                    ? "Save Template"
+                    : resource.slug === "home"
+                      ? "Save Home Page"
+                      : "Save Page"}
               </button>
             </>
           ) : (
@@ -378,7 +393,11 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
               className="inline-flex items-center gap-1.5 rounded-lg bg-[#1a2f5a] px-3 py-2 text-sm font-semibold text-white hover:bg-[#0d1f3c]"
             >
               <Pencil className="h-4 w-4" />{" "}
-              {resource.kind === "template" ? `Edit ${templateLabel(resource.type)} Template` : "Edit Page"}
+              {resource.kind === "template"
+                ? `Edit ${templateLabel(resource.type)} Template`
+                : resource.slug === "home"
+                  ? "Edit Home Page"
+                  : "Edit Page"}
             </button>
           )}
           {saved && !isEditing && <span className="text-xs font-medium text-emerald-600">Saved</span>}

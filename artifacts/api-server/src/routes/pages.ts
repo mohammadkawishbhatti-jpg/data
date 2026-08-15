@@ -51,6 +51,31 @@ router.post("/admin/pages", requireAdmin, async (req, res) => {
   }
 });
 
+// Admin: GET /admin/pages/home — ensure the hard-coded homepage has an
+// editable CMS record without replacing its dedicated React layout.
+router.get("/admin/pages/home", requireAdmin, async (req, res) => {
+  try {
+    const [existing] = await db.select().from(pagesTable)
+      .where(eq(pagesTable.slug, "home"));
+    if (existing) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+      return res.json(fmt(existing));
+    }
+
+    const [homePage] = await db.insert(pagesTable).values({
+      title: "Homepage",
+      slug: "home",
+      content: null,
+      isPublished: true,
+    }).returning();
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    return res.status(201).json(fmt(homePage));
+  } catch (e) {
+    req.log.error(e);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Admin: GET /admin/pages/:id
 router.get("/admin/pages/:id", requireAdmin, async (req, res) => {
   try {
