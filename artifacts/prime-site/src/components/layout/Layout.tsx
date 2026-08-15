@@ -3,6 +3,7 @@ import { AnnouncementBar } from "./AnnouncementBar";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { WhatsAppButton } from "../ui/WhatsAppButton";
+import { AdminInlinePageEditor } from "../AdminInlinePageEditor";
 
 // Lazy-load chat widget — non-critical, deferred after main content
 const ChatWidget = lazy(() => import("../ChatWidget").then(m => ({ default: m.ChatWidget })));
@@ -17,7 +18,7 @@ export function Layout({ children }: LayoutProps) {
       <AnnouncementBar />
       <Header />
       <main className="flex-1 flex flex-col">
-        {children}
+        <AdminInlinePageEditor>{children}</AdminInlinePageEditor>
       </main>
       <Footer />
       <WhatsAppButton />
