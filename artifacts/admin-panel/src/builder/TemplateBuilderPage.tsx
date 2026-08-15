@@ -634,6 +634,34 @@ const SAMPLE_CATEGORIES: Record<string, { name: string; description: string }> =
   }
 };
 
+function applySampleDataToCanvas(editor: Editor, slug: string): void {
+  const sample = SAMPLE_CATEGORIES[slug] || SAMPLE_CATEGORIES['cardboard-boxes'];
+  try {
+    const frame = editor.Canvas.getFrameEl();
+    const doc = frame?.contentDocument;
+    if (!doc?.body) return;
+
+    const replaceTokens = (value: string) => value
+      .replace(/\{\{\s*category\.name\s*\}\}/gi, sample.name)
+      .replace(/\{\{\s*category\.description\s*\}\}/gi, sample.description);
+
+    const walker = doc.createTreeWalker(doc.body, 4);
+    const textNodes: Text[] = [];
+    let node: Node | null;
+    while ((node = walker.nextNode())) textNodes.push(node as Text);
+    textNodes.forEach(text => {
+      if (text.nodeValue) text.nodeValue = replaceTokens(text.nodeValue);
+    });
+
+    doc.body.querySelectorAll<HTMLElement>('*').forEach(element => {
+      Array.from(element.attributes).forEach(attribute => {
+        const nextValue = replaceTokens(attribute.value);
+        if (nextValue !== attribute.value) element.setAttribute(attribute.name, nextValue);
+      });
+    });
+  } catch {}
+}
+
 export default function TemplateBuilderPage() {
   const { type, id } = useParams<{ type?: string; id?: string }>();
   const [, nav] = useLocation();
@@ -665,22 +693,11 @@ export default function TemplateBuilderPage() {
     setPreviewCategory(slug);
     const ed = editorRef.current;
     if (!ed) return;
-    const sample = SAMPLE_CATEGORIES[slug] || SAMPLE_CATEGORIES['cardboard-boxes'];
-
-    const wrapper = ed.getWrapper();
-    if (!wrapper) return;
-    wrapper.find('h1, h2, h3').forEach((model: any) => {
-      const content = model.toHTML();
-      if (content.includes('category.name') || content.includes('Boxes') || content.includes('Bags') || content.includes('Custom')) {
-        model.components(sample.name);
-      }
-    });
-
-    wrapper.find('p').forEach((model: any) => {
-      const content = model.toHTML();
-      if (content.includes('category.description') || content.includes('High quality') || content.includes('printed') || content.includes('packaging')) {
-        model.components(sample.description);
-      }
+    // Replace only inside the preview iframe. The underlying GrapesJS model
+    // keeps its {{category.*}} tokens so saving does not bake sample data into
+    // the production template.
+    [0, 80, 250].forEach(delay => {
+      window.setTimeout(() => applySampleDataToCanvas(ed, slug), delay);
     });
   }, []);
 
@@ -815,6 +832,9 @@ export default function TemplateBuilderPage() {
 
     editorRef.current = editor;
     registerCustomBlocks(editor);
+    editor.on('load canvas:frame:load', () => {
+      window.setTimeout(() => applySampleDataToCanvas(editor, 'cardboard-boxes'), 80);
+    });
 
     const fixLabels = () => {
       document.querySelectorAll('#tpl-blocks .gjs-block, #gjs-blocks .gjs-block').forEach((el: any) => {
@@ -935,6 +955,11 @@ function getDefaultPageHtml(pageId: string): string {
         if (editorRef.current) {
           editorRef.current.setComponents(htmlToLoad);
           if (cssToLoad) editorRef.current.setStyle(cssToLoad);
+          [0, 100, 350].forEach(delay => {
+            window.setTimeout(() => {
+              if (editorRef.current) applySampleDataToCanvas(editorRef.current, previewCategory);
+            }, delay);
+          });
           setTimeout(() => {
             try {
               const frameEl = editorRef.current?.Canvas.getFrameEl();
