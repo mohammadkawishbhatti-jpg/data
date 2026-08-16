@@ -85,7 +85,7 @@ const TICKER: { Icon: ElementType; text: string }[] = [
   { Icon: Star, text: "4.9 Star Rating" },
 ];
 
-const LOGO_SRC = "/api/uploads/prime-packaging-logo.svg";
+const LOGO_SRC = "/api/uploads/prime-packaging-logo-transparent.svg";
 
 const DEFAULT_PRIMARY_MENU: MenuItem[] = [
   { id: "home", label: "Home", href: "/", parentId: null, group: null, order: 10, isVisible: true, openInNewTab: false },

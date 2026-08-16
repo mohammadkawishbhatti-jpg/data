@@ -206,6 +206,9 @@ export default function SettingsPage() {
     );
   };
 
+  const selectedHomepageCategoryCount = homepageCategories.filter((category: any) => category.isFeatured).length;
+  const homepageCategoryLimit = 8;
+
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "general", label: "General", icon: Globe },
     { id: "homepage", label: "Homepage Controls", icon: LayoutGrid },
@@ -333,13 +336,18 @@ export default function SettingsPage() {
 
             <div className="rounded-xl border border-border bg-card shadow-sm">
               <div className="border-b border-border p-5">
-                <div className="flex items-center gap-2"><Globe className="h-4 w-4 text-primary" /><h3 className="font-semibold">Browse by Type / Shop by Category</h3></div>
-                <p className="mt-1 text-xs text-muted-foreground">Checked categories appear in the homepage category grid. Changes save instantly.</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2"><Globe className="h-4 w-4 text-primary" /><h3 className="font-semibold">Browse by Type / Shop by Category</h3></div>
+                  <span className={`w-fit rounded-full px-2.5 py-1 text-[11px] font-bold ${selectedHomepageCategoryCount >= homepageCategoryLimit ? "bg-emerald-500/10 text-emerald-600" : "bg-primary/10 text-primary"}`}>
+                    {Math.min(selectedHomepageCategoryCount, homepageCategoryLimit)} / {homepageCategoryLimit} homepage slots selected
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Checked categories appear in the homepage category grid. Select up to 8; changes save instantly.</p>
               </div>
               <div className="grid max-h-[430px] grid-cols-1 gap-1 overflow-y-auto p-3 sm:grid-cols-2 lg:grid-cols-3">
                 {categoriesLoading ? <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div> : homepageCategories.map((category: any) => (
                   <label key={category.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50">
-                    <input type="checkbox" checked={!!category.isFeatured} onChange={() => toggleHomepageCategory(category)} disabled={updateCategory.isPending} className="h-4 w-4 rounded border-input text-primary focus:ring-primary" />
+                    <input type="checkbox" checked={!!category.isFeatured} onChange={() => toggleHomepageCategory(category)} disabled={updateCategory.isPending || (!category.isFeatured && selectedHomepageCategoryCount >= homepageCategoryLimit)} className="h-4 w-4 rounded border-input text-primary focus:ring-primary" />
                     <span className="min-w-0 flex-1 truncate text-sm font-medium">{category.name}</span>
                     <span className="text-[10px] text-muted-foreground">{category.productCount ?? 0}</span>
                   </label>

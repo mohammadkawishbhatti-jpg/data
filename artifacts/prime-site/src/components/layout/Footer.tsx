@@ -23,6 +23,7 @@ const COMPANY_COL = [
   { label: "Blog",              href: "/blog" },
   { label: "Contact Us",        href: "/contact" },
   { label: "Get a Quote",       href: "/get-a-quote" },
+  { label: "Product Catalogue", href: "/prime-packaging-product-catalogue.pdf", external: true },
   { label: "Request a Sample",  href: "/request-sample" },
   { label: "Returns & Claims",  href: "/returns-claims-support" },
   { label: "Delivery Policy",   href: "/delivery-policy" },
@@ -199,11 +200,19 @@ function _Footer() {
               <ul className="space-y-2">
                 {COMPANY_COL.map(item => (
                   <li key={item.href}>
-                    <Link href={item.href}
-                      className="text-white/55 hover:text-white text-sm transition-colors flex items-center gap-1.5 group py-px">
-                      <ArrowRight className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 text-[#e63329] transition-all shrink-0" />
-                      {item.label}
-                    </Link>
+                    {item.external ? (
+                      <a href={item.href} target="_blank" rel="noopener noreferrer"
+                        className="text-white/55 hover:text-white text-sm transition-colors flex items-center gap-1.5 group py-px">
+                        <ArrowRight className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 text-[#e63329] transition-all shrink-0" />
+                        {item.label}
+                      </a>
+                    ) : (
+                      <Link href={item.href}
+                        className="text-white/55 hover:text-white text-sm transition-colors flex items-center gap-1.5 group py-px">
+                        <ArrowRight className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 text-[#e63329] transition-all shrink-0" />
+                        {item.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

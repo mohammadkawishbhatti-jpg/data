@@ -131,7 +131,7 @@ export default function HomePage() {
     "@type": "Organization",
     name: "Prime Packaging Boxes",
     url: "https://www.primepackagingboxes.com",
-     logo: "https://www.primepackagingboxes.com/api/uploads/prime-packaging-logo.svg",
+     logo: "https://www.primepackagingboxes.com/api/uploads/prime-packaging-logo-transparent.svg",
     contactPoint: [
       { "@type": "ContactPoint", telephone: "+1-818-758-4076", contactType: "customer service", areaServed: "US", availableLanguage: "English" },
       { "@type": "ContactPoint", telephone: "+1-818-758-4076", contactType: "customer service", areaServed: "GB", availableLanguage: "English" },

@@ -138,6 +138,13 @@ export default function CategoriesPage() {
     c.name.toLowerCase().includes(search.toLowerCase()) || 
     c.slug.toLowerCase().includes(search.toLowerCase())
   );
+  const selectedHomepageCategoryCount = categories.filter((category: any) => category.isFeatured).length;
+  const toggleFeatured = (category: any) => {
+    updateCategory.mutate(
+      { id: category.id, data: { isFeatured: !category.isFeatured } as any },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListCategoriesQueryKey() }) },
+    );
+  };
 
   return (
     <AdminLayout title="Categories">
@@ -149,6 +156,9 @@ export default function CategoriesPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+        <span className={`shrink-0 rounded-full px-3 py-2 text-xs font-bold ${selectedHomepageCategoryCount >= 8 ? "bg-emerald-500/10 text-emerald-600" : "bg-primary/10 text-primary"}`}>
+          {Math.min(selectedHomepageCategoryCount, 8)} / 8 homepage slots
+        </span>
         <div className="flex gap-2 w-full sm:w-auto">
           <div className="relative flex-shrink-0">
             <button
@@ -223,9 +233,17 @@ export default function CategoriesPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {category.isFeatured
-                          ? <Check className="h-4 w-4 text-green-600 mx-auto" />
-                          : <X className="h-4 w-4 text-muted-foreground/30 mx-auto" />}
+                        <button
+                          type="button"
+                          onClick={() => toggleFeatured(category)}
+                          disabled={updateCategory.isPending || (!category.isFeatured && selectedHomepageCategoryCount >= 8)}
+                          title={category.isFeatured ? "Remove from homepage Shop by Category" : "Add to homepage Shop by Category"}
+                          className="rounded-md p-1 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {category.isFeatured
+                            ? <Check className="h-4 w-4 text-green-600 mx-auto" />
+                            : <X className="h-4 w-4 text-muted-foreground/30 mx-auto" />}
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-center">
                         {category.isActive ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <X className="h-4 w-4 text-muted-foreground/30 mx-auto" />}
