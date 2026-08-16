@@ -143,6 +143,7 @@ router.get("/admin/products", requireAdmin, async (req, res) => {
         imageUrl: productsTable.imageUrl,
         images: productsTable.images,
         isFeatured: productsTable.isFeatured,
+         isShowcase: productsTable.isShowcase,
         isActive: productsTable.isActive,
         minOrder: productsTable.minOrder,
         metaTitle: productsTable.metaTitle,
