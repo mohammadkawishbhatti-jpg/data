@@ -7,6 +7,7 @@ export interface SiteSettings {
   email: string;
   address: string;
   whatsapp: string;
+  announcementBar?: string;
 }
 
 const DEFAULTS: SiteSettings = {
@@ -14,6 +15,7 @@ const DEFAULTS: SiteSettings = {
   email: "help@primepackagingboxes.com",
   address: "444 Alaska Avenue Suite, Torrance, CA 90503, USA",
   whatsapp: "18187584076",
+  announcementBar: "",
 };
 
 const SettingsContext = createContext<SiteSettings>(DEFAULTS);
@@ -31,6 +33,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             email: data.email || DEFAULTS.email,
             address: data.address || DEFAULTS.address,
             whatsapp: data.whatsapp || DEFAULTS.whatsapp,
+            announcementBar: data.announcementBar || DEFAULTS.announcementBar,
           });
         }
       })

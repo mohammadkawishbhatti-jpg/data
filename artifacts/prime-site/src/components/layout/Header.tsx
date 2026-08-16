@@ -100,7 +100,7 @@ type ProductMenuLink = { label: string; slug: string; href?: string };
 type ProductMenuSection = { heading: string; items: ProductMenuLink[] };
 
 function _Header() {
-  const { phone, email } = useSettings();
+  const { phone, email, announcementBar } = useSettings();
   const { data: primaryMenu } = useGetMenu("primary");
   const telLink = `tel:${phone.replace(/\D/g, "")}`;
   const [location] = useLocation();
@@ -131,6 +131,18 @@ function _Header() {
     { heading: "Hot selling", items: productItemsFor("Hot selling", HOT_SELLING) },
     { heading: "By style / material", items: productItemsFor("By style / material", BOX_BY_STYLE) },
   ];
+  const configuredTicker = useMemo(() => {
+    try {
+      const parsed = JSON.parse(announcementBar || "");
+      if (Array.isArray(parsed)) {
+        const items = parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+        if (items.length > 0) return items.map(text => ({ Icon: Package, text }));
+      }
+    } catch {
+      // Legacy plain-text announcement values fall back to the full default ticker.
+    }
+    return TICKER;
+  }, [announcementBar]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -174,9 +186,9 @@ function _Header() {
     <header className="sticky top-0 z-50 font-sans">
       <div className="header-trust-rail bg-[#112b4b] text-white">
         <div className="mx-auto flex h-8 max-w-[1440px] items-center overflow-hidden px-4 sm:px-6 lg:px-8">
-          <div className="header-ticker flex min-w-max items-center">
-            {TICKER.slice(0, 6).map(({ Icon, text }) => (
-              <span key={text} className="inline-flex shrink-0 items-center gap-2 px-5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70 first:pl-0">
+          <div className="header-ticker-track flex min-w-max items-center">
+            {[...configuredTicker, ...configuredTicker].map(({ Icon, text }, index) => (
+              <span key={`${text}-${index}`} className="inline-flex shrink-0 items-center gap-2 px-5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70 first:pl-0">
                 <Icon className="h-3 w-3 shrink-0 text-[#f1b45a]" strokeWidth={1.8} />
                 {text}
               </span>
@@ -358,7 +370,9 @@ function _Header() {
       <style>{`
         @keyframes megaFadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes drawerIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
-        .header-ticker { overflow: hidden; }
+        .header-ticker-track { animation: headerTicker 34s linear infinite; }
+        @keyframes headerTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @media (prefers-reduced-motion: reduce) { .header-ticker-track { animation: none; } }
       `}</style>
     </header>
   );

@@ -3,13 +3,28 @@ import { AdminLayout } from "../components/layout/AdminLayout";
 import { 
   useGetAdminSettings, 
   useUpdateSettings, 
-  getGetAdminSettingsQueryKey
+  getGetAdminSettingsQueryKey,
+  useAdminListProducts,
+  useAdminListCategories,
+  useUpdateProduct,
+  useUpdateCategory,
+  getAdminListProductsQueryKey,
+  getAdminListCategoriesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Loader2, CheckCircle2, Mail, Eye, EyeOff, Map, Shield, Globe, Palette, Bot } from "lucide-react";
+import { Loader2, CheckCircle2, Mail, Eye, EyeOff, Map, Shield, Globe, Palette, Bot, LayoutGrid, Star, Trash2, Plus, Save } from "lucide-react";
 
-type Tab = "general" | "branding" | "contact" | "social" | "seo" | "smtp" | "sitemap" | "robots" | "clark";
+type Tab = "general" | "homepage" | "branding" | "contact" | "social" | "seo" | "smtp" | "sitemap" | "robots" | "clark";
+
+const DEFAULT_TICKER_ITEMS = [
+  "Free Shipping — USA & UK",
+  "7–10 Day Turnaround",
+  "Free Design Support",
+  "100 Unit Minimum",
+  "100% Quality Guarantee",
+  "FSC Certified Materials",
+];
 
 function LogoPreview({ register, fieldName }: { register: any; fieldName: string }) {
   const [url, setUrl] = useState("");
@@ -45,6 +60,10 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { data: settings, isLoading } = useGetAdminSettings();
   const updateSettings = useUpdateSettings();
+  const { data: homepageProducts = [], isLoading: productsLoading } = useAdminListProducts();
+  const { data: homepageCategories = [], isLoading: categoriesLoading } = useAdminListCategories();
+  const updateProduct = useUpdateProduct();
+  const updateCategory = useUpdateCategory();
   const [tab, setTab] = useState<Tab>("general");
   const [showSmtpPass, setShowSmtpPass] = useState(false);
   const [showSmtp2Pass, setShowSmtp2Pass] = useState(false);
@@ -53,6 +72,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [clarkFaqs, setClarkFaqs] = useState<Array<{ q: string; a: string }>>([]);
   const [newFaq, setNewFaq] = useState({ q: "", a: "" });
+  const [tickerItems, setTickerItems] = useState<string[]>(DEFAULT_TICKER_ITEMS);
 
   // Sitemap toggles
   const [sitemap, setSitemap] = useState({ homepage: true, products: true, categories: true, blog: true, pages: true });
@@ -114,6 +134,14 @@ export default function SettingsPage() {
         if (s.clarkCustomFaqs) setClarkFaqs(JSON.parse(s.clarkCustomFaqs));
       } catch {}
       try { if (s.sitemapSettings) setSitemap({ ...sitemap, ...JSON.parse(s.sitemapSettings) }); } catch {}
+      try {
+        const parsed = JSON.parse(s.announcementBar || "");
+        if (Array.isArray(parsed) && parsed.every((item: unknown) => typeof item === "string")) {
+          setTickerItems(parsed);
+        }
+      } catch {
+        // Keep the editable defaults for older plain-text announcement values.
+      }
       setRobotsTxt(s.robotsTxt || `User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /admin\nDisallow: /api/\nDisallow: /api\nDisallow: /customer-portal/\nDisallow: /customer-portal\n\nSitemap: https://www.primepackagingboxes.com/sitemap.xml`);
     }
   }, [settings, reset]);
@@ -126,7 +154,6 @@ export default function SettingsPage() {
       facebook: data.facebookUrl, instagram: data.instagramUrl,
       twitter: data.twitterUrl, linkedin: data.linkedinUrl,
       metaTitle: data.metaTitle, metaDescription: data.metaDescription,
-      announcementBar: data.announcementText,
       logoUrl: data.logoUrl, faviconUrl: data.faviconUrl,
       smtpHost: data.smtpHost, smtpPort: data.smtpPort,
       smtpUser: data.smtpUser, smtpPass: data.smtpPass,
@@ -160,10 +187,28 @@ export default function SettingsPage() {
 
   const saveSitemap = () => saveSettings({ sitemapSettings: JSON.stringify(sitemap) });
   const saveRobots = () => saveSettings({ robotsTxt });
+  const saveHomepageControls = () => saveSettings({
+    announcementBar: JSON.stringify(tickerItems.map(item => item.trim()).filter(Boolean)),
+  });
   const resetRobots = () => setRobotsTxt(`User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /admin\nDisallow: /api/\nDisallow: /api\nDisallow: /customer-portal/\nDisallow: /customer-portal\n\nSitemap: https://www.primepackagingboxes.com/sitemap.xml`);
+
+  const toggleHomepageProduct = (product: any, field: "isFeatured" | "isShowcase") => {
+    updateProduct.mutate(
+      { id: product.id, data: { [field]: !product[field] } as any },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListProductsQueryKey() }) },
+    );
+  };
+
+  const toggleHomepageCategory = (category: any) => {
+    updateCategory.mutate(
+      { id: category.id, data: { isFeatured: !category.isFeatured } as any },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListCategoriesQueryKey() }) },
+    );
+  };
 
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "general", label: "General", icon: Globe },
+    { id: "homepage", label: "Homepage Controls", icon: LayoutGrid },
     { id: "branding", label: "Branding", icon: Palette },
     { id: "contact", label: "Contact", icon: Mail },
     { id: "social", label: "Social", icon: Globe },
@@ -206,7 +251,9 @@ export default function SettingsPage() {
             <div className="p-6 space-y-4">
               <h3 className="text-base font-semibold">General Settings</h3>
               <div><label className={label}>Site Name</label><input {...register("siteName")} className={field} /></div>
-              <div><label className={label}>Announcement Bar Text</label><input {...register("announcementText")} placeholder="🎉 Free design support on all orders! Call 818-758-4076" className={field} /></div>
+              <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+                The scrolling header announcements and homepage product/category selections are managed together in <button type="button" onClick={() => setTab("homepage")} className="font-bold text-primary hover:underline">Homepage Controls</button>.
+              </div>
             </div>
             <div className="p-6 bg-muted/5 flex justify-end">
               <button type="submit" disabled={isSubmitting || updateSettings.isPending}
@@ -215,6 +262,91 @@ export default function SettingsPage() {
               </button>
             </div>
           </form>
+        )}
+
+        {/* Homepage Controls */}
+        {tab === "homepage" && (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="text-base font-semibold">Homepage Controls</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Manage the moving announcement rail and choose exactly which products and categories appear on the homepage.</p>
+                </div>
+                <button type="button" onClick={saveHomepageControls} disabled={updateSettings.isPending} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                  {updateSettings.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save Homepage Settings
+                </button>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold">Scrolling announcement bar</h4>
+                    <p className="text-xs text-muted-foreground">These items run in the blue rail above the main header.</p>
+                  </div>
+                  <button type="button" onClick={() => setTickerItems(items => [...items, "New announcement"])} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted"><Plus className="h-3.5 w-3.5" /> Add item</button>
+                </div>
+                <div className="space-y-2">
+                  {tickerItems.map((item, index) => (
+                    <div key={`${index}-${item}`} className="flex items-center gap-2">
+                      <span className="w-6 text-center text-xs font-bold text-muted-foreground">{index + 1}</span>
+                      <input value={item} onChange={e => setTickerItems(items => items.map((value, i) => i === index ? e.target.value : value))} className={field} />
+                      <button type="button" onClick={() => setTickerItems(items => items.filter((_, i) => i !== index))} className="rounded-md p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600" aria-label={`Remove announcement ${index + 1}`}><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-2">
+              <div className="rounded-xl border border-border bg-card shadow-sm">
+                <div className="border-b border-border p-5">
+                  <div className="flex items-center gap-2"><Star className="h-4 w-4 text-amber-500" /><h3 className="font-semibold">Most Popular / Best Selling</h3></div>
+                  <p className="mt-1 text-xs text-muted-foreground">Checked products appear in “Our Best-Selling Packaging”.</p>
+                </div>
+                <div className="max-h-[430px] space-y-1 overflow-y-auto p-3">
+                  {productsLoading ? <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div> : homepageProducts.map((product: any) => (
+                    <label key={product.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50">
+                      <input type="checkbox" checked={!!product.isFeatured} onChange={() => toggleHomepageProduct(product, "isFeatured")} disabled={updateProduct.isPending} className="h-4 w-4 rounded border-input text-primary focus:ring-primary" />
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{product.name}</span>
+                      {product.categoryName && <span className="hidden text-[10px] text-muted-foreground sm:inline">{product.categoryName}</span>}
+                    </label>
+                  )) }
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card shadow-sm">
+                <div className="border-b border-border p-5">
+                  <div className="flex items-center gap-2"><LayoutGrid className="h-4 w-4 text-primary" /><h3 className="font-semibold">Product Showcase</h3></div>
+                  <p className="mt-1 text-xs text-muted-foreground">Checked products appear in “Packaging for Every Product & Industry”.</p>
+                </div>
+                <div className="max-h-[430px] space-y-1 overflow-y-auto p-3">
+                  {productsLoading ? <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div> : homepageProducts.map((product: any) => (
+                    <label key={product.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50">
+                      <input type="checkbox" checked={!!product.isShowcase} onChange={() => toggleHomepageProduct(product, "isShowcase")} disabled={updateProduct.isPending} className="h-4 w-4 rounded border-input text-primary focus:ring-primary" />
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{product.name}</span>
+                      {product.categoryName && <span className="hidden text-[10px] text-muted-foreground sm:inline">{product.categoryName}</span>}
+                    </label>
+                  )) }
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border p-5">
+                <div className="flex items-center gap-2"><Globe className="h-4 w-4 text-primary" /><h3 className="font-semibold">Browse by Type / Shop by Category</h3></div>
+                <p className="mt-1 text-xs text-muted-foreground">Checked categories appear in the homepage category grid. Changes save instantly.</p>
+              </div>
+              <div className="grid max-h-[430px] grid-cols-1 gap-1 overflow-y-auto p-3 sm:grid-cols-2 lg:grid-cols-3">
+                {categoriesLoading ? <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div> : homepageCategories.map((category: any) => (
+                  <label key={category.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50">
+                    <input type="checkbox" checked={!!category.isFeatured} onChange={() => toggleHomepageCategory(category)} disabled={updateCategory.isPending} className="h-4 w-4 rounded border-input text-primary focus:ring-primary" />
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{category.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{category.productCount ?? 0}</span>
+                  </label>
+                )) }
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Branding */}
