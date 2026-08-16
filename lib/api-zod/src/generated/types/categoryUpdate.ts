@@ -13,6 +13,7 @@ export interface CategoryUpdate {
   description?: string | null;
   /** @nullable */
   imageUrl?: string | null;
+  isFeatured?: boolean;
   isActive?: boolean;
   sortOrder?: number;
   /** @nullable */

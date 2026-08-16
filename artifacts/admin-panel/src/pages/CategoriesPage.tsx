@@ -39,6 +39,8 @@ export default function CategoriesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [exporting, setExporting] = useState<string | null>(null);
+  const homepageCategoryLimit = 8;
+  const selectedHomepageCategoryCount = categories.filter((category: any) => category.isFeatured).length;
 
   const downloadExport = async (url: string, filename: string) => {
     setExporting(filename);
@@ -101,6 +103,11 @@ export default function CategoriesPage() {
   };
 
   const onSubmit = handleSubmit((data) => {
+    const currentCategory = editingId ? categories.find((category: any) => category.id === editingId) : null;
+    if (data.isFeatured && selectedHomepageCategoryCount >= homepageCategoryLimit && !currentCategory?.isFeatured) {
+      window.alert(`Only ${homepageCategoryLimit} categories can be featured on the homepage.`);
+      return;
+    }
     const payload = {
       ...data,
       sortOrder: Number(data.sortOrder),
@@ -138,11 +145,13 @@ export default function CategoriesPage() {
     c.name.toLowerCase().includes(search.toLowerCase()) || 
     c.slug.toLowerCase().includes(search.toLowerCase())
   );
-  const selectedHomepageCategoryCount = categories.filter((category: any) => category.isFeatured).length;
   const toggleFeatured = (category: any) => {
     updateCategory.mutate(
       { id: category.id, data: { isFeatured: !category.isFeatured } as any },
-      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListCategoriesQueryKey() }) },
+      {
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListCategoriesQueryKey() }),
+        onError: () => window.alert("Homepage feature update failed. Please try again."),
+      },
     );
   };
 
@@ -156,9 +165,10 @@ export default function CategoriesPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        <span className={`shrink-0 rounded-full px-3 py-2 text-xs font-bold ${selectedHomepageCategoryCount >= 8 ? "bg-emerald-500/10 text-emerald-600" : "bg-primary/10 text-primary"}`}>
-          {Math.min(selectedHomepageCategoryCount, 8)} / 8 homepage slots
-        </span>
+        <div className={`shrink-0 rounded-lg border px-3 py-2 text-xs ${selectedHomepageCategoryCount >= homepageCategoryLimit ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600" : "border-primary/20 bg-primary/10 text-primary"}`}>
+          <div className="font-bold">Homepage Feature</div>
+          <div>{Math.min(selectedHomepageCategoryCount, homepageCategoryLimit)} / {homepageCategoryLimit} Shop by Category slots</div>
+        </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <div className="relative flex-shrink-0">
             <button
@@ -200,7 +210,7 @@ export default function CategoriesPage() {
                 <th className="px-4 py-3 font-medium w-[60px]">Image</th>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium text-center">Products</th>
-                <th className="px-4 py-3 font-medium text-center">Featured</th>
+                <th className="px-4 py-3 font-medium text-center">Homepage Feature</th>
                 <th className="px-4 py-3 font-medium text-center">Active</th>
                 <th className="px-4 py-3 font-medium text-center">Sort</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
@@ -236,8 +246,10 @@ export default function CategoriesPage() {
                         <button
                           type="button"
                           onClick={() => toggleFeatured(category)}
-                          disabled={updateCategory.isPending || (!category.isFeatured && selectedHomepageCategoryCount >= 8)}
+                          disabled={updateCategory.isPending || (!category.isFeatured && selectedHomepageCategoryCount >= homepageCategoryLimit)}
                           title={category.isFeatured ? "Remove from homepage Shop by Category" : "Add to homepage Shop by Category"}
+                          aria-label={`${category.isFeatured ? "Remove" : "Add"} ${category.name} ${category.isFeatured ? "from" : "to"} homepage Shop by Category`}
+                          aria-pressed={category.isFeatured}
                           className="rounded-md p-1 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           {category.isFeatured
@@ -314,7 +326,7 @@ export default function CategoriesPage() {
             </label>
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
               <input type="checkbox" {...register("isFeatured")} className="rounded border-input text-primary focus:ring-primary h-4 w-4" />
-              Featured on homepage
+              Homepage Feature — Shop by Category
             </label>
           </div>
 

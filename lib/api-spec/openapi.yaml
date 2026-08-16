@@ -1342,6 +1342,8 @@ components:
           type: ["string", "null"]
         imageUrl:
           type: ["string", "null"]
+        isFeatured:
+          type: boolean
         isActive:
           type: boolean
         sortOrder:
@@ -1363,6 +1365,8 @@ components:
           type: ["string", "null"]
         imageUrl:
           type: ["string", "null"]
+        isFeatured:
+          type: boolean
         isActive:
           type: boolean
         sortOrder:

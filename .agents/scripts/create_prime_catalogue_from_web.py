@@ -91,17 +91,31 @@ def prepare_images():
         sources = image_files(key)
         for i, source in enumerate(sources):
             with Image.open(source) as raw:
-                base = ImageOps.fit(raw.convert('RGB'), (1000, 760), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
-            base = base.convert('RGBA')
-            stamp_logo = logo.copy()
-            stamp_logo.thumbnail((215, 66), Image.Resampling.LANCZOS)
-            pad = 12
-            badge = Image.new('RGBA', (stamp_logo.width + pad * 2, stamp_logo.height + pad * 2), (255, 255, 255, 224))
-            badge.alpha_composite(stamp_logo, (pad, pad))
-            # Brand the fresh web image without obscuring the packaging itself.
-            base.alpha_composite(badge, (base.width - badge.width - 24, base.height - badge.height - 24))
-            out = PREP / f'{key}-{i+1}.png'
-            base.convert('RGB').save(out, optimize=True)
+                raw = raw.convert('RGBA')
+                # Transparent web product renders must sit on a light canvas;
+                # converting RGBA straight to RGB turns transparency black.
+                canvas = Image.new('RGBA', raw.size, (248, 246, 240, 255))
+                canvas.alpha_composite(raw)
+            for orientation, size in (('landscape', (1000, 760)), ('portrait', (760, 1000))):
+                # Fill landscape cards with a proportional crop, but contain
+                # portrait heroes so the full packaging reference remains
+                # visible instead of being cut off or stretched.
+                if orientation == 'portrait':
+                    base = ImageOps.contain(canvas.convert('RGB'), size, method=Image.Resampling.LANCZOS)
+                    framed = Image.new('RGBA', size, (248, 246, 240, 255))
+                    framed.paste(base, ((size[0] - base.width) // 2, (size[1] - base.height) // 2))
+                else:
+                    base = ImageOps.fit(canvas.convert('RGB'), size, method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+                    framed = base.convert('RGBA')
+                stamp_logo = logo.copy()
+                stamp_logo.thumbnail((215, 66), Image.Resampling.LANCZOS)
+                pad = 12
+                badge = Image.new('RGBA', (stamp_logo.width + pad * 2, stamp_logo.height + pad * 2), (255, 255, 255, 224))
+                badge.alpha_composite(stamp_logo, (pad, pad))
+                # Brand the fresh web image without obscuring the packaging itself.
+                framed.alpha_composite(badge, (framed.width - badge.width - 24, framed.height - badge.height - 24))
+                out = PREP / f'{key}-{i+1}-{orientation}.jpg'
+                framed.convert('RGB').save(out, quality=88, optimize=True, progressive=True)
 
 
 def insert_photo(page, path, x, y, w, h, border=True):
@@ -110,8 +124,8 @@ def insert_photo(page, path, x, y, w, h, border=True):
     page.insert_image(fitz.Rect(x, y, x + w, y + h), filename=str(path), keep_proportion=False, overlay=True)
 
 
-def photo_path(key, index):
-    return PREP / f'{key}-{index}.png'
+def photo_path(key, index, orientation='landscape'):
+    return PREP / f'{key}-{index}-{orientation}.jpg'
 
 
 def footer(page, page_no=None):
@@ -157,11 +171,11 @@ def category_page(doc, number, title, key, description):
     page = doc.new_page(width=W, height=H)
     header(page, title, number)
     positions = [
-        (108, 116, 250, 190, 1), (397, 116, 250, 190, 2), (686, 116, 250, 190, 3),
-        (108, 385, 430, 196, 4), (572, 385, 430, 196, 1), (1034, 116, 300, 465, 2),
+        (108, 116, 250, 190, 1, 'landscape'), (397, 116, 250, 190, 2, 'landscape'), (686, 116, 250, 190, 3, 'landscape'),
+        (108, 385, 430, 196, 4, 'landscape'), (572, 385, 430, 196, 1, 'landscape'), (1034, 116, 300, 465, 2, 'portrait'),
     ]
-    for x, y, w, h, index in positions:
-        insert_photo(page, photo_path(key, index), x, y, w, h)
+    for x, y, w, h, index, orientation in positions:
+        insert_photo(page, photo_path(key, index, orientation), x, y, w, h)
     text(page, description.upper(), 112, 647, 14, NAVY, 'hebo', width=850, height=32)
     text(page, 'AVAILABLE IN CUSTOM SHAPES, SIZES & CARD THICKNESS  •  FULL COLOR CMYK / PMS', 112, 680, 12, MUTED, 'helv', width=880, height=20)
     footer(page, number)
