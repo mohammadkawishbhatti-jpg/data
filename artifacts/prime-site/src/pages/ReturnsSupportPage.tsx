@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useSEO } from "../lib/useSEO";
+import { useSubmitContact } from "@workspace/api-client-react";
 import {
   ShieldAlert, RefreshCcw, Camera, Mail, Phone, Clock,
   CheckCircle, XCircle, FileText, Send, Wrench, Search,
@@ -12,10 +13,28 @@ export default function ReturnsSupportPage() {
 
   const [form, setForm] = useState({ orderNumber: "", email: "", issue: "", details: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+  const submitContact = useSubmitContact();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setError("");
+    submitContact.mutate({
+      data: {
+        name: `Returns Claim — ${form.orderNumber}`,
+        email: form.email,
+        subject: `Returns Claim — ${form.issue} — ${form.orderNumber}`,
+        message: [
+          `Order Number: ${form.orderNumber}`,
+          `Issue Type: ${form.issue}`,
+          "",
+          form.details,
+        ].join("\n"),
+      },
+    }, {
+      onSuccess: () => setSubmitted(true),
+      onError: () => setError("We could not submit your claim. Please try again or email help@primepackagingboxes.com."),
+    });
   };
 
   return (
@@ -281,17 +300,19 @@ export default function ReturnsSupportPage() {
               ) : (
                 <form onSubmit={handleSubmit}>
                   <div className="space-y-5">
+                    {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
                     <div>
                       <label className="block text-sm font-bold text-[#0d1f3c] mb-2">Order Number *</label>
-                      <input required type="text" placeholder="e.g. PPB-12345" className="w-full p-3 rounded-xl border border-gray-300 focus:border-[#e63329] focus:ring-1 focus:ring-[#e63329] outline-none transition" />
+                      <input required type="text" name="orderNumber" value={form.orderNumber} onChange={e => setForm(f => ({ ...f, orderNumber: e.target.value }))} placeholder="e.g. PPB-12345" className="w-full p-3 rounded-xl border border-gray-300 focus:border-[#e63329] focus:ring-1 focus:ring-[#e63329] outline-none transition" />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-[#0d1f3c] mb-2">Email Address *</label>
-                      <input required type="email" className="w-full p-3 rounded-xl border border-gray-300 focus:border-[#e63329] focus:ring-1 focus:ring-[#e63329] outline-none transition" />
+                      <input required type="email" name="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="w-full p-3 rounded-xl border border-gray-300 focus:border-[#e63329] focus:ring-1 focus:ring-[#e63329] outline-none transition" />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-[#0d1f3c] mb-2">Issue Type *</label>
-                      <select required className="w-full p-3 rounded-xl border border-gray-300 focus:border-[#e63329] focus:ring-1 focus:ring-[#e63329] outline-none transition bg-white">
+                      <select required name="issue" value={form.issue} onChange={e => setForm(f => ({ ...f, issue: e.target.value }))} className="w-full p-3 rounded-xl border border-gray-300 focus:border-[#e63329] focus:ring-1 focus:ring-[#e63329] outline-none transition bg-white">
+                        <option value="">Select an issue</option>
                         <option>Print Defect</option>
                         <option>Structural Issue</option>
                         <option>Damage in Transit</option>
@@ -301,10 +322,10 @@ export default function ReturnsSupportPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-[#0d1f3c] mb-2">Details *</label>
-                      <textarea required rows={4} placeholder="Describe the issue and how many units are affected." className="w-full p-3 rounded-xl border border-gray-300 focus:border-[#e63329] focus:ring-1 focus:ring-[#e63329] outline-none transition resize-none"></textarea>
+                      <textarea required name="details" value={form.details} onChange={e => setForm(f => ({ ...f, details: e.target.value }))} rows={4} placeholder="Describe the issue and how many units are affected." className="w-full p-3 rounded-xl border border-gray-300 focus:border-[#e63329] focus:ring-1 focus:ring-[#e63329] outline-none transition resize-none"></textarea>
                     </div>
-                    <button type="submit" className="w-full bg-[#1a2f5a] hover:bg-[#0d1f3c] text-white font-black text-lg py-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                      <Send className="w-5 h-5" /> Submit Claim
+                    <button type="submit" disabled={submitContact.isPending} className="w-full bg-[#1a2f5a] hover:bg-[#0d1f3c] text-white font-black text-lg py-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+                      {submitContact.isPending ? "Submitting…" : <><Send className="w-5 h-5" /> Submit Claim</>}
                     </button>
                     <p className="text-xs text-center text-gray-500 mt-2">
                       <AlertTriangle className="w-3 h-3 inline mr-1" />

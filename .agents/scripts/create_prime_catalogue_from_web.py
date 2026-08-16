@@ -9,7 +9,7 @@ RED = (0.78, 0.05, 0.10)
 INK = (0.055, 0.07, 0.20)
 MUTED = (0.25, 0.26, 0.35)
 WHITE = (1, 1, 1)
-ROOT = Path('attached_assets/prime-catalogue-web-images')
+ROOT = Path('attached_assets/prime-catalogue-clean-images')
 LOGO_SVG = Path('artifacts/api-server/uploads/prime-packaging-logo-transparent.svg')
 LOGO_PNG = Path('.agents/outputs/prime-logo-overlay.png')
 PREP = Path('.agents/outputs/prime-catalogue-prepared')
@@ -67,16 +67,13 @@ def make_logo_png():
 
 def image_files(key):
     files = []
-    for n in range(1, 5):
-        matches = list(ROOT.glob(f'{key}-{n}.*'))
-        for p in matches:
-            try:
-                with Image.open(p) as im:
-                    im.verify()
-                files.append(p)
-                break
-            except Exception:
-                continue
+    for p in sorted(ROOT.glob(f'{key}-*.*')):
+        try:
+            with Image.open(p) as im:
+                im.verify()
+            files.append(p)
+        except Exception:
+            continue
     if not files:
         raise RuntimeError(f'No valid web images for {key}')
     while len(files) < 4:
@@ -86,7 +83,6 @@ def image_files(key):
 
 def prepare_images():
     PREP.mkdir(parents=True, exist_ok=True)
-    logo = Image.open(LOGO_PNG).convert('RGBA')
     for title, key, _ in CATEGORIES:
         sources = image_files(key)
         for i, source in enumerate(sources):
@@ -107,13 +103,6 @@ def prepare_images():
                 else:
                     base = ImageOps.fit(canvas.convert('RGB'), size, method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
                     framed = base.convert('RGBA')
-                stamp_logo = logo.copy()
-                stamp_logo.thumbnail((215, 66), Image.Resampling.LANCZOS)
-                pad = 12
-                badge = Image.new('RGBA', (stamp_logo.width + pad * 2, stamp_logo.height + pad * 2), (255, 255, 255, 224))
-                badge.alpha_composite(stamp_logo, (pad, pad))
-                # Brand the fresh web image without obscuring the packaging itself.
-                framed.alpha_composite(badge, (framed.width - badge.width - 24, framed.height - badge.height - 24))
                 out = PREP / f'{key}-{i+1}-{orientation}.jpg'
                 framed.convert('RGB').save(out, quality=88, optimize=True, progressive=True)
 

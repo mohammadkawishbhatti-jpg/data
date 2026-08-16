@@ -47,6 +47,7 @@ export default function QuotePage() {
 
   const submitQuote = useSubmitQuote();
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [prefilledProduct, setPrefilledProduct] = useState("");
 
   useEffect(() => {
@@ -57,6 +58,7 @@ export default function QuotePage() {
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<QuoteFormValues>();
 
   const onSubmit = (data: QuoteFormValues) => {
+    setSubmitError("");
     submitQuote.mutate({
       data: {
         name: `${data.firstName} ${data.lastName}`,
@@ -75,7 +77,8 @@ export default function QuotePage() {
       onSuccess: () => {
         setIsSuccess(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+      },
+      onError: () => setSubmitError("We could not submit your quote request. Please try again or contact us directly."),
     });
   };
 
@@ -246,6 +249,7 @@ export default function QuotePage() {
                   </label>
                 </div>
                 {errors.agree && <p className="text-red-500 text-xs -mt-3">You must agree to continue.</p>}
+                {submitError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{submitError}</p>}
 
                 <button
                   type="submit"

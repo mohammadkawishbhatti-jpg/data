@@ -195,6 +195,7 @@ export default function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [activeTab, setActiveTab] = useState<"desc" | "reviews">("desc");
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [zoomOpen, setZoomOpen] = useState(false);
 
   const { data: product, isLoading, isError } = useGetProduct(slug, {
@@ -237,6 +238,7 @@ export default function ProductDetailPage() {
   };
 
   const onSubmit = (data: OrderForm) => {
+    setSubmitError("");
     const notes = [
       `Box Style: ${data.style}`,
       `Dimensions (${data.unit}): L ${data.length || "?"} × W ${data.width || "?"} × H ${data.height || "?"}`,
@@ -257,7 +259,10 @@ export default function ProductDetailPage() {
         quantity: data.quantity || "100",
         additionalNotes: notes,
       },
-    }, { onSuccess: () => { setSubmitted(true); setTimeout(() => setSubmitted(false), 7000); } });
+    }, {
+      onSuccess: () => { setSubmitted(true); setTimeout(() => setSubmitted(false), 7000); },
+      onError: () => setSubmitError("We could not submit your quote request. Please try again."),
+    });
   };
 
   // Loading
@@ -663,6 +668,7 @@ export default function ProductDetailPage() {
                           ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Sending...</>
                           : <><span>Get My Free Quote</span><span className="text-lg leading-none">→</span></>}
                       </button>
+                       {submitError && <p role="alert" className="text-center text-xs text-red-600">{submitError}</p>}
 
                       <p className="text-center text-[11px] text-gray-400">
                         🔒 Your info is secure · No spam · Reply in &lt; 2 hours
