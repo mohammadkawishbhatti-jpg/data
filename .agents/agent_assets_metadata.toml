@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Dicq0pUCm3TGXmX8FDAC5"
+uri = "file://artifacts/prime-site/public/prime-packaging-product-catalogue.pdf"
+type = "pdf"
+title = "Prime Packaging Boxes Product Catalogue"
+description = "15-page branded product catalogue with transparent Prime logo, current packaging imagery, specifications, ordering process, and USA/UK contact details."
