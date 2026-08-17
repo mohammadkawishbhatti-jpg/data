@@ -696,11 +696,86 @@ router.post("/chat", async (req, res) => {
 
     let success = false;
 
-    // 1. Primary Attempt: Groq AI
-    if (groqKey) {
+    let responseContentWritten = false;
+    const writeChunk = (content: string) => {
+      if (content) {
+        responseContentWritten = true;
+        res.write(`data: ${JSON.stringify({ content })}\n\n`);
+      }
+    };
+    const withProviderTimeout = async <T>(operation: Promise<T>, provider: string): Promise<T> => {
+      let timeoutId: NodeJS.Timeout | undefined;
+      try {
+        return await Promise.race([
+          operation,
+          new Promise<T>((_, reject) => {
+            timeoutId = setTimeout(() => reject(new Error(`${provider} request timed out`)), 25_000);
+          }),
+        ]);
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
+    };
+    const consumeProviderStream = async <T>(
+      stream: AsyncIterable<T>,
+      onChunk: (chunk: T) => void,
+      provider: string,
+    ) => {
+      const iterator = stream[Symbol.asyncIterator]();
+      const deadline = Date.now() + 25_000;
+      try {
+        while (true) {
+          const remaining = deadline - Date.now();
+          if (remaining <= 0) throw new Error(`${provider} stream timed out`);
+          const next = await Promise.race([
+            iterator.next(),
+            new Promise<IteratorResult<T>>((_, reject) => {
+              setTimeout(() => reject(new Error(`${provider} stream timed out`)), remaining);
+            }),
+          ]);
+          if (next.done) break;
+          onChunk(next.value);
+        }
+      } finally {
+        await iterator.return?.().catch(() => {});
+      }
+    };
+
+    // 1. Primary Attempt: Gemini AI. Groq is deliberately second so a
+    // configured Gemini account is always preferred for normal requests.
+    if (geminiKey) {
+      try {
+        const genAI = new GoogleGenerativeAI(geminiKey);
+        const fullSystemPrompt = systemPrompt + orderContext;
+        const model = genAI.getGenerativeModel({
+          model: "gemini-1.5-flash",
+          systemInstruction: fullSystemPrompt,
+        });
+
+        const history = messages.slice(0, -1).map(m => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        }));
+        const lastUserMsg = messages[messages.length - 1]?.content || "Hello";
+        const chat = model.startChat({ history });
+        const result = await withProviderTimeout(chat.sendMessageStream(lastUserMsg), "Gemini");
+
+        await consumeProviderStream(result.stream, chunk => writeChunk(chunk.text()), "Gemini");
+        success = true;
+        req.log.info({ provider: "gemini" }, "Clark AI response completed");
+      } catch (geminiErr: any) {
+        req.log.warn(
+          { provider: "gemini", error: String(geminiErr?.message || geminiErr) },
+          "Clark Gemini failed, attempting Groq fallback",
+        );
+      }
+    }
+
+    // 2. Fallback Attempt: Groq AI. This also handles a missing Gemini key.
+    if (!success && !responseContentWritten && groqKey) {
       try {
         const groq = new Groq({ apiKey: groqKey });
-        const stream = await groq.chat.completions.create({
+        const stream = await withProviderTimeout(groq.chat.completions.create({
           model: "llama-3.3-70b-versatile",
           messages: [
             { role: "system", content: systemPrompt + orderContext },
@@ -708,46 +783,23 @@ router.post("/chat", async (req, res) => {
           ],
           stream: true,
           max_tokens: 1024,
-        });
+        }), "Groq");
 
-        for await (const chunk of stream) {
-          const text = chunk.choices[0]?.delta?.content || "";
-          if (text) {
-            res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
-          }
-        }
+        await consumeProviderStream(stream, chunk => writeChunk(chunk.choices[0]?.delta?.content || ""), "Groq");
         success = true;
+        req.log.info({ provider: "groq" }, "Clark AI fallback response completed");
       } catch (groqErr: any) {
-        req.log.warn({ clarkGroqErr: String(groqErr?.message || groqErr) }, "Groq AI failed, attempting Gemini fallback...");
+        req.log.error(
+          { provider: "groq", error: String(groqErr?.message || groqErr) },
+          "Clark Groq fallback failed",
+        );
       }
     }
 
-    // 2. Fallback Attempt: Google Gemini AI
-    if (!success && geminiKey) {
-      try {
-        const genAI = new GoogleGenerativeAI(geminiKey);
-        const fullSystemPrompt = systemPrompt + orderContext;
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: fullSystemPrompt });
-
-        const history = messages.slice(0, -1).map(m => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }]
-        }));
-        const lastUserMsg = messages[messages.length - 1]?.content || "Hello";
-
-        const chat = model.startChat({ history });
-        const result = await chat.sendMessageStream(lastUserMsg);
-
-        for await (const chunk of result.stream) {
-          const text = chunk.text();
-          if (text) {
-            res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
-          }
-        }
-        success = true;
-      } catch (geminiErr: any) {
-        req.log.error({ clarkGeminiErr: String(geminiErr?.message || geminiErr) }, "Gemini AI fallback failed");
-      }
+    if (!success && responseContentWritten) {
+      res.write(`data: ${JSON.stringify({ done: true, interrupted: true })}\n\n`);
+      res.end();
+      return;
     }
 
     if (!success) {
