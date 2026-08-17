@@ -10,7 +10,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit, Trash2, ExternalLink, Layout as LayoutIcon } from "lucide-react";
 import { Modal } from "../components/ui/Modal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { useForm } from "react-hook-form";
+import { RichTextEditor } from "../components/ui/RichTextEditor";
+import { Controller, useForm } from "react-hook-form";
 import { format } from "date-fns";
 
 const slugify = (text: string) => text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-');
@@ -52,7 +53,7 @@ export default function PagesPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const { register, handleSubmit, reset, setValue, watch, control, formState: { errors, isSubmitting } } = useForm({
-    defaultValues: { title: "", slug: "", isPublished: true, metaTitle: "", metaDescription: "" }
+    defaultValues: { title: "", slug: "", content: "", publishMode: "published", scheduledAt: "", isPublished: true, metaTitle: "", metaDescription: "" }
   });
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,7 +63,7 @@ export default function PagesPage() {
 
   const openAddModal = () => {
     setEditingId(null);
-    reset({ title: "", slug: "", isPublished: true, metaTitle: "", metaDescription: "" });
+    reset({ title: "", slug: "", content: "", publishMode: "published", scheduledAt: "", isPublished: true, metaTitle: "", metaDescription: "" });
     setModalOpen(true);
   };
 
@@ -71,6 +72,9 @@ export default function PagesPage() {
     reset({
       title: page.title || "",
       slug: page.slug || "",
+      content: page.content || "",
+      publishMode: page.scheduledAt ? "scheduled" : page.isPublished !== false ? "published" : "draft",
+      scheduledAt: page.scheduledAt ? new Date(page.scheduledAt).toISOString().slice(0, 16) : "",
       isPublished: page.isPublished !== false,
       metaTitle: page.metaTitle || "",
       metaDescription: page.metaDescription || "",
@@ -79,15 +83,21 @@ export default function PagesPage() {
   };
 
   const onSubmit = handleSubmit((data) => {
+    const payload = {
+      ...data,
+      isPublished: data.publishMode === "published",
+      scheduledAt: data.publishMode === "scheduled" && data.scheduledAt ? new Date(data.scheduledAt).toISOString() : null,
+    };
+    delete (payload as any).publishMode;
     if (editingId) {
-      updatePage.mutate({ id: editingId, data }, {
+      updatePage.mutate({ id: editingId, data: payload as any }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getAdminListPagesQueryKey() });
           setModalOpen(false);
         }
       });
     } else {
-      createPage.mutate({ data }, {
+      createPage.mutate({ data: payload as any }, {
         onSuccess: (newPage: any) => {
           queryClient.invalidateQueries({ queryKey: getAdminListPagesQueryKey() });
           setModalOpen(false);
@@ -156,7 +166,9 @@ export default function PagesPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {page.isPublished
+                     {page.scheduledAt
+                       ? <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800">Scheduled</span>
+                       : page.isPublished
                       ? <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800">Published</span>
                       : <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800">Draft</span>}
                   </td>
@@ -198,7 +210,7 @@ export default function PagesPage() {
       </div>
 
       {/* Page settings modal (title, slug, SEO, publish) */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Page Settings" : "New Page"} wide>
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Edit Page" : "New Page"} wide>
         <form onSubmit={onSubmit} className="space-y-5 pt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -216,6 +228,25 @@ export default function PagesPage() {
                 className="w-full h-9 rounded-md border border-input px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none font-mono"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <label className="text-sm font-medium">Page content</label>
+              <span className="text-xs text-muted-foreground">Use headings, lists, links, and formatting without writing HTML.</span>
+            </div>
+            <Controller
+              name="content"
+              control={control}
+              render={({ field }) => (
+                <RichTextEditor
+                  value={field.value || ""}
+                  onChange={field.onChange}
+                  minHeight="280px"
+                  placeholder="Write the content for this page..."
+                />
+              )}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -237,14 +268,22 @@ export default function PagesPage() {
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-            <input
-              type="checkbox"
-              {...register("isPublished")}
-              className="rounded border-input text-primary focus:ring-primary h-4 w-4"
-            />
-            Published
-          </label>
+           <div className="space-y-2">
+             <label className="text-sm font-medium">Publishing status</label>
+             <select {...register("publishMode")} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none">
+               <option value="draft">Draft</option>
+               <option value="published">Published</option>
+               <option value="scheduled">Scheduled</option>
+             </select>
+             {watch("publishMode") === "scheduled" && (
+               <div className="space-y-1">
+                 <label className="text-xs text-muted-foreground">Publish at</label>
+                 <input type="datetime-local" {...register("scheduledAt", { required: true })}
+                   className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none" />
+                 <p className="text-xs text-muted-foreground">The server will publish this page automatically when due.</p>
+               </div>
+             )}
+           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">
             <button type="button" onClick={() => setModalOpen(false)}

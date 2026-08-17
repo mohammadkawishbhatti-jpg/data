@@ -42,8 +42,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 text-sm font-semibold text-muted-foreground shadow-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          Loading your workspace…
+        </div>
       </div>
     );
   }

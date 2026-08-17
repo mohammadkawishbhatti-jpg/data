@@ -311,6 +311,81 @@
   --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0);
 }
 
+/* PRIME MIDNIGHT — a premium ink + emerald workspace mode */
+[data-admin-theme="midnight"] {
+  --background: 190 38% 7%;
+  --foreground: 180 24% 94%;
+  --border: 190 22% 18%;
+  --card: 190 31% 10%;
+  --card-foreground: 180 24% 94%;
+  --card-border: 190 22% 20%;
+  --sidebar: 190 48% 9%;
+  --sidebar-foreground: 180 24% 94%;
+  --sidebar-border: 190 30% 16%;
+  --sidebar-primary: 163 76% 45%;
+  --sidebar-primary-foreground: 190 48% 7%;
+  --sidebar-accent: 190 38% 15%;
+  --sidebar-accent-foreground: 180 24% 94%;
+  --sidebar-ring: 163 76% 45%;
+  --popover: 190 31% 12%;
+  --popover-foreground: 180 24% 94%;
+  --popover-border: 190 22% 22%;
+  --primary: 163 76% 45%;
+  --primary-foreground: 190 48% 7%;
+  --secondary: 190 24% 17%;
+  --secondary-foreground: 180 24% 94%;
+  --muted: 190 24% 15%;
+  --muted-foreground: 190 15% 66%;
+  --accent: 190 24% 17%;
+  --accent-foreground: 180 24% 94%;
+  --input: 190 22% 22%;
+  --ring: 163 76% 45%;
+  --chart-1: 163 76% 45%;
+  --chart-2: 190 70% 42%;
+  --chart-3: 42 92% 62%;
+  --chart-4: 180 24% 70%;
+  --chart-5: 0 76% 63%;
+  --primary-border: hsl(163 76% 45% / 0.8);
+  --sidebar-primary-border: hsl(163 76% 45% / 0.8);
+}
+
+/* A few legacy admin screens still use bg-white directly. Keep them theme-safe. */
+.dark .bg-white,
+[data-admin-theme="midnight"] .bg-white {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Editors and customer-facing documents are deliberately light surfaces, even
+   when the surrounding admin workspace is in dark or midnight mode. */
+.dark .rich-text-editor,
+[data-admin-theme="midnight"] .rich-text-editor,
+.dark .document-preview,
+[data-admin-theme="midnight"] .document-preview {
+  background-color: #ffffff !important;
+  color: #172033 !important;
+  color-scheme: light;
+}
+
+.dark .rich-text-editor .bg-white,
+[data-admin-theme="midnight"] .rich-text-editor .bg-white,
+.dark .document-preview .bg-white,
+[data-admin-theme="midnight"] .document-preview .bg-white {
+  background-color: #ffffff !important;
+}
+
+.dark .border-gray-100,
+.dark .border-gray-200,
+[data-admin-theme="midnight"] .border-gray-100,
+[data-admin-theme="midnight"] .border-gray-200 {
+  border-color: hsl(var(--border)) !important;
+}
+
+[data-admin-theme="midnight"] body {
+  background-image:
+    radial-gradient(circle at 85% -10%, hsl(163 76% 45% / 0.12), transparent 30rem),
+    radial-gradient(circle at 15% 100%, hsl(190 70% 42% / 0.08), transparent 26rem);
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AdminLayout } from "../components/layout/AdminLayout";
 import {
   Shield, ShieldCheck, ShieldOff, Key, Loader2, CheckCircle2,
-  AlertCircle, Eye, EyeOff, Smartphone, Lock,
+  AlertCircle, Eye, EyeOff, Smartphone, Lock, Ban, Plus, Trash2,
 } from "lucide-react";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace("/admin", "") + "/api";
@@ -21,6 +21,7 @@ async function apiFetch(path: string, opts: RequestInit = {}) {
 // ── 2FA Section ───────────────────────────────────────────────────────────────
 function TwoFactorSection() {
   const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [statusError, setStatusError] = useState("");
   const [step, setStep] = useState<"idle" | "setup" | "confirm" | "disable">("idle");
   const [qrUrl, setQrUrl] = useState("");
   const [secret, setSecret] = useState("");
@@ -28,9 +29,18 @@ function TwoFactorSection() {
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    apiFetch("/admin/security/2fa/status").then(d => setEnabled(d.enabled)).catch(() => setEnabled(false));
-  }, []);
+  const loadStatus = async () => {
+    setStatusError("");
+    setEnabled(null);
+    try {
+      const data = await apiFetch("/admin/security/2fa/status");
+      setEnabled(Boolean(data.enabled));
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : "Unable to load 2FA status.");
+    }
+  };
+
+  useEffect(() => { void loadStatus(); }, []);
 
   const startSetup = async () => {
     setLoading(true); setMsg(null);
@@ -94,8 +104,21 @@ function TwoFactorSection() {
         </div>
       )}
 
+      {statusError && (
+        <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          <span>{statusError}</span>
+          <button type="button" onClick={() => void loadStatus()} className="font-semibold underline">Retry</button>
+        </div>
+      )}
+
+      {enabled === null && !statusError && (
+        <div className="flex items-center gap-2 rounded-lg border border-dashed border-gray-200 p-4 text-sm text-gray-500">
+          <Loader2 className="h-4 w-4 animate-spin" /> Checking your 2FA status…
+        </div>
+      )}
+
       {/* IDLE — show action buttons */}
-      {step === "idle" && !enabled && (
+      {enabled !== null && step === "idle" && !enabled && (
         <div>
           <p className="text-sm text-gray-500 mb-4">
             2FA adds an extra layer of security. After enabling, you'll need your phone's authenticator app every time you log in.
@@ -108,7 +131,7 @@ function TwoFactorSection() {
         </div>
       )}
 
-      {step === "idle" && enabled && (
+      {enabled !== null && step === "idle" && enabled && (
         <div>
           <p className="text-sm text-gray-500 mb-4">2FA is active. To disable, enter your current authenticator code below.</p>
           <div className="flex gap-3 items-end">
@@ -250,9 +273,9 @@ function PasswordSection() {
 // ── Security Tips ─────────────────────────────────────────────────────────────
 function SecurityTips() {
   const tips = [
-    { ok: true,  text: "Login rate limiting active — 10 attempts per 15 min max" },
-    { ok: true,  text: "Session auto-logout after 30 min of inactivity" },
-    { ok: true,  text: "Passwords stored as SHA-256 hashed — never plain text" },
+    { ok: true,  text: "5 failed passwords trigger a security check; 5 more after it blacklist the IP" },
+    { ok: true,  text: "Admin sessions use an 8-hour rolling lifetime" },
+    { ok: true,  text: "Passwords use scrypt with per-password salts" },
     { ok: true,  text: "Admin panel secured — /admin routes blocked from Google" },
     { ok: false, text: "Change default password (admin123) — do this now!" },
     { ok: false, text: "Enable 2FA above for maximum account security" },
@@ -282,13 +305,77 @@ function SecurityTips() {
   );
 }
 
+function IpRulesSection() {
+  const [rules, setRules] = useState<any[]>([]);
+  const [ipAddress, setIpAddress] = useState("");
+  const [ruleType, setRuleType] = useState<"blacklist" | "whitelist">("blacklist");
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    try { setRules(await apiFetch("/admin/security/ip-rules")); }
+    catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { void load(); }, []);
+
+  const addRule = async () => {
+    if (!ipAddress.trim()) return;
+    setSaving(true); setError("");
+    try {
+      await apiFetch("/admin/security/ip-rules", {
+        method: "POST",
+        body: JSON.stringify({ ipAddress: ipAddress.trim(), ruleType, reason: reason.trim() }),
+      });
+      setIpAddress(""); setReason(""); await load();
+    } catch (e: any) { setError(e.message); }
+    finally { setSaving(false); }
+  };
+
+  const removeRule = async (id: number) => {
+    try { await apiFetch(`/admin/security/ip-rules/${id}`, { method: "DELETE" }); await load(); }
+    catch (e: any) { setError(e.message); }
+  };
+
+  return (
+    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="p-2.5 bg-red-50 rounded-xl"><Ban className="h-5 w-5 text-red-600" /></div>
+        <div><h2 className="font-bold text-gray-900">IP Blacklist &amp; Whitelist</h2><p className="text-sm text-gray-400">Automatic lockouts and manual network rules</p></div>
+      </div>
+      <p className="text-sm text-gray-600 mb-4">After 5 failed passwords, the login screen asks for a security check. Five additional wrong passwords after that permanently blacklist the IP until you remove it here.</p>
+      {error && <div role="alert" className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      <div className="grid gap-3 md:grid-cols-[1fr_150px_1fr_auto]">
+        <input value={ipAddress} onChange={e => setIpAddress(e.target.value)} placeholder="203.0.113.10" aria-label="IP address" className="rounded-lg border px-3 py-2 text-sm" />
+        <select value={ruleType} onChange={e => setRuleType(e.target.value as any)} aria-label="IP rule type" className="rounded-lg border px-3 py-2 text-sm">
+          <option value="blacklist">Blacklist</option><option value="whitelist">Whitelist</option>
+        </select>
+        <input value={reason} onChange={e => setReason(e.target.value)} placeholder="Reason (optional)" aria-label="Rule reason" className="rounded-lg border px-3 py-2 text-sm" />
+        <button onClick={() => void addRule()} disabled={saving || !ipAddress.trim()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"><Plus className="h-4 w-4" /> Add</button>
+      </div>
+      <div className="mt-5 divide-y rounded-lg border">
+        {loading ? <p className="p-4 text-sm text-muted-foreground">Loading rules…</p> : rules.length === 0 ? <p className="p-4 text-sm text-muted-foreground">No manual or automatic IP rules.</p> : rules.map(rule => (
+          <div key={rule.id} className="flex items-center justify-between gap-3 p-3 text-sm">
+            <div><span className="font-mono font-semibold">{rule.ipAddress}</span><span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${rule.ruleType === "blacklist" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>{rule.ruleType}</span><p className="text-xs text-muted-foreground">{rule.reason || "No reason provided"}</p></div>
+            <button onClick={() => void removeRule(rule.id)} aria-label={`Remove ${rule.ipAddress} rule`} className="rounded-md p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SecurityPage() {
   return (
     <AdminLayout title="Security">
-      <div className="space-y-6 max-w-2xl">
+      <div className="space-y-6 max-w-5xl">
         <SecurityTips />
         <TwoFactorSection />
         <PasswordSection />
+        <IpRulesSection />
       </div>
     </AdminLayout>
   );

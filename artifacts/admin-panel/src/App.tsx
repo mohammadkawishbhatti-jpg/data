@@ -43,9 +43,10 @@ const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 
 function WorkspaceLoading() {
   return (
-    <div className="flex min-h-[45vh] items-center justify-center">
-      <div className="rounded-2xl border border-border bg-card px-5 py-4 text-sm font-semibold text-muted-foreground shadow-sm">
-        Loading workspace…
+    <div className="flex min-h-[45vh] items-center justify-center px-4">
+      <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 text-sm font-semibold text-muted-foreground shadow-sm">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary/25 border-t-primary" aria-hidden="true" />
+        <span>Loading workspace…</span>
       </div>
     </div>
   );
@@ -65,11 +66,22 @@ function AccessDenied({ capability }: { capability: string }) {
 
 function CapabilityGuard({ capability, children }: { capability: string; children: React.ReactNode }) {
   const [, setLocation] = useLocation();
-  const { data, isLoading } = useGetAdminMe({ query: { retry: false, staleTime: 30_000, throwOnError: false } as any });
+  const { data, isLoading, error, refetch } = useGetAdminMe({ query: { retry: false, staleTime: 30_000, throwOnError: false } as any });
   useEffect(() => {
     if (!isLoading && !data) setLocation("/login");
   }, [data, isLoading, setLocation]);
-  if (isLoading) return <div className="flex min-h-screen items-center justify-center">Loading workspace…</div>;
+  if (isLoading) return <WorkspaceLoading />;
+  if (error && !data) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-sm">
+          <h2 className="font-bold">Workspace unavailable</h2>
+          <p className="mt-2 text-sm text-muted-foreground">We couldn’t verify your access. Check your connection and try again.</p>
+          <button type="button" onClick={() => void refetch()} className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Try again</button>
+        </div>
+      </div>
+    );
+  }
   const admin = data as any;
   if (!admin) return null;
   if (admin.capabilities?.includes("*") || admin.capabilities?.includes(capability)) return <>{children}</>;

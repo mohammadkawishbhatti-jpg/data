@@ -267,7 +267,7 @@ export default function InvoiceBuilderPage() {
         </aside>
 
         <main className="flex-1 overflow-y-auto bg-gray-300 p-8 print:bg-white print:p-0">
-          <div className="mx-auto max-w-[794px] overflow-hidden bg-white shadow-2xl print:shadow-none" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+          <div className="document-preview mx-auto max-w-[794px] overflow-hidden bg-white text-gray-900 shadow-2xl print:shadow-none" style={{ fontFamily: "Arial, Helvetica, sans-serif", backgroundColor: "#ffffff", color: "#111827", colorScheme: "light" }}>
             <div className="flex border-b-4" style={{ borderColor: NAVY }}>
               <div className="flex flex-1 items-center border-r px-7 py-5"><img src={LOGO_URL} alt="Prime Packaging Boxes" className="h-12 max-w-[220px] object-contain object-left" /></div>
               <div className="flex min-w-[240px] flex-col items-end justify-center px-8 py-5" style={{ background: NAVY }}><div className="text-[30px] font-black tracking-[0.25em] text-white">INVOICE</div><div className="my-2 h-0.5 w-10 bg-[#ffb800]" /><div className="text-[8px] uppercase tracking-[0.3em] text-white/60">Custom Packaging Services</div></div>
