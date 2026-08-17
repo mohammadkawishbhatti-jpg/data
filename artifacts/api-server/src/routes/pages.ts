@@ -8,7 +8,12 @@ import {
   UpdatePageBody,
   UpdatePageParams,
 } from "@workspace/api-zod";
-import { requireAdmin } from "../middlewares/auth";
+import { requireAdministrator, requireCapability } from "../middlewares/auth";
+import {
+  createContentRevision,
+  revisionPayloadFromPage,
+} from "../lib/content-revisions";
+import { sanitizeInlineDocument } from "../lib/inline-content";
 
 const router = Router();
 
@@ -28,7 +33,7 @@ router.get("/pages/:slug", async (req, res) => {
 });
 
 // Admin: GET /admin/pages
-router.get("/admin/pages", requireAdmin, async (req, res) => {
+router.get("/admin/pages", requireCapability("content"), async (req, res) => {
   try {
     const rows = await db.select().from(pagesTable).orderBy(pagesTable.title);
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
@@ -40,11 +45,31 @@ router.get("/admin/pages", requireAdmin, async (req, res) => {
 });
 
 // Admin: POST /admin/pages
-router.post("/admin/pages", requireAdmin, async (req, res) => {
+router.post("/admin/pages", requireCapability("content"), async (req, res) => {
   try {
     const data = CreatePageBody.parse(req.body);
-    const [row] = await db.insert(pagesTable).values(data as any).returning();
-    res.status(201).json(fmt(row));
+    const [row] = await db.insert(pagesTable).values({
+      title: data.title,
+      slug: data.slug,
+      content: null,
+      metaTitle: null,
+      metaDescription: null,
+      scheduledAt: null,
+      isPublished: false,
+    } as any).returning();
+    const revision = await createContentRevision({
+      entityType: "page",
+      entityId: row.id,
+      entityLabel: row.title,
+      payload: {
+        ...data,
+        content: data.content == null ? data.content : sanitizeInlineDocument(data.content),
+        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt).toISOString() : null,
+        isPublished: Boolean(data.isPublished),
+      },
+      req,
+    });
+    res.status(202).json({ ...fmt(row), workflow: "pending", revisionId: revision.id, previewToken: revision.previewToken });
   } catch (e) {
     req.log.error(e);
     res.status(400).json({ error: "Bad request" });
@@ -53,7 +78,7 @@ router.post("/admin/pages", requireAdmin, async (req, res) => {
 
 // Admin: GET /admin/pages/home — ensure the hard-coded homepage has an
 // editable CMS record without replacing its dedicated React layout.
-router.get("/admin/pages/home", requireAdmin, async (req, res) => {
+router.get("/admin/pages/home", requireCapability("content"), async (req, res) => {
   try {
     const [existing] = await db.select().from(pagesTable)
       .where(eq(pagesTable.slug, "home"));
@@ -77,7 +102,7 @@ router.get("/admin/pages/home", requireAdmin, async (req, res) => {
 });
 
 // Admin: GET /admin/pages/:id
-router.get("/admin/pages/:id", requireAdmin, async (req, res) => {
+router.get("/admin/pages/:id", requireCapability("content"), async (req, res) => {
   try {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
@@ -92,7 +117,7 @@ router.get("/admin/pages/:id", requireAdmin, async (req, res) => {
 });
 
 // Admin: DELETE /admin/pages/:id
-router.delete("/admin/pages/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/pages/:id", requireAdministrator, async (req, res) => {
   try {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
@@ -106,16 +131,32 @@ router.delete("/admin/pages/:id", requireAdmin, async (req, res) => {
 });
 
 // Admin: PUT /admin/pages/:id
-router.put("/admin/pages/:id", requireAdmin, async (req, res) => {
+router.put("/admin/pages/:id", requireCapability("content"), async (req, res) => {
   try {
     const { id } = UpdatePageParams.parse(req.params);
     const data = UpdatePageBody.parse(req.body);
-    const [row] = await db.update(pagesTable)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(pagesTable.id, id)).returning();
+    const [row] = await db.select().from(pagesTable).where(eq(pagesTable.id, id));
     if (!row) return res.status(404).json({ error: "Not found" });
+    const sanitizedContent = data.content === undefined
+      ? undefined
+      : data.content == null
+        ? data.content
+        : sanitizeInlineDocument(data.content);
+    const revision = await createContentRevision({
+      entityType: "page",
+      entityId: id,
+      entityLabel: data.title ?? row.title,
+      payload: {
+        ...revisionPayloadFromPage(row),
+        ...data,
+        ...(sanitizedContent !== undefined ? { content: sanitizedContent } : {}),
+        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt).toISOString() : null,
+        isPublished: Boolean(data.isPublished),
+      },
+      req,
+    });
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    res.json(fmt(row));
+    res.status(202).json({ ...fmt(row), workflow: "pending", revisionId: revision.id, previewToken: revision.previewToken });
   } catch (e) {
     req.log.error(e);
     res.status(400).json({ error: "Bad request" });
@@ -131,6 +172,7 @@ function fmt(p: any) {
     metaTitle: p.metaTitle ?? null,
     metaDescription: p.metaDescription ?? null,
     isPublished: p.isPublished,
+    scheduledAt: p.scheduledAt?.toISOString?.() ?? p.scheduledAt ?? null,
     updatedAt: p.updatedAt?.toISOString?.() ?? p.updatedAt,
   };
 }
