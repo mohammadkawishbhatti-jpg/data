@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Package, FolderOpen, Image as ImageIcon,
   FileText, BookOpen, FileEdit, Settings, LogOut, X, Users,
-  HardDrive, Shield, Palette, ShoppingBag, Upload,
-  Bell, Bot, ChevronDown, TrendingUp, Inbox, Sparkles, Command, Menu as MenuIcon
+   HardDrive, Shield, Palette, ShoppingBag, Upload, ScrollText,
+  Bell, Bot, ChevronDown, TrendingUp, Inbox, MessageSquare, Sparkles, Command, Menu as MenuIcon
 } from "lucide-react";
 import { useAdminLogout, useGetAdminStats } from "@workspace/api-client-react";
 
@@ -13,65 +13,77 @@ const sections = [
     label: "Overview",
     items: [
       { name: "Dashboard",      href: "/",               icon: LayoutDashboard },
-      { name: "Quote Pipeline", href: "/quote-pipeline", icon: TrendingUp },
-      { name: "Follow Ups",     href: "/follow-ups",     icon: Bell },
+      { name: "Quote Pipeline", href: "/quote-pipeline", icon: TrendingUp, capability: "sales" },
+      { name: "Follow Ups",     href: "/follow-ups",     icon: Bell, capability: "sales" },
     ],
   },
   {
     label: "Commerce",
     items: [
-      { name: "Customers",    href: "/customers",     icon: Users },
-      { name: "Orders",       href: "/orders",        icon: ShoppingBag },
-      { name: "Quotes",       href: "/quotes",        icon: FileText, badgeKey: "newQuotes" },
-      { name: "Leads",        href: "/leads",         icon: Inbox,    badgeKey: "newLeads" },
+      { name: "Customers",    href: "/customers",     icon: Users, capability: "customers" },
+      { name: "Orders",       href: "/orders",        icon: ShoppingBag, capability: "sales" },
+      { name: "Quotes",       href: "/quotes",        icon: FileText, badgeKey: "newQuotes", capability: "sales" },
+      { name: "Quote Builder",href: "/quote-builder", icon: FileEdit, capability: "sales" },
+      { name: "Leads",        href: "/leads",         icon: Inbox, badgeKey: "newLeads", capability: "sales" },
+      { name: "Support Tickets", href: "/support-tickets", icon: MessageSquare, capability: "support" },
+      { name: "Invoices",      href: "/invoices",      icon: FileText, capability: "invoices" },
+      { name: "Form Builder",  href: "/forms",         icon: FileEdit, capability: "forms" },
     ],
   },
   {
     label: "Catalog",
     items: [
-      { name: "Products",    href: "/products",       icon: Package },
-      { name: "Categories",  href: "/categories",     icon: FolderOpen },
-      { name: "Banners",     href: "/banners",        icon: ImageIcon },
-      { name: "Import (WP)", href: "/import-products",icon: Upload },
+      { name: "Products",    href: "/products",       icon: Package, capability: "catalog" },
+      { name: "Categories",  href: "/categories",     icon: FolderOpen, capability: "catalog" },
+      { name: "Banners",     href: "/banners",        icon: ImageIcon, capability: "catalog" },
+      { name: "Import (WP)", href: "/import-products",icon: Upload, capability: "catalog" },
     ],
   },
   {
     label: "Content",
     items: [
-      { name: "Pages",           href: "/pages",         icon: FileEdit },
-      { name: "Menus",           href: "/menus",         icon: MenuIcon },
-      { name: "Blog",            href: "/blog",          icon: BookOpen },
-      { name: "Media",           href: "/media",         icon: HardDrive },
-      { name: "Global Styles",   href: "/global-styles", icon: Palette },
+      { name: "Pages",           href: "/pages",         icon: FileEdit, capability: "content" },
+      { name: "Menus",           href: "/menus",         icon: MenuIcon, capability: "content" },
+      { name: "Blog",            href: "/blog",          icon: BookOpen, capability: "content" },
+      { name: "Media",           href: "/media",         icon: HardDrive, capability: "media" },
+      { name: "Global Styles",   href: "/global-styles", icon: Palette, capability: "content" },
     ],
   },
   {
     label: "System",
     items: [
-      { name: "Clark AI",        href: "/clark",           icon: Bot },
-      { name: "Users",           href: "/users",           icon: Users },
-      { name: "Country Blocker", href: "/country-blocker", icon: Shield },
-      { name: "Database",        href: "/database",        icon: HardDrive },
-      { name: "Security",        href: "/security",        icon: Shield },
-      { name: "Settings",        href: "/settings",        icon: Settings },
+      { name: "Clark AI",        href: "/clark",           icon: Bot, capability: "superadmin" },
+      { name: "Users",           href: "/users",           icon: Users, capability: "superadmin" },
+      { name: "Country Blocker", href: "/country-blocker", icon: Shield, capability: "superadmin" },
+      { name: "Database",        href: "/database",        icon: HardDrive, capability: "superadmin" },
+      { name: "Security",        href: "/security",        icon: Shield, capability: "superadmin" },
+      { name: "Audit Log",       href: "/audit-log",       icon: ScrollText, capability: "superadmin" },
+      { name: "Settings",        href: "/settings",        icon: Settings, capability: "superadmin" },
     ],
   },
 ];
 
 function NavSection({
-  section, location, stats, onClose,
+  section, location, stats, capabilities, onClose,
 }: {
   section: typeof sections[0];
   location: string;
   stats: any;
+  capabilities: string[];
   onClose: () => void;
 }) {
   const [open, setOpen] = useState(true);
+  const visibleItems = section.items.filter((item: any) =>
+    !item.capability || capabilities.includes("*") || capabilities.includes(item.capability)
+  );
+  if (!visibleItems.length) return null;
 
   return (
     <div className="mb-2">
       <button
         onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        aria-controls={`admin-nav-${section.label.toLowerCase().replace(/\s+/g, "-")}`}
          className="w-full flex items-center justify-between px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
       >
         {section.label}
@@ -79,8 +91,8 @@ function NavSection({
       </button>
 
       {open && (
-        <div className="space-y-1 mt-1">
-          {section.items.map((item) => {
+        <div id={`admin-nav-${section.label.toLowerCase().replace(/\s+/g, "-")}`} className="space-y-1 mt-1">
+          {visibleItems.map((item) => {
             const isActive =
               location === item.href ||
               (item.href !== "/" && location.startsWith(item.href));
@@ -126,9 +138,29 @@ export function Sidebar({
   onOpenCommandPalette?: () => void;
 }) {
   const [location] = useLocation();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const logout = useAdminLogout();
   const [, setLocation] = useLocation();
   const { data: stats } = useGetAdminStats();
+  const [access, setAccess] = useState<{ roleLabel?: string; capabilities: string[] }>({ capabilities: [] });
+
+  useEffect(() => {
+    fetch("/api/admin/me", { credentials: "include" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => data && setAccess({ roleLabel: data.roleLabel, capabilities: data.capabilities || [] }))
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const frame = requestAnimationFrame(() => closeButtonRef.current?.focus());
+    return () => {
+      cancelAnimationFrame(frame);
+      previousFocusRef.current?.focus?.();
+    };
+  }, [mobileOpen]);
 
   const handleLogout = () => {
     logout.mutate(undefined, {
@@ -155,6 +187,7 @@ export function Sidebar({
               <Sparkles className="h-3 w-3 text-rose-400" />
             </h2>
              <p className="text-[10px] text-sidebar-foreground/60 mt-0.5">primepackagingboxes.com</p>
+             {access.roleLabel && <span className="mt-1 inline-flex rounded-full bg-sidebar-primary/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sidebar-primary">{access.roleLabel}</span>}
           </div>
         </div>
       </div>
@@ -185,6 +218,7 @@ export function Sidebar({
             section={section}
             location={location}
             stats={stats}
+            capabilities={access.capabilities}
             onClose={() => setMobileOpen(false)}
           />
         ))}
@@ -212,15 +246,17 @@ export function Sidebar({
 
       {/* Mobile Drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
+        <div className="fixed inset-0 z-50 md:hidden flex" role="dialog" aria-modal="true" aria-label="Admin navigation">
           <div
             className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
             onClick={() => setMobileOpen(false)}
           />
           <div className="relative w-64 bg-[#090d16] z-50 animate-in slide-in-from-left duration-200">
             <button
+              ref={closeButtonRef}
               className="absolute right-4 top-5 text-slate-400 hover:text-white"
               onClick={() => setMobileOpen(false)}
+              aria-label="Close admin navigation"
             >
               <X className="h-5 w-5" />
             </button>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { AdminLayout } from "../components/layout/AdminLayout";
 import { 
   useListQuotes,
@@ -159,7 +160,7 @@ export default function QuotesPage() {
 
   return (
     <AdminLayout title="Quotes">
-      <div className="mb-6 border-b">
+      <div className="mb-6 flex items-end justify-between border-b">
         <nav className="-mb-px flex space-x-6 overflow-x-auto">
           {TABS.map(tab => (
             <button
@@ -175,6 +176,9 @@ export default function QuotesPage() {
             </button>
           ))}
         </nav>
+        <Link href="/quote-builder" className="mb-2 inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+          <FileEdit className="h-4 w-4" /> Build Quote
+        </Link>
       </div>
 
       <div className="bg-card border rounded-xl shadow-sm overflow-hidden">

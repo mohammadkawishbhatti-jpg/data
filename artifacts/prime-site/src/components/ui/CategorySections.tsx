@@ -8,6 +8,17 @@ import {
 import { useState } from "react";
 import { useSettings } from "../../lib/useSettings";
 
+// These are uploaded to the API media library so the same canonical URLs work
+// in the storefront, admin Media page, and future CMS content.
+const BRANDING_MEDIA = {
+  foil: "/api/uploads/prime-branding-gold-lettering.jpg",
+  spotUv: "/api/uploads/prime-branding-spot-uv-emboss.webp",
+  luxury: "/api/uploads/prime-branding-luxury-cosmetic.jpg",
+  window: "/api/uploads/prime-branding-window.webp",
+  insidePrint: "/api/uploads/prime-branding-inside-print.webp",
+  matte: "/api/uploads/prime-branding-matte-lamination.webp",
+} as const;
+
 // ─── Why Choose Us ───────────────────────────────────────────────
 const WHY_CARDS = [
   { icon: Palette,    color: "#3b82f6", bg: "#eff6ff", title: "Free Custom Design", desc: "Our in-house design team creates your artwork at no charge. Unlimited revisions until you love it." },
@@ -20,14 +31,14 @@ const WHY_CARDS = [
 
 // ─── Finish Options ───────────────────────────────────────────────
 const FINISHES = [
-  { label: "Gloss Lamination",      desc: "Bright, vivid colors with a shiny protective coat",   emoji: "✨" },
-  { label: "Matte Lamination",      desc: "Soft, premium tactile feel — popular for luxury brands", emoji: "🖤" },
-  { label: "Soft-Touch Coating",    desc: "Velvety, ultra-premium feel that customers love",        emoji: "🫧" },
-  { label: "Gold / Silver Foiling", desc: "Metallic foil stamping for logos and key design elements", emoji: "🥇" },
-  { label: "Spot UV Coating",       desc: "Selective gloss highlights over a matte base for contrast", emoji: "💫" },
-  { label: "Embossing / Debossing", desc: "3D raised or sunken effect on logos and text",             emoji: "🔲" },
-  { label: "Window Die-Cut",        desc: "Clear PVC window to show your product inside the box",     emoji: "🪟" },
-  { label: "Inside Printing",       desc: "Full color or spot print on the interior for unboxing wow", emoji: "🎨" },
+  { label: "Gloss Lamination",      desc: "Bright, vivid colors with a shiny protective coat",       image: BRANDING_MEDIA.luxury },
+  { label: "Matte Lamination",      desc: "Soft, premium tactile feel — popular for luxury brands", image: BRANDING_MEDIA.matte },
+  { label: "Soft-Touch Coating",    desc: "Velvety, ultra-premium feel that customers love",        image: BRANDING_MEDIA.matte },
+  { label: "Gold / Silver Foiling", desc: "Metallic foil stamping for logos and key design elements", image: BRANDING_MEDIA.foil },
+  { label: "Spot UV Coating",       desc: "Selective gloss highlights over a matte base for contrast", image: BRANDING_MEDIA.spotUv },
+  { label: "Embossing / Debossing", desc: "3D raised or sunken effect on logos and text",             image: BRANDING_MEDIA.spotUv },
+  { label: "Window Die-Cut",        desc: "Clear PVC window to show your product inside the box",     image: BRANDING_MEDIA.window },
+  { label: "Inside Printing",       desc: "Full color or spot print on the interior for unboxing wow", image: BRANDING_MEDIA.insidePrint },
 ];
 
 // ─── Process Steps ────────────────────────────────────────────────
@@ -50,18 +61,18 @@ const MATERIALS = [
 
 // ─── Industries ───────────────────────────────────────────────────
 const INDUSTRIES = [
-  { icon: "🛍️", label: "Retail & Fashion" },
-  { icon: "🍫", label: "Food & Beverage" },
-  { icon: "💊", label: "Health & Wellness" },
-  { icon: "💄", label: "Beauty & Cosmetics" },
-  { icon: "💎", label: "Luxury & Jewelry" },
-  { icon: "📦", label: "E-Commerce" },
-  { icon: "🎁", label: "Gifts & Events" },
-  { icon: "🧴", label: "CBD & Wellness" },
-  { icon: "🖥️", label: "Electronics" },
-  { icon: "🍕", label: "Food Delivery" },
-  { icon: "🌿", label: "Eco Brands" },
-  { icon: "🎓", label: "Corporate" },
+  { image: BRANDING_MEDIA.foil, label: "Retail & Fashion" },
+  { image: BRANDING_MEDIA.window, label: "Food & Beverage" },
+  { image: BRANDING_MEDIA.insidePrint, label: "Health & Wellness" },
+  { image: BRANDING_MEDIA.luxury, label: "Beauty & Cosmetics" },
+  { image: BRANDING_MEDIA.foil, label: "Luxury & Jewelry" },
+  { image: BRANDING_MEDIA.spotUv, label: "E-Commerce" },
+  { image: BRANDING_MEDIA.window, label: "Gifts & Events" },
+  { image: BRANDING_MEDIA.insidePrint, label: "CBD & Wellness" },
+  { image: BRANDING_MEDIA.spotUv, label: "Electronics" },
+  { image: BRANDING_MEDIA.window, label: "Food Delivery" },
+  { image: BRANDING_MEDIA.matte, label: "Eco Brands" },
+  { image: BRANDING_MEDIA.foil, label: "Corporate" },
 ];
 
 // ─── Testimonials ─────────────────────────────────────────────────
@@ -185,10 +196,14 @@ export function CategorySections({ categoryName, productCount = 0 }: { categoryN
             </div>
             <div className="md:w-1/2 grid grid-cols-2 gap-3">
               {FINISHES.map(f => (
-                <div key={f.label} className="rounded-xl border border-gray-100 p-4 hover:border-[#e63329]/30 hover:shadow-sm transition-all">
-                  <div className="text-2xl mb-2">{f.emoji}</div>
-                  <div className="font-bold text-gray-800 text-xs mb-1">{f.label}</div>
-                  <p className="text-gray-500 text-[11px] leading-relaxed">{f.desc}</p>
+                <div key={f.label} className="overflow-hidden rounded-xl border border-gray-100 bg-white transition-all hover:border-[#e63329]/30 hover:shadow-md">
+                  <div className="h-24 overflow-hidden bg-gray-100">
+                    <img src={f.image} alt={`${f.label} packaging finish reference`} className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
+                  </div>
+                  <div className="p-3.5">
+                    <div className="mb-1 text-xs font-bold text-gray-800">{f.label}</div>
+                    <p className="text-[11px] leading-relaxed text-gray-500">{f.desc}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -228,9 +243,11 @@ export function CategorySections({ categoryName, productCount = 0 }: { categoryN
           </div>
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {INDUSTRIES.map(ind => (
-              <div key={ind.label} className="rounded-xl border border-gray-100 p-4 text-center hover:border-[#1a2f5a]/30 hover:shadow-sm transition-all cursor-default">
-                <div className="text-2xl mb-2">{ind.icon}</div>
-                <div className="text-xs font-semibold text-gray-700 leading-tight">{ind.label}</div>
+              <div key={ind.label} className="overflow-hidden rounded-xl border border-gray-100 bg-white text-center transition-all hover:border-[#1a2f5a]/30 hover:shadow-md">
+                <div className="h-16 overflow-hidden bg-gray-100">
+                  <img src={ind.image} alt={`${ind.label} packaging`} className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
+                </div>
+                <div className="px-2 py-3 text-xs font-semibold leading-tight text-gray-700">{ind.label}</div>
               </div>
             ))}
           </div>

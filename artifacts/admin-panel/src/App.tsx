@@ -1,125 +1,191 @@
 import "./lib/api";
 import { Switch, Route, Router as WouterRouter } from "wouter";
+import { useLocation } from "wouter";
+import { lazy, Suspense, useEffect } from "react";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/DashboardPage";
-import ProductsPage from "./pages/ProductsPage";
-import ProductEditPage from "./pages/ProductEditPage";
-import CategoriesPage from "./pages/CategoriesPage";
-import CategoryEditPage from "./pages/CategoryEditPage";
-import BannersPage from "./pages/BannersPage";
-import QuotesPage from "./pages/QuotesPage";
-import LeadsPage from "./pages/LeadsPage";
-import BlogPage from "./pages/BlogPage";
-import BlogEditPage from "./pages/BlogEditPage";
-import MediaPage from "./pages/MediaPage";
-import CountryBlockerPage from "./pages/CountryBlockerPage";
-import PagesPage from "./pages/PagesPage";
-import SettingsPage from "./pages/SettingsPage";
-import UsersPage from "./pages/UsersPage";
-import GlobalStylesPage from "./pages/GlobalStylesPage";
-import CustomersPage from "./pages/CustomersPage";
-import OrdersPage from "./pages/OrdersPage";
-import ImportProductsPage from "./pages/ImportProductsPage";
-import QuotePipelinePage from "./pages/QuotePipelinePage";
-import FollowUpsPage from "./pages/FollowUpsPage";
-import SecurityPage from "./pages/SecurityPage";
-import DatabasePage from "./pages/DatabasePage";
-import ClarkPage from "./pages/ClarkPage";
-import MenusPage from "./pages/MenusPage";
 import { AdminLayout } from "./components/layout/AdminLayout";
+import { useGetAdminMe } from "@workspace/api-client-react";
+
+// Keep the authenticated shell small. Each admin workspace is downloaded only
+// when its route is opened, which makes login and the first dashboard render
+// substantially faster than importing every editor at boot.
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const ProductsPage = lazy(() => import("./pages/ProductsPage"));
+const ProductEditPage = lazy(() => import("./pages/ProductEditPage"));
+const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
+const CategoryEditPage = lazy(() => import("./pages/CategoryEditPage"));
+const BannersPage = lazy(() => import("./pages/BannersPage"));
+const QuotesPage = lazy(() => import("./pages/QuotesPage"));
+const LeadsPage = lazy(() => import("./pages/LeadsPage"));
+const BlogPage = lazy(() => import("./pages/BlogPage"));
+const BlogEditPage = lazy(() => import("./pages/BlogEditPage"));
+const MediaPage = lazy(() => import("./pages/MediaPage"));
+const CountryBlockerPage = lazy(() => import("./pages/CountryBlockerPage"));
+const PagesPage = lazy(() => import("./pages/PagesPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const UsersPage = lazy(() => import("./pages/UsersPage"));
+const GlobalStylesPage = lazy(() => import("./pages/GlobalStylesPage"));
+const CustomersPage = lazy(() => import("./pages/CustomersPage"));
+const OrdersPage = lazy(() => import("./pages/OrdersPage"));
+const ImportProductsPage = lazy(() => import("./pages/ImportProductsPage"));
+const QuotePipelinePage = lazy(() => import("./pages/QuotePipelinePage"));
+const FollowUpsPage = lazy(() => import("./pages/FollowUpsPage"));
+const SecurityPage = lazy(() => import("./pages/SecurityPage"));
+const DatabasePage = lazy(() => import("./pages/DatabasePage"));
+const ClarkPage = lazy(() => import("./pages/ClarkPage"));
+const MenusPage = lazy(() => import("./pages/MenusPage"));
+const TicketsPage = lazy(() => import("./pages/TicketsPage"));
+const InvoiceBuilderPage = lazy(() => import("./pages/InvoiceBuilderPage"));
+const QuoteBuilderPage = lazy(() => import("./pages/QuoteBuilderPage"));
+const FormsPage = lazy(() => import("./pages/FormsPage"));
+const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
+
+function WorkspaceLoading() {
+  return (
+    <div className="flex min-h-[45vh] items-center justify-center">
+      <div className="rounded-2xl border border-border bg-card px-5 py-4 text-sm font-semibold text-muted-foreground shadow-sm">
+        Loading workspace…
+      </div>
+    </div>
+  );
+}
+
+function AccessDenied({ capability }: { capability: string }) {
+  return (
+    <AdminLayout title="Access Restricted">
+      <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center text-center">
+        <div className="mb-4 rounded-full bg-destructive/10 px-4 py-2 text-sm font-bold text-destructive">Access restricted</div>
+        <h2 className="text-2xl font-bold">You do not have access to this area</h2>
+        <p className="mt-2 text-muted-foreground">Your assigned role does not include the <strong>{capability}</strong> workspace. Contact a Super Admin if you need access.</p>
+      </div>
+    </AdminLayout>
+  );
+}
+
+function CapabilityGuard({ capability, children }: { capability: string; children: React.ReactNode }) {
+  const [, setLocation] = useLocation();
+  const { data, isLoading } = useGetAdminMe({ query: { retry: false, staleTime: 30_000, throwOnError: false } as any });
+  useEffect(() => {
+    if (!isLoading && !data) setLocation("/login");
+  }, [data, isLoading, setLocation]);
+  if (isLoading) return <div className="flex min-h-screen items-center justify-center">Loading workspace…</div>;
+  const admin = data as any;
+  if (!admin) return null;
+  if (admin.capabilities?.includes("*") || admin.capabilities?.includes(capability)) return <>{children}</>;
+  return <AccessDenied capability={capability} />;
+}
 
 export default function App() {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   return (
     <ThemeProvider>
     <WouterRouter base={base}>
+    <Suspense fallback={<WorkspaceLoading />}>
       <Switch>
         <Route path="/login" component={LoginPage} />
 
         <Route path="/">
-          <DashboardPage />
+          <CapabilityGuard capability="dashboard"><DashboardPage /></CapabilityGuard>
         </Route>
         <Route path="/products">
-          <ProductsPage />
+          <CapabilityGuard capability="catalog"><ProductsPage /></CapabilityGuard>
         </Route>
         <Route path="/products/new">
-          <ProductEditPage />
+          <CapabilityGuard capability="catalog"><ProductEditPage /></CapabilityGuard>
         </Route>
         <Route path="/products/:id/edit">
-          {(params) => <ProductEditPage />}
+          {() => <CapabilityGuard capability="catalog"><ProductEditPage /></CapabilityGuard>}
         </Route>
         <Route path="/categories">
-          <CategoriesPage />
+          <CapabilityGuard capability="catalog"><CategoriesPage /></CapabilityGuard>
         </Route>
         <Route path="/categories/new">
-          <CategoryEditPage />
+          <CapabilityGuard capability="catalog"><CategoryEditPage /></CapabilityGuard>
         </Route>
         <Route path="/categories/:id/edit">
-          {() => <CategoryEditPage />}
+          {() => <CapabilityGuard capability="catalog"><CategoryEditPage /></CapabilityGuard>}
         </Route>
         <Route path="/banners">
-          <BannersPage />
+          <CapabilityGuard capability="catalog"><BannersPage /></CapabilityGuard>
         </Route>
         <Route path="/quotes">
-          <QuotesPage />
+          <CapabilityGuard capability="sales"><QuotesPage /></CapabilityGuard>
+        </Route>
+        <Route path="/quote-builder">
+          <CapabilityGuard capability="sales"><QuoteBuilderPage /></CapabilityGuard>
         </Route>
         <Route path="/leads">
-          <LeadsPage />
+          <CapabilityGuard capability="sales"><LeadsPage /></CapabilityGuard>
+        </Route>
+        <Route path="/support-tickets">
+          <CapabilityGuard capability="support"><TicketsPage /></CapabilityGuard>
+        </Route>
+        <Route path="/invoices">
+          <CapabilityGuard capability="invoices"><InvoiceBuilderPage /></CapabilityGuard>
+        </Route>
+        <Route path="/invoice-builder">
+          <CapabilityGuard capability="invoices"><InvoiceBuilderPage /></CapabilityGuard>
+        </Route>
+        <Route path="/forms">
+          <CapabilityGuard capability="forms"><FormsPage /></CapabilityGuard>
         </Route>
         <Route path="/blog">
-          <BlogPage />
+          <CapabilityGuard capability="content"><BlogPage /></CapabilityGuard>
         </Route>
         <Route path="/blog/new">
-          <BlogEditPage />
+          <CapabilityGuard capability="content"><BlogEditPage /></CapabilityGuard>
         </Route>
         <Route path="/blog/:id/edit">
-          {() => <BlogEditPage />}
+          {() => <CapabilityGuard capability="content"><BlogEditPage /></CapabilityGuard>}
         </Route>
         <Route path="/media">
-          <MediaPage />
+          <CapabilityGuard capability="media"><MediaPage /></CapabilityGuard>
         </Route>
         <Route path="/country-blocker">
-          <CountryBlockerPage />
+          <CapabilityGuard capability="superadmin"><CountryBlockerPage /></CapabilityGuard>
         </Route>
         <Route path="/menus">
-          <MenusPage />
+          <CapabilityGuard capability="content"><MenusPage /></CapabilityGuard>
         </Route>
         <Route path="/pages">
-          <PagesPage />
+          <CapabilityGuard capability="content"><PagesPage /></CapabilityGuard>
         </Route>
         <Route path="/users">
-          <UsersPage />
+          <CapabilityGuard capability="superadmin"><UsersPage /></CapabilityGuard>
         </Route>
         <Route path="/settings">
-          <SettingsPage />
+          <CapabilityGuard capability="superadmin"><SettingsPage /></CapabilityGuard>
         </Route>
         <Route path="/global-styles">
-          <GlobalStylesPage />
+          <CapabilityGuard capability="content"><GlobalStylesPage /></CapabilityGuard>
         </Route>
         <Route path="/customers">
-          <CustomersPage />
+          <CapabilityGuard capability="customers"><CustomersPage /></CapabilityGuard>
         </Route>
         <Route path="/orders">
-          <OrdersPage />
+          <CapabilityGuard capability="sales"><OrdersPage /></CapabilityGuard>
         </Route>
         <Route path="/import-products">
-          <ImportProductsPage />
+          <CapabilityGuard capability="catalog"><ImportProductsPage /></CapabilityGuard>
         </Route>
         <Route path="/follow-ups">
-          <FollowUpsPage />
+          <CapabilityGuard capability="sales"><FollowUpsPage /></CapabilityGuard>
         </Route>
         <Route path="/quote-pipeline">
-          <QuotePipelinePage />
+          <CapabilityGuard capability="sales"><QuotePipelinePage /></CapabilityGuard>
         </Route>
         <Route path="/security">
-          <SecurityPage />
+          <CapabilityGuard capability="superadmin"><SecurityPage /></CapabilityGuard>
         </Route>
         <Route path="/database">
-          <DatabasePage />
+          <CapabilityGuard capability="superadmin"><DatabasePage /></CapabilityGuard>
         </Route>
         <Route path="/clark">
-          <ClarkPage />
+          <CapabilityGuard capability="superadmin"><ClarkPage /></CapabilityGuard>
+        </Route>
+        <Route path="/audit-log">
+          <CapabilityGuard capability="superadmin"><AuditLogPage /></CapabilityGuard>
         </Route>
         <Route>
           <AdminLayout title="Not Found">
@@ -132,6 +198,7 @@ export default function App() {
           </AdminLayout>
         </Route>
       </Switch>
+    </Suspense>
     </WouterRouter>
     </ThemeProvider>
   );
