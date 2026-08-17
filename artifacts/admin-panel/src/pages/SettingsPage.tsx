@@ -13,9 +13,9 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Loader2, CheckCircle2, Mail, Eye, EyeOff, Map, Shield, Globe, Palette, Bot, LayoutGrid, Star, Trash2, Plus, Save } from "lucide-react";
+import { Loader2, CheckCircle2, Mail, Eye, EyeOff, Map, Shield, Globe, Palette, Bot, LayoutGrid, Star, Trash2, Plus, Save, Megaphone } from "lucide-react";
 
-type Tab = "general" | "homepage" | "branding" | "contact" | "social" | "seo" | "smtp" | "sitemap" | "robots" | "clark";
+type Tab = "general" | "homepage" | "popup" | "branding" | "contact" | "social" | "seo" | "smtp" | "sitemap" | "robots" | "clark";
 
 const DEFAULT_TICKER_ITEMS = [
   "Free Shipping — USA & UK",
@@ -79,12 +79,15 @@ export default function SettingsPage() {
   // Robots.txt
   const [robotsTxt, setRobotsTxt] = useState("");
 
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm({
+  const { register, handleSubmit, reset, watch, formState: { isSubmitting } } = useForm({
     defaultValues: {
       siteName: "", logoUrl: "", faviconUrl: "",
       contactEmail: "", contactPhone: "", contactAddress: "",
       whatsappNumber: "", facebookUrl: "", instagramUrl: "", twitterUrl: "", linkedinUrl: "",
       announcementText: "", metaTitle: "", metaDescription: "",
+      popupEnabled: "true", popupBadge: "Limited-time offer", popupTitle: "Make your next unboxing unforgettable",
+      popupMessage: "Get free design support and a fast custom packaging quote from our team.",
+      popupButtonText: "Get a free quote", popupButtonUrl: "/get-a-quote", popupImageUrl: "",
       smtpHost: "", smtpPort: "", smtpUser: "", smtpPass: "", smtpFrom: "", smtpTo: "", smtpSecure: "false",
       smtp2Host: "", smtp2Port: "", smtp2User: "", smtp2Pass: "", smtp2From: "", smtp2Secure: "false",
       geminiApiKey: "",
@@ -112,6 +115,13 @@ export default function SettingsPage() {
         twitterUrl: s.twitter || "", linkedinUrl: s.linkedin || "",
         announcementText: s.announcementBar || "",
         metaTitle: s.metaTitle || "", metaDescription: s.metaDescription || "",
+        popupEnabled: s.popupEnabled ?? "true",
+        popupBadge: s.popupBadge || "Limited-time offer",
+        popupTitle: s.popupTitle || "Make your next unboxing unforgettable",
+        popupMessage: s.popupMessage || "Get free design support and a fast custom packaging quote from our team.",
+        popupButtonText: s.popupButtonText || "Get a free quote",
+        popupButtonUrl: s.popupButtonUrl || "/get-a-quote",
+        popupImageUrl: s.popupImageUrl || "",
         smtpHost: s.smtpHost || "", smtpPort: s.smtpPort ? String(s.smtpPort) : "",
         smtpUser: s.smtpUser || "", smtpPass: s.smtpPass || "",
         smtpFrom: s.smtpFrom || "", smtpTo: s.smtpTo || "",
@@ -155,6 +165,13 @@ export default function SettingsPage() {
       twitter: data.twitterUrl, linkedin: data.linkedinUrl,
       metaTitle: data.metaTitle, metaDescription: data.metaDescription,
       logoUrl: data.logoUrl, faviconUrl: data.faviconUrl,
+      popupEnabled: data.popupEnabled,
+      popupBadge: data.popupBadge,
+      popupTitle: data.popupTitle,
+      popupMessage: data.popupMessage,
+      popupButtonText: data.popupButtonText,
+      popupButtonUrl: data.popupButtonUrl,
+      popupImageUrl: data.popupImageUrl,
       smtpHost: data.smtpHost, smtpPort: data.smtpPort,
       smtpUser: data.smtpUser, smtpPass: data.smtpPass,
       smtpFrom: data.smtpFrom, smtpTo: data.smtpTo, smtpSecure: data.smtpSecure,
@@ -212,6 +229,7 @@ export default function SettingsPage() {
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "general", label: "General", icon: Globe },
     { id: "homepage", label: "Homepage Controls", icon: LayoutGrid },
+    { id: "popup", label: "Popup / Offer", icon: Megaphone },
     { id: "branding", label: "Branding", icon: Palette },
     { id: "contact", label: "Contact", icon: Mail },
     { id: "social", label: "Social", icon: Globe },
@@ -355,6 +373,75 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Branding */}
+        {tab === "popup" && (
+          <form onSubmit={onSubmit} className="space-y-6">
+            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#e63329] to-[#1B2B5E]">
+                    <Megaphone className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold">Opening Popup / Special Offer</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">A single, dismissible promotion shown on the public site. Visitors will not see the same popup again after dismissing it unless the content changes.</p>
+                  </div>
+                </div>
+                <button type="submit" disabled={isSubmitting || updateSettings.isPending} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                  {(isSubmitting || updateSettings.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save Popup
+                </button>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className={label}>Popup status</label>
+                  <select {...register("popupEnabled")} className={field}>
+                    <option value="true">✅ Enabled</option>
+                    <option value="false">🔴 Disabled</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={label}>Small badge / eyebrow</label>
+                  <input {...register("popupBadge")} className={field} placeholder="Limited-time offer" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className={label}>Headline</label>
+                  <input {...register("popupTitle")} className={field} placeholder="Make your next unboxing unforgettable" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className={label}>Message</label>
+                  <textarea {...register("popupMessage")} rows={3} className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Tell visitors what they get and why they should click." />
+                </div>
+                <div>
+                  <label className={label}>Button text</label>
+                  <input {...register("popupButtonText")} className={field} placeholder="Get a free quote" />
+                </div>
+                <div>
+                  <label className={label}>Button URL</label>
+                  <input {...register("popupButtonUrl")} className={field} placeholder="/get-a-quote or https://..." />
+                </div>
+                <div className="md:col-span-2">
+                  <label className={label}>Optional image URL</label>
+                  <input {...register("popupImageUrl")} className={field} placeholder="/api/uploads/your-offer-image.webp" />
+                  <p className="mt-1 text-xs text-muted-foreground">Leave blank for the clean text-only layout. Use a compressed image with a meaningful subject.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#1B2B5E]/20 bg-[#1B2B5E] p-5 text-white shadow-sm">
+              <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-white/55">Live content preview</div>
+              <div className="max-w-xl rounded-2xl bg-white p-6 text-[#1B2B5E] shadow-2xl">
+                <div className="mb-3 flex items-center justify-between gap-4">
+                  <span className="rounded-full bg-[#e63329]/10 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#e63329]">{(watch("popupBadge") || "Limited-time offer")}</span>
+                  <span className="text-xs text-slate-400">×</span>
+                </div>
+                <h4 className="text-xl font-extrabold leading-tight">{watch("popupTitle") || "Make your next unboxing unforgettable"}</h4>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{watch("popupMessage") || "Get free design support and a fast custom packaging quote from our team."}</p>
+                <div className="mt-5 inline-flex rounded-lg bg-[#e63329] px-4 py-2 text-sm font-bold text-white">{watch("popupButtonText") || "Get a free quote"} <span className="ml-2">→</span></div>
+              </div>
+            </div>
+          </form>
         )}
 
         {/* Branding */}
@@ -642,20 +729,26 @@ export default function SettingsPage() {
               </select>
             </div>
 
-            {/* API Key */}
+            {/* AI Provider Keys */}
             <div className="bg-card border rounded-xl shadow-sm divide-y">
               <div className="px-5 py-4">
-                <h3 className="font-semibold text-sm mb-3">Groq API Key</h3>
+                <h3 className="font-semibold text-sm mb-2">AI provider keys</h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Clark tries Gemini first. If Gemini is unavailable, the server automatically falls back to Groq.
+                  Keep provider keys in Replit Secrets; the Gemini field below is only for an optional database override.
+                </p>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700 mb-3">
-                  <strong>Free key:</strong> Get one at <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="underline">console.groq.com/keys</a> → Create API Key. Free tier: 14,400 requests/day.
+                  <strong>Fallback key:</strong> Add <code>GROQ_API_KEY</code> to Replit Secrets for the backup provider.
+                  Get it from <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="underline">console.groq.com/keys</a>.
                 </div>
+                <label className={label}>Optional Gemini API key override</label>
                 <div className="relative">
                   <input {...register("geminiApiKey")} type={showSmtpPass ? "text" : "password"} placeholder="gsk_..." className={`${field} pr-10`} />
                   <button type="button" onClick={() => setShowSmtpPass(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     {showSmtpPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Leave blank to use the server environment variable.</p>
+                <p className="text-xs text-muted-foreground mt-1">Leave blank to use <code>GEMINI_API_KEY</code> from Replit Secrets.</p>
               </div>
             </div>
 
