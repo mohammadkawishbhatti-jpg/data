@@ -8,9 +8,12 @@ import {
 import { ProductCard } from "../components/ui/ProductCard";
 import { CategoryCard } from "../components/ui/CategoryCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
-import { useGetFeaturedProducts, useListCategories, useListProducts } from "@workspace/api-client-react";
+import { useGetFeaturedProducts, useGetPage, useListCategories, useListProducts } from "@workspace/api-client-react";
 import { DEFAULT_OG_IMAGE, useSEO, useSchemaOrg } from "../lib/useSEO";
 import { useSettings } from "../lib/useSettings";
+import { responsiveImageProps } from "../lib/responsiveImage";
+import { InlinePageOverrides } from "../components/ui/InlinePageOverrides";
+import { parseInlineDocument } from "../lib/inlineContent";
 
 /* ── Count-up number animation ──────────────────────────────────────────────── */
 function CountUp({ to, suffix = "", decimals = 0, delay = 0 }: { to: number; suffix?: string; decimals?: number; delay?: number }) {
@@ -141,17 +144,19 @@ export default function HomePage() {
     sameAs: ["https://www.facebook.com/primepackagingboxes", "https://www.instagram.com/primepackagingboxes/"],
   });
 
-  const { data: featuredProducts, isLoading: isLoadingProducts } = useGetFeaturedProducts();
-  const { data: showcaseProducts, isLoading: isLoadingShowcase } = useListProducts({
+  const { data: featuredProducts, isLoading: isLoadingProducts, isError: featuredError, refetch: refetchFeatured } = useGetFeaturedProducts();
+  const { data: showcaseProducts, isLoading: isLoadingShowcase, isError: showcaseError, refetch: refetchShowcase } = useListProducts({
     showcase: "true", limit: 12,
   });
-  const { data: categoriesData, isLoading: isLoadingCategories } = useListCategories();
+  const { data: categoriesData, isLoading: isLoadingCategories, isError: categoriesError, refetch: refetchCategories } = useListCategories();
   const categories = (categoriesData || []).filter(category => category.isFeatured);
   const { data: settings } = useSettings();
+  const { data: homePage } = useGetPage("home");
   const phone = settings?.phone || "818-758-4076";
+  const homeInline = parseInlineDocument(homePage?.content || "");
 
   return (
-    <>
+    <InlinePageOverrides overrides={homeInline.overrides}>
 
       {/* ── HERO ── */}
       <section className="relative bg-[#0d1f3c] overflow-hidden min-h-[620px] flex items-center">
@@ -205,12 +210,15 @@ export default function HomePage() {
               {HERO_MOSAIC.slice(0, 6).map((img, i) => (
                 <div key={i} className={`rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-xl ${i === 0 ? "row-span-2" : ""}`}>
                   <img
-                    src={img.src}
+                    {...responsiveImageProps(img.src)}
                     alt={img.alt}
+                    width={500}
+                    height={500}
                     className="w-full h-full object-cover"
                     style={{ aspectRatio: i === 0 ? "1/2.15" : "1/1" }}
                     loading={i === 0 ? "eager" : "lazy"}
                     fetchPriority={i === 0 ? "high" : "low"}
+                    decoding="async"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                   />
                 </div>
@@ -221,9 +229,10 @@ export default function HomePage() {
             <div className="flex lg:hidden gap-2.5 mt-2">
               {HERO_MOSAIC.slice(0, 3).map((img, i) => (
                 <div key={i} className="flex-1 rounded-xl overflow-hidden border border-white/15 shadow-lg" style={{ aspectRatio: "1/1" }}>
-                  <img src={img.src} alt={img.alt} className="w-full h-full object-cover"
+                  <img {...responsiveImageProps(img.src)} alt={img.alt} width={500} height={500} className="w-full h-full object-cover"
                     loading={i === 0 ? "eager" : "lazy"}
                     fetchPriority={i === 0 ? "high" : "low"}
+                    decoding="async"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 </div>
               ))}
@@ -298,7 +307,11 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {isLoadingProducts
               ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
-              : (featuredProducts || []).slice(0, 8).map(p => (
+              : featuredError ? (
+                <div className="col-span-full rounded-xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-800">
+                  Best-selling products could not be loaded. <button onClick={() => void refetchFeatured()} className="font-bold underline">Try again</button>
+                </div>
+              ) : (featuredProducts || []).slice(0, 8).map(p => (
                 <div key={p.id} data-inline-dynamic="true">
                   <ProductCard product={p} />
                 </div>
@@ -318,14 +331,21 @@ export default function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
              {isLoadingShowcase
                ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="aspect-square rounded-2xl bg-gray-100 animate-pulse" />)
-                : (showcaseProducts || []).slice(0, 12).map(p => (
+                : showcaseError ? (
+                  <div className="col-span-full rounded-xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-800">
+                    Showcase products could not be loaded. <button onClick={() => void refetchShowcase()} className="font-bold underline">Try again</button>
+                  </div>
+                ) : (showcaseProducts || []).slice(0, 12).map(p => (
                <div key={p.id} data-inline-dynamic="true">
                <Link href={`/${p.slug}`} className="group relative rounded-2xl overflow-hidden bg-gray-100 aspect-square shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                 <img
-                   src={p.imageUrl || "/api/uploads/placeholder-product.webp"}
+                   {...responsiveImageProps(p.imageUrl || "/api/uploads/placeholder-product.webp")}
                   alt={p.name}
+                   width={500}
+                   height={500}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
+                   decoding="async"
                   onError={(e) => {
                     const t = e.target as HTMLImageElement;
                      t.style.opacity = "0.3";
@@ -354,7 +374,11 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             {isLoadingCategories
               ? Array.from({ length: 8 }).map((_, i) => <div key={i} className="aspect-square bg-gray-200 rounded-xl animate-pulse" style={{ aspectRatio: "4/3" }} />)
-               : categories.slice(0, 8).map(c => (
+               : categoriesError ? (
+                 <div className="col-span-full rounded-xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-800">
+                   Categories could not be loaded. <button onClick={() => void refetchCategories()} className="font-bold underline">Try again</button>
+                 </div>
+               ) : categories.slice(0, 8).map(c => (
                  <div key={c.id} data-inline-dynamic="true">
                    <CategoryCard category={c} productCount={c.productCount} />
                  </div>
@@ -573,6 +597,6 @@ export default function HomePage() {
         </div>
       </section>
 
-    </>
+    </InlinePageOverrides>
   );
 }
