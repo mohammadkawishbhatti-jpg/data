@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, json, serial, index } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, json, serial, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 // ── Categories ────────────────────────────────────────────────────────────────
 export const categoriesTable = pgTable("categories", {
@@ -67,6 +67,7 @@ export const blogPostsTable = pgTable("blog_posts", {
   imageUrl: text("image_url"),
   author: text("author"),
   status: text("status").notNull().default("draft"),
+  scheduledAt: timestamp("scheduled_at"),
   metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -79,17 +80,27 @@ export const blogPostsTable = pgTable("blog_posts", {
 // ── Leads (contact form) ──────────────────────────────────────────────────────
 export const leadsTable = pgTable("leads", {
   id: serial("id").primaryKey(),
+  referenceNumber: text("reference_number").unique(),
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
   subject: text("subject"),
   message: text("message").notNull(),
   status: text("status").notNull().default("new"),
+  source: text("source").notNull().default("form"),
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  referrer: text("referrer"),
+  assignedTo: text("assigned_to"),
   followUpDone: boolean("follow_up_done").notNull().default(false),
   followUpDate: timestamp("follow_up_date"),
   followUpNotes: text("follow_up_notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => [
+  index("idx_leads_status_created_at").on(t.status, t.createdAt),
+  index("idx_leads_follow_up").on(t.followUpDone, t.followUpDate),
+]);
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
 export const pagesTable = pgTable("pages", {
@@ -100,6 +111,7 @@ export const pagesTable = pgTable("pages", {
   metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),
   isPublished: boolean("is_published").notNull().default(true),
+  scheduledAt: timestamp("scheduled_at"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
@@ -118,6 +130,8 @@ export const pageTemplatesTable = pgTable("page_templates", {
 // ── Quotes ────────────────────────────────────────────────────────────────────
 export const quotesTable = pgTable("quotes", {
   id: serial("id").primaryKey(),
+  referenceNumber: text("reference_number").unique(),
+  customerId: integer("customer_id").references(() => customersTable.id),
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
@@ -130,6 +144,11 @@ export const quotesTable = pgTable("quotes", {
   additionalNotes: text("additional_notes"),
   status: text("status").notNull().default("new"),
   source: text("source").default("form"),          // "form" | "clark"
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  referrer: text("referrer"),
+  assignedTo: text("assigned_to"),
   clarkSessionId: text("clark_session_id"),         // dedup Clark sessions
   clarkTranscript: text("clark_transcript"),        // full JSON messages array
   clarkLastActivity: timestamp("clark_last_activity"), // updated on every chat msg
@@ -143,7 +162,26 @@ export const quotesTable = pgTable("quotes", {
   followUpDate: timestamp("follow_up_date"),
   followUpNotes: text("follow_up_notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => [
+  index("idx_quotes_status_created_at").on(t.status, t.createdAt),
+  index("idx_quotes_follow_up").on(t.followUpDone, t.followUpDate),
+  index("idx_quotes_customer_id").on(t.customerId),
+]);
+
+// ── Clark conversations ───────────────────────────────────────────────────────
+// Stores every chat turn, including visitors who have not supplied an email yet.
+export const clarkConversationsTable = pgTable("clark_conversations", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().unique(),
+  transcript: text("transcript").notNull(),
+  ip: text("ip"),
+  country: text("country"),
+  city: text("city"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  lastActivity: timestamp("last_activity").notNull().defaultNow(),
+}, (t) => [
+  index("idx_clark_conversations_last_activity").on(t.lastActivity),
+]);
 
 // ── Banners ───────────────────────────────────────────────────────────────────
 export const bannersTable = pgTable("banners", {
@@ -211,6 +249,14 @@ export const siteSettingsTable = pgTable("site_settings", {
   metaDescription: text("meta_description"),
   // Announcement bar
   announcementBar: text("announcement_bar"),
+  // Public promotional popup configured from protected admin settings
+  popupEnabled: text("popup_enabled").default("true"),
+  popupBadge: text("popup_badge"),
+  popupTitle: text("popup_title"),
+  popupMessage: text("popup_message"),
+  popupButtonText: text("popup_button_text"),
+  popupButtonUrl: text("popup_button_url"),
+  popupImageUrl: text("popup_image_url"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -227,6 +273,13 @@ export const customersTable = pgTable("customers", {
   passwordHash: text("password_hash"),
   portalPassword: text("portal_password"),
   status: text("status").notNull().default("active"),
+  invitationTokenHash: text("invitation_token_hash"),
+  invitationExpiresAt: timestamp("invitation_expires_at"),
+  invitedAt: timestamp("invited_at"),
+  activatedAt: timestamp("activated_at"),
+  passwordResetTokenHash: text("password_reset_token_hash"),
+  passwordResetExpiresAt: timestamp("password_reset_expires_at"),
+  lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -234,7 +287,7 @@ export const customersTable = pgTable("customers", {
 // ── Orders ────────────────────────────────────────────────────────────────────
 export const ordersTable = pgTable("orders", {
   id: serial("id").primaryKey(),
-  orderNumber: text("order_number"),
+  orderNumber: text("order_number").unique(),
   customerId: integer("customer_id").references(() => customersTable.id),
   customerEmail: text("customer_email"),
   customerName: text("customer_name"),
@@ -256,7 +309,7 @@ export const invoicesTable = pgTable("invoices", {
   id: serial("id").primaryKey(),
   orderId: integer("order_id").references(() => ordersTable.id),
   customerId: integer("customer_id").references(() => customersTable.id),
-  invoiceNumber: text("invoice_number"),
+  invoiceNumber: text("invoice_number").unique(),
   customerEmail: text("customer_email"),
   customerName: text("customer_name"),
   customerCompany: text("customer_company"),
@@ -294,5 +347,179 @@ export const adminUsersTable = pgTable("admin_users", {
   totpEnabled: boolean("totp_enabled").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// ── Admin audit trail (automatically retained for seven days) ─────────────────
+export const adminAuditLogsTable = pgTable("admin_audit_logs", {
+  id: serial("id").primaryKey(),
+  adminUserId: integer("admin_user_id"),
+  actorId: text("actor_id"),
+  username: text("username").notNull(),
+  role: text("role").notNull(),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: text("entity_id"),
+  route: text("route").notNull(),
+  summary: text("summary").notNull(),
+  metadata: json("metadata").$type<Record<string, unknown>>().default({}),
+  integrityHash: text("integrity_hash"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_admin_audit_created_at").on(t.createdAt),
+  index("idx_admin_audit_username_created_at").on(t.username, t.createdAt),
+  index("idx_admin_audit_actor_created_at").on(t.actorId, t.createdAt),
+]);
+
+// ── CMS revision and approval history ─────────────────────────────────────────
+// Revisions are append-only. Base page/blog/template rows are only updated by
+// the Super Admin approval endpoint, so normal editors cannot publish directly.
+export const contentRevisionsTable = pgTable("content_revisions", {
+  id: serial("id").primaryKey(),
+  entityType: text("entity_type").notNull(), // page | blog | template
+  entityId: integer("entity_id").notNull(),
+  entityLabel: text("entity_label").notNull(),
+  payload: json("payload").$type<Record<string, unknown>>().notNull(),
+  status: text("status").notNull().default("pending"), // pending | approved | rejected | published
+  createdById: integer("created_by_id"),
+  createdByUsername: text("created_by_username"),
+  createdByRole: text("created_by_role"),
+  approvedById: integer("approved_by_id"),
+  approvedByUsername: text("approved_by_username"),
+  approvedAt: timestamp("approved_at"),
+  publishedAt: timestamp("published_at"),
+  rejectionReason: text("rejection_reason"),
+  previewToken: text("preview_token").notNull().unique(),
+  previewExpiresAt: timestamp("preview_expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_content_revisions_entity").on(t.entityType, t.entityId, t.createdAt),
+  index("idx_content_revisions_status_created").on(t.status, t.createdAt),
+]);
+
+// ── Media-library metadata and generated variants ─────────────────────────────
+export const mediaAssetsTable = pgTable("media_assets", {
+  id: serial("id").primaryKey(),
+  filename: text("filename").notNull().unique(),
+  originalName: text("original_name").notNull(),
+  url: text("url").notNull(),
+  mimeType: text("mime_type").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  altText: text("alt_text"),
+  variantUrls: json("variant_urls").$type<Record<string, unknown>>().default({}),
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_media_assets_created_at").on(t.createdAt),
+  index("idx_media_assets_mime_type").on(t.mimeType),
+]);
+
+// ── Audit retention configuration ─────────────────────────────────────────────
+export const adminAuditSettingsTable = pgTable("admin_audit_settings", {
+  id: serial("id").primaryKey(),
+  retentionDays: integer("retention_days").notNull().default(30),
+  sensitiveAlertEmail: text("sensitive_alert_email"),
+  sensitiveAlertsEnabled: boolean("sensitive_alerts_enabled").notNull().default(true),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ── Operational monitoring events ─────────────────────────────────────────────
+export const monitoringEventsTable = pgTable("monitoring_events", {
+  id: serial("id").primaryKey(),
+  eventType: text("event_type").notNull(), // api_latency | mutation_failure | auth_spike | media_failure | frontend_error | email_failure
+  severity: text("severity").notNull().default("info"),
+  route: text("route"),
+  method: text("method"),
+  statusCode: integer("status_code"),
+  durationMs: integer("duration_ms"),
+  message: text("message"),
+  metadata: json("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_monitoring_events_type_created").on(t.eventType, t.createdAt),
+  index("idx_monitoring_events_severity_created").on(t.severity, t.createdAt),
+]);
+
+// ── Security IP rules and login telemetry ────────────────────────────────────
+export const securityIpRulesTable = pgTable("security_ip_rules", {
+  id: serial("id").primaryKey(),
+  ipAddress: text("ip_address").notNull(),
+  ruleType: text("rule_type").notNull().default("blacklist"),
+  reason: text("reason"),
+  active: boolean("active").notNull().default(true),
+  expiresAt: timestamp("expires_at"),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("uq_security_ip_rule").on(t.ipAddress, t.ruleType),
+  index("idx_security_ip_active").on(t.active, t.ruleType),
+]);
+
+export const securityLoginAttemptsTable = pgTable("security_login_attempts", {
+  id: serial("id").primaryKey(),
+  ipAddress: text("ip_address").notNull(),
+  username: text("username"),
+  success: boolean("success").notNull().default(false),
+  captchaPassed: boolean("captcha_passed").notNull().default(false),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_security_attempts_ip_time").on(t.ipAddress, t.createdAt),
+  index("idx_security_attempts_username_time").on(t.username, t.createdAt),
+]);
+
+// ── Customer support tickets ─────────────────────────────────────────────────
+export const supportTicketsTable = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  referenceNumber: text("reference_number").notNull().unique(),
+  customerId: integer("customer_id").references(() => customersTable.id),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  subject: text("subject").notNull(),
+  status: text("status").notNull().default("new"),
+  priority: text("priority").notNull().default("normal"),
+  assignedTo: text("assigned_to"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_support_tickets_status_updated_at").on(t.status, t.updatedAt),
+  index("idx_support_tickets_email").on(t.email),
+]);
+
+export const supportTicketMessagesTable = pgTable("support_ticket_messages", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull().references(() => supportTicketsTable.id),
+  senderType: text("sender_type").notNull().default("customer"),
+  senderName: text("sender_name"),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_support_ticket_messages_ticket").on(t.ticketId, t.createdAt),
+]);
+
+// ── Admin-managed forms ──────────────────────────────────────────────────────
+export const customFormsTable = pgTable("custom_forms", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  fields: json("fields").$type<Array<{ key: string; label: string; type: string; required?: boolean }>>().notNull().default([]),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const formSubmissionsTable = pgTable("form_submissions", {
+  id: serial("id").primaryKey(),
+  formId: integer("form_id").notNull().references(() => customFormsTable.id),
+  data: json("data").$type<Record<string, unknown>>().notNull().default({}),
+  email: text("email"),
+  source: text("source"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_form_submissions_form_created_at").on(t.formId, t.createdAt),
+]);
 
 export * from "./menus";
