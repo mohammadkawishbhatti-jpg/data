@@ -2,7 +2,9 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { pageTemplatesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { requireAdmin } from "../middlewares/auth";
+import { requireCapability } from "../middlewares/auth";
+import { createContentRevision } from "../lib/content-revisions";
+import { sanitizeInlineDocument } from "../lib/inline-content";
 
 const router = Router();
 
@@ -72,7 +74,7 @@ const DEFAULTS: Record<string, any[]> = {
 };
 
 // GET /admin/templates/:type
-router.get("/admin/templates/:type", requireAdmin, async (req, res) => {
+router.get("/admin/templates/:type", requireCapability("content"), async (req, res) => {
   try {
     const type = String(req.params.type);
     if (!TEMPLATE_NAMES[type]) return res.status(404).json({ error: "Unknown template type" });
@@ -105,23 +107,29 @@ router.get("/templates/:type", async (req, res) => {
 });
 
 // PUT /admin/templates/:type
-router.put("/admin/templates/:type", requireAdmin, async (req, res) => {
+router.put("/admin/templates/:type", requireCapability("content"), async (req, res) => {
   try {
     const type = String(req.params.type);
     if (!TEMPLATE_NAMES[type]) return res.status(404).json({ error: "Unknown template type" });
     const { content } = req.body;
     if (typeof content !== "string") return res.status(400).json({ error: "content must be a JSON string" });
+    const sanitizedContent = sanitizeInlineDocument(content);
 
     const [existing] = await db.select().from(pageTemplatesTable).where(eq(pageTemplatesTable.type, type));
     let row;
     if (existing) {
-      [row] = await db.update(pageTemplatesTable)
-        .set({ content, updatedAt: new Date() })
-        .where(eq(pageTemplatesTable.id, existing.id)).returning();
+      row = existing;
     } else {
-      [row] = await db.insert(pageTemplatesTable).values({ type, name: TEMPLATE_NAMES[type], content }).returning();
+      [row] = await db.insert(pageTemplatesTable).values({ type, name: TEMPLATE_NAMES[type], content: null }).returning();
     }
-    res.json(row);
+    const revision = await createContentRevision({
+      entityType: "template",
+      entityId: row.id,
+      entityLabel: row.name,
+      payload: { type, content: sanitizedContent },
+      req,
+    });
+    res.status(202).json({ ...row, content: existing?.content ?? null, workflow: "pending", revisionId: revision.id, previewToken: revision.previewToken });
   } catch (e) {
     res.status(500).json({ error: "Internal server error" });
   }
