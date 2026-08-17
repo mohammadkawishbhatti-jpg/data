@@ -5,3 +5,4 @@
 - [DynamicData Type Scope](dynamic-data-scope.md) — TemplateRenderer DynamicData only has category/product (singular); pages using products[] must cast dynamicData as any
 - [React Hooks Early Return](react-hooks-early-return.md) — ProductsPage had useMemo after early templateContent return; all hooks must precede early returns
 - [Sticky Gallery Overflow](sticky-gallery-overflow.md) — sticky product galleries require overflow-x: clip rather than body overflow-x: hidden
+- [GitHub Publish Path](github-publish-path.md) — when Git transport rejects credentials, use the authorized GitHub client rather than exposing or requesting a token
