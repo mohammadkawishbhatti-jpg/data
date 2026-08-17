@@ -123,6 +123,7 @@ export function ChatWidget() {
       let buffer = "";
       let fullContent = "";
       const msgTs = new Date();
+      let streamFinished = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -145,18 +146,32 @@ export function ChatWidget() {
               });
             }
             if (data.done) {
-              setMessages(prev => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last?.streaming)
-                  updated[updated.length - 1] = { role: "assistant", content: fullContent || last.content, ts: msgTs };
-                return updated;
-              });
+              streamFinished = true;
+              if (data.interrupted) {
+                const interruption = fullContent
+                  ? `${fullContent}\n\nClark's response was interrupted. Please try again, or call us at 818-758-4076 or email help@primepackagingboxes.com.`
+                  : "Clark's response was interrupted. Please try again, or call us at 818-758-4076 or email help@primepackagingboxes.com.";
+                setMessages(prev => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last?.streaming) updated[updated.length - 1] = { role: "assistant", content: interruption, ts: msgTs };
+                  return updated;
+                });
+              } else {
+                setMessages(prev => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last?.streaming)
+                    updated[updated.length - 1] = { role: "assistant", content: fullContent || last.content, ts: msgTs };
+                  return updated;
+                });
+              }
               if (!open) setUnread(u => u + 1);
             }
           } catch { /* skip malformed */ }
         }
       }
+      if (!streamFinished) throw new Error("Chat stream ended before completion");
     } catch (err: any) {
       if (err.name === "AbortError") return;
       setMessages(prev => {
