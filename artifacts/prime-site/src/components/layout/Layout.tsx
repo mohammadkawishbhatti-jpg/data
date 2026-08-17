@@ -3,8 +3,8 @@ import { AnnouncementBar } from "./AnnouncementBar";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { WhatsAppButton } from "../ui/WhatsAppButton";
-import { AdminInlinePageEditor } from "../AdminInlinePageEditor";
-import { AdminToolbar } from "./AdminToolbar";
+import { DeferredAdminEnhancements } from "../DeferredAdminEnhancements";
+import { PromotionPopup } from "../PromotionPopup";
 
 // Lazy-load chat widget — non-critical, deferred after main content
 const ChatWidget = lazy(() => import("../ChatWidget").then(m => ({ default: m.ChatWidget })));
@@ -15,18 +15,18 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   return (
-    <div className="flex flex-col min-h-[100dvh] w-full">
-      <AdminToolbar />
-      <AnnouncementBar />
-      <Header />
-      <main className="flex-1 flex flex-col">
-        <AdminInlinePageEditor>{children}</AdminInlinePageEditor>
-      </main>
-      <Footer />
-      <WhatsAppButton />
-      <Suspense fallback={null}>
-        <ChatWidget />
-      </Suspense>
-    </div>
+    <DeferredAdminEnhancements>
+      <div className="flex flex-col min-h-[100dvh] w-full">
+        <AnnouncementBar />
+        <Header />
+        <main data-inline-page-root className="flex-1 flex flex-col">{children}</main>
+        <Footer />
+        <WhatsAppButton />
+        <Suspense fallback={null}>
+          <ChatWidget />
+        </Suspense>
+        <PromotionPopup />
+      </div>
+    </DeferredAdminEnhancements>
   );
 }

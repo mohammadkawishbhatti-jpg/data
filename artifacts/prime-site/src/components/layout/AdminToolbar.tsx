@@ -1,22 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowUpRight, ShieldCheck, X } from "lucide-react";
 
 type AdminUser = { username?: string; role?: string };
 
-export function AdminToolbar() {
-  const [admin, setAdmin] = useState<AdminUser | null>(null);
+export function AdminToolbar({ admin }: { admin: AdminUser }) {
   const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/admin/me", { credentials: "include" })
-      .then(response => response.ok ? response.json() : null)
-      .then(user => { if (active && user) setAdmin(user); })
-      .catch(() => {});
-    return () => { active = false; };
-  }, []);
-
-  if (!admin || dismissed) return null;
+  if (dismissed) return null;
 
   return (
     <div className="relative z-[70] border-b border-[#2b4770] bg-[#0d1f3c] text-white shadow-[0_2px_12px_rgba(13,31,60,0.2)]">

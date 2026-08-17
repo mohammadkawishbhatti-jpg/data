@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Loader2, Pencil, X } from "lucide-react";
 import { useLocation } from "wouter";
 
@@ -31,7 +31,7 @@ type InlineDocument = {
   overrides: Record<string, string>;
 };
 
-type TemplateType = "product" | "category" | "blog";
+type TemplateType = "product" | "category" | "shop" | "blog";
 
 type ContentResource =
   | { kind: "page"; slug: string; id: number }
@@ -48,13 +48,14 @@ function pageSlugForPathname(pathname: string): string | null {
 }
 
 function directTemplateTypeForPathname(pathname: string): TemplateType | null {
+  if (pathname === "/products" || pathname === "/shop") return "shop";
   if (pathname === "/blog") return "blog";
   if (pathname.startsWith("/products/")) return "product";
   return null;
 }
 
 function templateLabel(type: TemplateType): string {
-  return type === "product" ? "Product" : type === "category" ? "Category" : "Blog";
+  return type === "product" ? "Product" : type === "category" ? "Category" : type === "shop" ? "Shop" : "Blog";
 }
 
 function parseInlineDocument(content: unknown): InlineDocument {
@@ -132,15 +133,15 @@ function setEditingState(elements: HTMLElement[], editing: boolean) {
   });
 }
 
-export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
+export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticated: boolean }) {
   const [location] = useLocation();
   const pathname = useMemo(() => pathnameForLocation(location), [location]);
   const pageSlug = useMemo(() => pageSlugForPathname(pathname), [pathname]);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLElement | null>(null);
   const elementsRef = useRef<HTMLElement[]>([]);
   const originalValuesRef = useRef<Map<string, string>>(new Map());
   const storedContentRef = useRef<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(adminAuthenticated);
   const [resource, setResource] = useState<ContentResource | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -158,6 +159,7 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     let intervalId: number | undefined;
+    rootRef.current = document.querySelector<HTMLElement>("[data-inline-page-root]");
     const load = async () => {
       try {
         let resolvedTemplateType = directTemplateTypeForPathname(pathname);
@@ -167,8 +169,9 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
             const resolveResponse = await fetch(`/api/resolve/${encodeURIComponent(slugMatch[1])}`);
             if (resolveResponse.ok) {
               const resolved = await resolveResponse.json();
-              if (resolved.type === "product" || resolved.type === "category") {
+              if (resolved.type === "product" || resolved.type === "category" || resolved.type === "blogPost") {
                 resolvedTemplateType = resolved.type;
+                if (resolved.type === "blogPost") resolvedTemplateType = "blog";
               }
             }
           }
@@ -179,22 +182,17 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
         const publicUrl = pageSlug
           ? `/api/pages/${encodeURIComponent(pageSlug)}`
           : `/api/templates/${resolvedTemplateType}`;
-        const [publicResponse, adminResponse] = await Promise.all([
-          fetch(publicUrl, { credentials: "include" }),
-          fetch("/api/admin/me", { credentials: "include" }),
-        ]);
+        const publicResponse = await fetch(publicUrl, { credentials: "include" });
 
         const publicData = publicResponse.ok ? await publicResponse.json() : null;
         let page = publicData;
-        let admin = false;
         let nextResource: ContentResource | null = pageSlug
           ? null
           : resolvedTemplateType
             ? { kind: "template", type: resolvedTemplateType }
             : null;
 
-        if (adminResponse.ok) {
-          admin = true;
+        if (adminAuthenticated) {
           if (pageSlug) {
             if (pageSlug === "home") {
               const adminHomeResponse = await fetch("/api/admin/pages/home", { credentials: "include" });
@@ -222,18 +220,19 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
         }
 
         if (cancelled) return;
-        setIsAdmin(admin);
+        setIsAdmin(adminAuthenticated);
         if (nextResource) setResource(nextResource);
         storedContentRef.current = page?.content ?? null;
         const document = parseInlineDocument(page?.content);
 
         const applyWhenReady = () => {
           if (cancelled || !rootRef.current) return;
-          const root = rootRef.current;
-          const elements = editableElements(root);
+           const root = rootRef.current;
+           const contentRoot = contentRootForResource(root, nextResource);
+           const elements = editableElements(contentRoot);
           if (!elements.length) return;
-          applyOverrides(contentRootForResource(root, nextResource), document.overrides);
-          elementsRef.current = editableElements(root);
+           applyOverrides(contentRoot, document.overrides);
+           elementsRef.current = editableElements(contentRoot);
           if (intervalId) window.clearInterval(intervalId);
         };
 
@@ -253,16 +252,16 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
       if (intervalId) window.clearInterval(intervalId);
       setEditingState(elementsRef.current, false);
     };
-  }, [pageSlug, pathname]);
+  }, [adminAuthenticated, pageSlug, pathname]);
 
   useEffect(() => {
     if (!isEditing) return;
     const root = rootRef.current;
     if (!root) return;
 
-    const elements = editableElements(root);
-    elementsRef.current = elements;
     const contentRoot = contentRootForResource(root, resource);
+    const elements = editableElements(contentRoot);
+    elementsRef.current = elements;
     originalValuesRef.current = new Map(
       elements.map((element) => [elementPath(element, contentRoot), element.textContent ?? ""]),
     );
@@ -353,9 +352,6 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <div ref={rootRef} data-inline-page-root className="contents">
-        {children}
-      </div>
       {isAdmin && resource && (
         <div
           data-inline-editor-ui
@@ -377,13 +373,13 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-[#e63329] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c42a21] disabled:opacity-60"
               >
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                {isSaving
-                  ? "Saving..."
+                 {isSaving
+                   ? "Submitting..."
                   : resource.kind === "template"
-                    ? "Save Template"
+                     ? "Submit Template"
                     : resource.slug === "home"
-                      ? "Save Home Page"
-                      : "Save Page"}
+                       ? "Submit Home Page"
+                       : "Submit Page"}
               </button>
             </>
           ) : (
@@ -400,7 +396,8 @@ export function AdminInlinePageEditor({ children }: { children: ReactNode }) {
                   : "Edit Page"}
             </button>
           )}
-          {saved && !isEditing && <span className="text-xs font-medium text-emerald-600">Saved</span>}
+           {saved && !isEditing && <span className="text-xs font-medium text-emerald-600">Submitted for approval</span>}
+           {!isEditing && <span className="hidden text-[11px] text-slate-500 xl:inline">Changes go live after Super Admin approval</span>}
           {error && <span className="max-w-52 text-xs font-medium text-red-600">{error}</span>}
         </div>
       )}

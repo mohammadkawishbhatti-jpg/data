@@ -16,7 +16,7 @@ import { format } from "date-fns";
 
 const slugify = (text: string) => text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-');
 
-/** Maps DB slugs → actual live URLs (some differ from slug due to SmartPage routing) */
+/** Maps DB slugs → actual live URLs where a public route differs from the stored slug. */
 const SLUG_TO_URL: Record<string, string> = {
   'about-us':               '/about',
   'contact-us':             '/contact',
