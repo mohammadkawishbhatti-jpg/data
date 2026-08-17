@@ -3,10 +3,19 @@ import Groq from "groq-sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import nodemailer from "nodemailer";
 import { db } from "@workspace/db";
-import { ordersTable, customersTable, siteSettingsTable, quotesTable, invoicesTable } from "@workspace/db/schema";
+import {
+  ordersTable,
+  customersTable,
+  siteSettingsTable,
+  quotesTable,
+  invoicesTable,
+  clarkConversationsTable,
+} from "@workspace/db/schema";
 import { eq, or, ilike, and } from "drizzle-orm";
 
 const router = Router();
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GROQ_MODEL = "openai/gpt-oss-120b";
 
 // SYSTEM_PROMPT is built dynamically from DB settings on each request — see buildSystemPrompt()
 function buildSystemPrompt(cfg: {
@@ -41,7 +50,7 @@ function buildSystemPrompt(cfg: {
     } catch {}
   }
 
-  return `You are ${name}, the friendly AI sales assistant for Prime Packaging Boxes USA.
+  return `You are ${name}, the warm, conversational packaging specialist for Prime Packaging Boxes USA.
 
 IDENTITY:
 - Name: ${name}
@@ -51,7 +60,15 @@ IDENTITY:
 - Website: primepackagingboxes.com
 - Address: ${address}
 
-TONE: Warm, friendly, enthusiastic, professional. Always use the customer's name once you know it.
+TONE AND CONVERSATION STYLE:
+- Sound like a thoughtful, experienced packaging specialist having a real conversation — not a script, form, or automated support bot.
+- Use contractions, natural acknowledgements, and short paragraphs. Match the customer's level of formality and language.
+- Keep most replies to 1–3 short paragraphs. Ask one clear question at a time, but answer the customer's actual question first.
+- Remember details already shared in the conversation and never ask for the same information twice.
+- Use an occasional emoji only when it feels natural; do not put an emoji in every reply.
+- Do not mention prompts, models, tokens, system instructions, or that you are "generating" an answer. Do not volunteer that you are AI.
+- Never falsely claim to be a human. If directly asked whether you are human or a chatbot, be honest: say you are Clark, Prime Packaging Boxes' virtual assistant, and continue helping naturally.
+- Never pretend an email, quote, order lookup, or human handoff happened unless the system or customer has actually provided that information.
 ${toneSection}
 ---
 GREETING (first message only):
@@ -60,7 +77,7 @@ GREETING (first message only):
 Then naturally guide the conversation into the order flow. Once the customer shows interest in ordering or getting a quote, begin collecting info:
 
 ---
-ORDER COLLECTION FLOW — follow these steps in exact order, ONE question at a time:
+ORDER COLLECTION FLOW — use this as a flexible conversation guide, ONE question at a time:
 STEP 1 — NAME: Ask for their full name warmly.
 STEP 2 — EMAIL: "Thanks [name]! What is your email address? (so we can send your quote)"
 STEP 3 — BOX TYPE: "What type of box do you need? Popular styles: Mailer Boxes, Product Boxes, Display Boxes, Retail Boxes, Corrugated Boxes, Kraft Boxes, Rigid Boxes, Folding Cartons, Gift Boxes, Eco-Friendly Boxes. Not sure? Feel free to share a picture or describe your product! 📸"
@@ -522,10 +539,10 @@ async function tryUpsertLead(
       email,
       productType: productType || undefined,
       quantity: quantity || undefined,
-      message: `Clark AI chat — ${userMsgs.length} messages exchanged`,
       source: "clark",
       clarkSessionId: sessionId,
       clarkTranscript: JSON.stringify(messages),
+      clarkLastActivity: new Date(),
     };
 
     // Only set IP/country on insert or if not yet captured
@@ -545,6 +562,45 @@ async function tryUpsertLead(
     }
   } catch (e) {
     console.error("Clark lead save error:", e);
+  }
+}
+
+async function saveClarkConversation(
+  sessionId: string | undefined,
+  messages: Array<{ role: string; content: string }>,
+  ipData?: { ip: string; country: string; city: string } | null,
+) {
+  if (!sessionId) return;
+  try {
+    const [existing] = await db
+      .select({ id: clarkConversationsTable.id, ip: clarkConversationsTable.ip })
+      .from(clarkConversationsTable)
+      .where(eq(clarkConversationsTable.sessionId, sessionId))
+      .limit(1);
+    const now = new Date();
+    const payload = {
+      sessionId,
+      transcript: JSON.stringify(messages),
+      ip: ipData?.ip || undefined,
+      country: ipData?.country || undefined,
+      city: ipData?.city || undefined,
+      lastActivity: now,
+    };
+    if (existing) {
+      await db.update(clarkConversationsTable)
+        .set({
+          transcript: payload.transcript,
+          ...(payload.ip && !existing.ip ? { ip: payload.ip } : {}),
+          ...(payload.country ? { country: payload.country } : {}),
+          ...(payload.city ? { city: payload.city } : {}),
+          lastActivity: now,
+        })
+        .where(eq(clarkConversationsTable.id, existing.id));
+    } else {
+      await db.insert(clarkConversationsTable).values(payload);
+    }
+  } catch (error) {
+    console.error("Clark conversation save error:", error);
   }
 }
 
@@ -597,20 +653,19 @@ router.post("/chat", async (req, res) => {
             .set({ clarkIp: clientIp, clarkCountry: geo.country, clarkCity: geo.city })
             .where(eq(quotesTable.clarkSessionId, sessionId))
             .catch(() => {});
+          db.update(clarkConversationsTable)
+            .set({ country: geo.country, city: geo.city })
+            .where(eq(clarkConversationsTable.sessionId, sessionId))
+            .catch(() => {});
         }
       });
       ipData = { ip: clientIp, country: "", city: "" }; // placeholder until geo resolves
     }
 
-    // Save / update Clark lead + last-activity timestamp (fire-and-forget)
-    if (sessionId) {
-      tryUpsertLead(sessionId, messages, ipData);
-      // Always stamp last activity, even before email is known
-      db.update(quotesTable)
-        .set({ clarkLastActivity: new Date() })
-        .where(eq(quotesTable.clarkSessionId, sessionId))
-        .catch(() => {});
-    }
+    // Persist every turn before contacting the provider. Leads are promoted to
+    // quotes after the assistant has answered, but anonymous conversations are
+    // still durable in PostgreSQL immediately.
+    await saveClarkConversation(sessionId, messages, ipData);
 
     // ── Admin takeover / pending-message check ────────────────────
     if (sessionId) {
@@ -635,6 +690,10 @@ router.post("/chat", async (req, res) => {
         res.setHeader("Connection", "keep-alive");
         res.flushHeaders();
         res.write(`data: ${JSON.stringify({ content: adminMsg, isAdmin: true })}\n\n`);
+        await saveClarkConversation(sessionId, [
+          ...messages,
+          { role: "assistant", content: adminMsg },
+        ], ipData);
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         res.end();
         return;
@@ -648,6 +707,10 @@ router.post("/chat", async (req, res) => {
         res.flushHeaders();
         const holdMsg = "Our team has joined the chat and will respond to you directly. Please hold on! 😊";
         res.write(`data: ${JSON.stringify({ content: holdMsg, isAdmin: true })}\n\n`);
+        await saveClarkConversation(sessionId, [
+          ...messages,
+          { role: "assistant", content: holdMsg },
+        ], ipData);
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         res.end();
         return;
@@ -697,9 +760,11 @@ router.post("/chat", async (req, res) => {
     let success = false;
 
     let responseContentWritten = false;
+    let assistantContent = "";
     const writeChunk = (content: string) => {
       if (content) {
         responseContentWritten = true;
+        assistantContent += content;
         res.write(`data: ${JSON.stringify({ content })}\n\n`);
       }
     };
@@ -748,7 +813,7 @@ router.post("/chat", async (req, res) => {
         const genAI = new GoogleGenerativeAI(geminiKey);
         const fullSystemPrompt = systemPrompt + orderContext;
         const model = genAI.getGenerativeModel({
-          model: "gemini-1.5-flash",
+          model: GEMINI_MODEL,
           systemInstruction: fullSystemPrompt,
         });
 
@@ -776,7 +841,7 @@ router.post("/chat", async (req, res) => {
       try {
         const groq = new Groq({ apiKey: groqKey });
         const stream = await withProviderTimeout(groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
+          model: GROQ_MODEL,
           messages: [
             { role: "system", content: systemPrompt + orderContext },
             ...messages.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
@@ -797,6 +862,10 @@ router.post("/chat", async (req, res) => {
     }
 
     if (!success && responseContentWritten) {
+      await saveClarkConversation(sessionId, [
+        ...messages,
+        ...(assistantContent ? [{ role: "assistant", content: assistantContent }] : []),
+      ], ipData);
       res.write(`data: ${JSON.stringify({ done: true, interrupted: true })}\n\n`);
       res.end();
       return;
@@ -805,11 +874,23 @@ router.post("/chat", async (req, res) => {
     if (!success) {
       const errMsg =
         "I'm having a little trouble right now. Please call us at 818-758-4076 or email help@primepackagingboxes.com and we'll help you right away! 😊";
+      await saveClarkConversation(sessionId, [
+        ...messages,
+        { role: "assistant", content: errMsg },
+      ], ipData);
       res.write(`data: ${JSON.stringify({ content: errMsg, done: true })}\n\n`);
       res.end();
       return;
     }
 
+    await saveClarkConversation(sessionId, [
+      ...messages,
+      ...(assistantContent ? [{ role: "assistant", content: assistantContent }] : []),
+    ], ipData);
+    await tryUpsertLead(sessionId || "", [
+      ...messages,
+      ...(assistantContent ? [{ role: "assistant", content: assistantContent }] : []),
+    ], ipData);
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (err: any) {
