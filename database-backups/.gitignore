@@ -1,0 +1,6 @@
+# Database exports can contain customer records, sessions, admin data, and
+# encrypted/secret settings. Keep every generated backup local to this Repl.
+*
+!.gitignore
+!README.md
+!backup-db.sh
