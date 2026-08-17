@@ -1,5 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Loader2, Pencil, X } from "lucide-react";
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  Check,
+  Eraser,
+  Italic,
+  Link2,
+  List,
+  ListOrdered,
+  Loader2,
+  Pencil,
+  Redo2,
+  Strikethrough,
+  Underline,
+  Undo2,
+  Unlink,
+  X,
+} from "lucide-react";
 import { useLocation } from "wouter";
 
 const INLINE_DOCUMENT_MARKER = "__prime_inline_page_v1";
@@ -23,8 +42,16 @@ const CANONICAL_PAGE_SLUGS: Record<string, string> = {
 const EDITABLE_TAGS = [
   "h1", "h2", "h3", "h4", "h5", "h6", "p", "span", "div", "li",
   "a", "button", "label", "strong", "em", "b", "i", "small", "dt",
-  "dd", "th", "td",
+  "dd", "th", "td", "ul", "ol", "blockquote",
 ].join(",");
+const INLINE_FORMATTING_TAGS = new Set([
+  "a", "b", "br", "em", "i", "mark", "s", "span", "strong", "u",
+]);
+const ALLOWED_RICH_TAGS = new Set([
+  "a", "b", "blockquote", "br", "em", "h1", "h2", "h3", "h4", "h5",
+  "h6", "i", "li", "mark", "ol", "p", "s", "strong", "u", "ul",
+]);
+const INLINE_OVERRIDE_MARKER = "__prime_inline_override_v1";
 
 type InlineDocument = {
   baseContent: string | null;
@@ -94,15 +121,29 @@ function elementPath(element: HTMLElement, root: HTMLElement): string {
 function isEditableTextElement(element: HTMLElement): boolean {
   if (element.closest("[data-inline-dynamic='true']")) return false;
   if (!element.textContent?.trim()) return false;
-  if (element.children.length > 0) return false;
-  if (element.matches("script,style,svg,input,textarea,select")) return false;
-  if (element.querySelector("svg,img,input,textarea,select")) return false;
+  if (element.matches("script,style,svg,img,input,textarea,select,video,iframe")) return false;
+  if (element.querySelector("script,style,svg,img,input,textarea,select,video,iframe")) return false;
+  if (element.children.length > 0) {
+    const tag = element.tagName.toLowerCase();
+    const hasOnlyFormatting = tag === "ul" || tag === "ol"
+      ? Array.from(element.children).every((child) => child.tagName.toLowerCase() === "li")
+      : tag === "blockquote"
+        ? Array.from(element.children).every((child) => ["p", "div", "span"].includes(child.tagName.toLowerCase()))
+        : Array.from(element.children).every((child) =>
+          INLINE_FORMATTING_TAGS.has(child.tagName.toLowerCase()),
+        );
+    if (!hasOnlyFormatting) return false;
+  }
   return true;
 }
 
 function editableElements(root: HTMLElement): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>(EDITABLE_TAGS))
+  const candidates = Array.from(root.querySelectorAll<HTMLElement>(EDITABLE_TAGS))
     .filter(isEditableTextElement);
+  return candidates.filter((element) => {
+    const ancestor = element.parentElement?.closest<HTMLElement>(EDITABLE_TAGS);
+    return !ancestor || !isEditableTextElement(ancestor);
+  });
 }
 
 function contentRootForResource(root: HTMLElement, resource: ContentResource | null): HTMLElement {
@@ -112,10 +153,90 @@ function contentRootForResource(root: HTMLElement, resource: ContentResource | n
   return root;
 }
 
+function sanitizeRichHtml(html: string): string {
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  const clean = (node: Node) => {
+    Array.from(node.childNodes).forEach((child) => {
+      if (child.nodeType === Node.TEXT_NODE) return;
+      if (child.nodeType !== Node.ELEMENT_NODE) {
+        child.remove();
+        return;
+      }
+      const element = child as HTMLElement;
+      const tag = element.tagName.toLowerCase();
+      if (!ALLOWED_RICH_TAGS.has(tag)) {
+        if (tag === "script" || tag === "style" || tag === "iframe" || tag === "object") {
+          element.remove();
+        } else {
+          while (element.firstChild) element.parentNode?.insertBefore(element.firstChild, element);
+          element.remove();
+        }
+        return;
+      }
+      Array.from(element.attributes).forEach((attribute) => {
+        const name = attribute.name.toLowerCase();
+        const allowed = tag === "a" && ["href", "target", "rel", "title"].includes(name);
+        if (!allowed) element.removeAttribute(attribute.name);
+      });
+      if (tag === "a") {
+        const href = element.getAttribute("href")?.trim() ?? "";
+        if (href && !/^(https?:|mailto:|tel:|\/|#)/i.test(href)) {
+          element.removeAttribute("href");
+        }
+        if (element.getAttribute("target") === "_blank") {
+          element.setAttribute("rel", "noopener noreferrer");
+        }
+      }
+      clean(element);
+    });
+  };
+  clean(template.content);
+  return template.innerHTML;
+}
+
+function parseOverride(value: string, fallbackTag: string): { tag: string; html: string } {
+  try {
+    const parsed = JSON.parse(value);
+    if (parsed?.[INLINE_OVERRIDE_MARKER] === true && typeof parsed.html === "string") {
+      return {
+        tag: typeof parsed.tag === "string" && /^(h[1-6]|p|div|span|li|a|button|label|small|dt|dd|th|td|ul|ol|blockquote)$/i.test(parsed.tag)
+          ? parsed.tag.toLowerCase()
+          : fallbackTag,
+        html: sanitizeRichHtml(parsed.html),
+      };
+    }
+  } catch {
+    // Older revisions stored plain text. It remains valid rich-text content.
+  }
+  return { tag: fallbackTag, html: sanitizeRichHtml(value) };
+}
+
+function serializeOverride(element: HTMLElement): string {
+  return JSON.stringify({
+    [INLINE_OVERRIDE_MARKER]: true,
+    tag: element.tagName.toLowerCase(),
+    html: sanitizeRichHtml(element.innerHTML),
+  });
+}
+
 function applyOverrides(root: HTMLElement, overrides: Record<string, string>) {
-  Object.entries(overrides).forEach(([path, text]) => {
+  Object.entries(overrides).forEach(([path, value]) => {
     const element = root.querySelector<HTMLElement>(path);
-    if (element && isEditableTextElement(element)) element.textContent = text;
+    if (!element || !isEditableTextElement(element)) return;
+    const override = parseOverride(value, element.tagName.toLowerCase());
+    if (override.tag !== element.tagName.toLowerCase()) {
+      const replacement = document.createElement(override.tag);
+      Array.from(element.attributes).forEach((attribute) => {
+        if (attribute.name !== "contenteditable") replacement.setAttribute(attribute.name, attribute.value);
+      });
+      replacement.dataset.inlineOverridePath = path;
+      replacement.innerHTML = override.html;
+      element.replaceWith(replacement);
+    } else {
+      element.innerHTML = override.html;
+      element.dataset.inlineOverridePath = path;
+    }
   });
 }
 
@@ -129,8 +250,13 @@ function setEditingState(elements: HTMLElement[], editing: boolean) {
       element.contentEditable = "false";
       element.removeAttribute("contenteditable");
       element.classList.remove("prime-inline-editable");
+      delete element.dataset.inlineOverridePath;
     }
   });
+}
+
+function stableElementPath(element: HTMLElement, root: HTMLElement): string {
+  return element.dataset.inlineOverridePath || elementPath(element, root);
 }
 
 export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticated: boolean }) {
@@ -147,6 +273,45 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [activeBlock, setActiveBlock] = useState("p");
+
+  const refreshToolbarState = () => {
+    try {
+      const selection = window.getSelection();
+      const anchor = selection?.anchorNode instanceof HTMLElement
+        ? selection.anchorNode
+        : selection?.anchorNode?.parentElement;
+      const editable = anchor?.closest<HTMLElement>("[contenteditable='true']");
+      if (editable) {
+        setActiveBlock(editable.tagName.toLowerCase());
+      }
+    } catch {
+      // Browser selection APIs are not available during some focus transitions.
+    }
+  };
+
+  const runCommand = (command: string, value?: string) => {
+    if (!isEditing) return;
+    document.execCommand(command, false, value);
+    refreshToolbarState();
+    setSaved(false);
+  };
+
+  const insertLink = () => {
+    const selection = window.getSelection();
+    const existingLink = selection?.anchorNode instanceof HTMLElement
+      ? selection.anchorNode.closest("a")
+      : selection?.anchorNode?.parentElement?.closest("a");
+    const url = window.prompt("Enter a safe link URL", existingLink?.getAttribute("href") ?? "https://");
+    if (url === null) return;
+    const trimmed = url.trim();
+    if (!trimmed || !/^(https?:|mailto:|tel:|\/|#)/i.test(trimmed)) {
+      setError("Use an https, mailto, tel, relative, or anchor link.");
+      return;
+    }
+    runCommand("createLink", trimmed);
+    setError("");
+  };
 
   useEffect(() => {
     setIsAdmin(false);
@@ -263,9 +428,14 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
     const elements = editableElements(contentRoot);
     elementsRef.current = elements;
     originalValuesRef.current = new Map(
-      elements.map((element) => [elementPath(element, contentRoot), element.textContent ?? ""]),
+      elements.map((element) => {
+        const path = elementPath(element, contentRoot);
+        element.dataset.inlineOverridePath = path;
+        return [path, element.outerHTML];
+      }),
     );
     setEditingState(elements, true);
+    refreshToolbarState();
 
     const preventNavigation = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -275,14 +445,20 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
       }
     };
     const preventLineBreaks = (event: KeyboardEvent) => {
-      if (event.key === "Enter") event.preventDefault();
+      if (event.key === "Enter" && !event.shiftKey && !(event.target as HTMLElement).closest("li")) {
+        event.preventDefault();
+      }
     };
     root.addEventListener("click", preventNavigation, true);
     root.addEventListener("keydown", preventLineBreaks, true);
+    root.addEventListener("keyup", refreshToolbarState, true);
+    root.addEventListener("mouseup", refreshToolbarState, true);
 
     return () => {
       root.removeEventListener("click", preventNavigation, true);
       root.removeEventListener("keydown", preventLineBreaks, true);
+      root.removeEventListener("keyup", refreshToolbarState, true);
+      root.removeEventListener("mouseup", refreshToolbarState, true);
     };
   }, [isEditing]);
 
@@ -296,12 +472,18 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
     const root = rootRef.current;
     if (root) {
       const contentRoot = contentRootForResource(root, resource);
-      originalValuesRef.current.forEach((text, path) => {
+      originalValuesRef.current.forEach((outerHtml, path) => {
         const element = contentRoot.querySelector<HTMLElement>(path);
-        if (element && isEditableTextElement(element)) element.textContent = text;
+        if (element) {
+          element.outerHTML = outerHtml;
+        }
       });
     }
-    setEditingState(elementsRef.current, false);
+    const refreshedElements = root
+      ? editableElements(contentRootForResource(root, resource))
+      : elementsRef.current;
+    elementsRef.current = refreshedElements;
+    setEditingState(refreshedElements, false);
     setIsEditing(false);
     setError("");
   };
@@ -316,7 +498,7 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
     const contentRoot = contentRootForResource(root, resource);
     const overrides: Record<string, string> = {};
     elementsRef.current.forEach((element) => {
-      overrides[elementPath(element, contentRoot)] = element.textContent ?? "";
+      overrides[stableElementPath(element, contentRoot)] = serializeOverride(element);
     });
 
     const existing = parseInlineDocument(storedContentRef.current);
@@ -355,32 +537,53 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
       {isAdmin && resource && (
         <div
           data-inline-editor-ui
-          className="fixed right-4 top-4 z-[100] flex items-center gap-2 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 shadow-xl backdrop-blur"
+          className="fixed right-4 top-4 z-[100] max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white/95 p-2 shadow-xl backdrop-blur"
         >
           {isEditing ? (
             <>
-              <button
-                type="button"
-                onClick={cancelEditing}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"
-              >
-                <X className="h-4 w-4" /> Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => void saveEditing()}
-                disabled={isSaving}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#e63329] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c42a21] disabled:opacity-60"
-              >
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                 {isSaving
-                   ? "Submitting..."
-                  : resource.kind === "template"
-                     ? "Submit Template"
-                    : resource.slug === "home"
-                       ? "Submit Home Page"
-                       : "Submit Page"}
-              </button>
+              <div className="flex max-w-full flex-wrap items-center gap-1">
+                <select
+                  value={/^h[1-6]$/.test(activeBlock) ? activeBlock : "p"}
+                  onChange={(event) => runCommand("formatBlock", event.target.value)}
+                  className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700"
+                  aria-label="Text style"
+                >
+                  <option value="p">Paragraph</option>
+                  <option value="h1">Heading 1</option>
+                  <option value="h2">Heading 2</option>
+                  <option value="h3">Heading 3</option>
+                  <option value="h4">Heading 4</option>
+                  <option value="h5">Heading 5</option>
+                  <option value="h6">Heading 6</option>
+                </select>
+                <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden="true" />
+                <button type="button" title="Bold" onMouseDown={(event) => { event.preventDefault(); runCommand("bold"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Bold"><Bold className="h-4 w-4" /></button>
+                <button type="button" title="Italic" onMouseDown={(event) => { event.preventDefault(); runCommand("italic"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Italic"><Italic className="h-4 w-4" /></button>
+                <button type="button" title="Underline" onMouseDown={(event) => { event.preventDefault(); runCommand("underline"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Underline"><Underline className="h-4 w-4" /></button>
+                <button type="button" title="Strikethrough" onMouseDown={(event) => { event.preventDefault(); runCommand("strikeThrough"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Strikethrough"><Strikethrough className="h-4 w-4" /></button>
+                <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden="true" />
+                <button type="button" title="Bulleted list" onMouseDown={(event) => { event.preventDefault(); runCommand("insertUnorderedList"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Bulleted list"><List className="h-4 w-4" /></button>
+                <button type="button" title="Numbered list" onMouseDown={(event) => { event.preventDefault(); runCommand("insertOrderedList"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Numbered list"><ListOrdered className="h-4 w-4" /></button>
+                <button type="button" title="Blockquote" onMouseDown={(event) => { event.preventDefault(); runCommand("formatBlock", "blockquote"); }} className="inline-flex h-8 items-center justify-center rounded-md px-2 text-xs font-bold text-slate-700 hover:bg-slate-100" aria-label="Blockquote">“</button>
+                <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden="true" />
+                <button type="button" title="Add link" onMouseDown={(event) => { event.preventDefault(); insertLink(); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Add link"><Link2 className="h-4 w-4" /></button>
+                <button type="button" title="Remove link" onMouseDown={(event) => { event.preventDefault(); runCommand("unlink"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Remove link"><Unlink className="h-4 w-4" /></button>
+                <button type="button" title="Align left" onMouseDown={(event) => { event.preventDefault(); runCommand("justifyLeft"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Align left"><AlignLeft className="h-4 w-4" /></button>
+                <button type="button" title="Align center" onMouseDown={(event) => { event.preventDefault(); runCommand("justifyCenter"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Align center"><AlignCenter className="h-4 w-4" /></button>
+                <button type="button" title="Align right" onMouseDown={(event) => { event.preventDefault(); runCommand("justifyRight"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Align right"><AlignRight className="h-4 w-4" /></button>
+                <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden="true" />
+                <button type="button" title="Undo" onMouseDown={(event) => { event.preventDefault(); runCommand("undo"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Undo"><Undo2 className="h-4 w-4" /></button>
+                <button type="button" title="Redo" onMouseDown={(event) => { event.preventDefault(); runCommand("redo"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Redo"><Redo2 className="h-4 w-4" /></button>
+                <button type="button" title="Clear formatting" onMouseDown={(event) => { event.preventDefault(); runCommand("removeFormat"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Clear formatting"><Eraser className="h-4 w-4" /></button>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-2">
+                {error && <span className="mr-auto max-w-60 text-xs font-medium text-red-600">{error}</span>}
+                <button type="button" onClick={cancelEditing} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"><X className="h-4 w-4" /> Cancel</button>
+                <button type="button" onClick={() => void saveEditing()} disabled={isSaving} className="inline-flex items-center gap-1.5 rounded-lg bg-[#e63329] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c42a21] disabled:opacity-60">
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  {isSaving ? "Submitting..." : resource.kind === "template" ? "Submit Template" : resource.slug === "home" ? "Submit Home Page" : "Submit Page"}
+                </button>
+              </div>
             </>
           ) : (
             <button
@@ -398,7 +601,7 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
           )}
            {saved && !isEditing && <span className="text-xs font-medium text-emerald-600">Submitted for approval</span>}
            {!isEditing && <span className="hidden text-[11px] text-slate-500 xl:inline">Changes go live after Super Admin approval</span>}
-          {error && <span className="max-w-52 text-xs font-medium text-red-600">{error}</span>}
+           {error && <span className="max-w-52 text-xs font-medium text-red-600">{error}</span>}
         </div>
       )}
     </>
