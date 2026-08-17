@@ -274,6 +274,12 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [activeBlock, setActiveBlock] = useState("p");
+  const [activeMarks, setActiveMarks] = useState({
+    bold: false,
+    italic: false,
+    underline: false,
+    strikeThrough: false,
+  });
 
   const refreshToolbarState = () => {
     try {
@@ -284,6 +290,14 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
       const editable = anchor?.closest<HTMLElement>("[contenteditable='true']");
       if (editable) {
         setActiveBlock(editable.tagName.toLowerCase());
+        setActiveMarks({
+          bold: document.queryCommandState("bold"),
+          italic: document.queryCommandState("italic"),
+          underline: document.queryCommandState("underline"),
+          strikeThrough: document.queryCommandState("strikeThrough"),
+        });
+      } else {
+        setActiveMarks({ bold: false, italic: false, underline: false, strikeThrough: false });
       }
     } catch {
       // Browser selection APIs are not available during some focus transitions.
@@ -557,10 +571,10 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
                   <option value="h6">Heading 6</option>
                 </select>
                 <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden="true" />
-                <button type="button" title="Bold" onMouseDown={(event) => { event.preventDefault(); runCommand("bold"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Bold"><Bold className="h-4 w-4" /></button>
-                <button type="button" title="Italic" onMouseDown={(event) => { event.preventDefault(); runCommand("italic"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Italic"><Italic className="h-4 w-4" /></button>
-                <button type="button" title="Underline" onMouseDown={(event) => { event.preventDefault(); runCommand("underline"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Underline"><Underline className="h-4 w-4" /></button>
-                <button type="button" title="Strikethrough" onMouseDown={(event) => { event.preventDefault(); runCommand("strikeThrough"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Strikethrough"><Strikethrough className="h-4 w-4" /></button>
+                <button type="button" title="Bold" onMouseDown={(event) => { event.preventDefault(); runCommand("bold"); }} className={`inline-flex h-8 w-8 items-center justify-center rounded-md ${activeMarks.bold ? "bg-[#1a2f5a] text-white" : "text-slate-700 hover:bg-slate-100"}`} aria-label="Bold" aria-pressed={activeMarks.bold}><Bold className="h-4 w-4" /></button>
+                <button type="button" title="Italic" onMouseDown={(event) => { event.preventDefault(); runCommand("italic"); }} className={`inline-flex h-8 w-8 items-center justify-center rounded-md ${activeMarks.italic ? "bg-[#1a2f5a] text-white" : "text-slate-700 hover:bg-slate-100"}`} aria-label="Italic" aria-pressed={activeMarks.italic}><Italic className="h-4 w-4" /></button>
+                <button type="button" title="Underline" onMouseDown={(event) => { event.preventDefault(); runCommand("underline"); }} className={`inline-flex h-8 w-8 items-center justify-center rounded-md ${activeMarks.underline ? "bg-[#1a2f5a] text-white" : "text-slate-700 hover:bg-slate-100"}`} aria-label="Underline" aria-pressed={activeMarks.underline}><Underline className="h-4 w-4" /></button>
+                <button type="button" title="Strikethrough" onMouseDown={(event) => { event.preventDefault(); runCommand("strikeThrough"); }} className={`inline-flex h-8 w-8 items-center justify-center rounded-md ${activeMarks.strikeThrough ? "bg-[#1a2f5a] text-white" : "text-slate-700 hover:bg-slate-100"}`} aria-label="Strikethrough" aria-pressed={activeMarks.strikeThrough}><Strikethrough className="h-4 w-4" /></button>
                 <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden="true" />
                 <button type="button" title="Bulleted list" onMouseDown={(event) => { event.preventDefault(); runCommand("insertUnorderedList"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Bulleted list"><List className="h-4 w-4" /></button>
                 <button type="button" title="Numbered list" onMouseDown={(event) => { event.preventDefault(); runCommand("insertOrderedList"); }} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100" aria-label="Numbered list"><ListOrdered className="h-4 w-4" /></button>
