@@ -6,3 +6,8 @@
 - [React Hooks Early Return](react-hooks-early-return.md) — ProductsPage had useMemo after early templateContent return; all hooks must precede early returns
 - [Sticky Gallery Overflow](sticky-gallery-overflow.md) — sticky product galleries require overflow-x: clip rather than body overflow-x: hidden
 - [GitHub Publish Path](github-publish-path.md) — when Git transport rejects credentials, use the authorized GitHub client rather than exposing or requesting a token
+- [CMS Approval Workflow](cms-approval-workflow.md) — managed CMS edits use append-only revisions and expiring previews before Super Admin approval
+- [PageSpeed Environment](pagespeed-dev-vs-production.md) — `.replit.dev` scans include Vite/HMR development modules; validate final scores against the published build
+- [API JSON 304 Handling](api-json-304-handling.md) — fetch-based JSON clients need bodyful 200 responses; conditional headers must not produce bodyless API 304s
+- [Generated Contract Cleanup](generated-contract-cleanup.md) — OpenAPI feature removal requires codegen cleanup and reduced-schema push together
+- [Clark Chat Persistence](clark-chat-persistence.md) — anonymous Clark chats need a separate durable transcript record; quote leads are a later promotion step
