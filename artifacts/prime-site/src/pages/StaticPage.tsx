@@ -3,6 +3,8 @@ import { useSEO } from "../lib/useSEO";
 import { useGetPage } from "@workspace/api-client-react";
 import { BlockRenderer } from "../components/ui/BlockRenderer";
 import { Link } from "wouter";
+import { InlinePageOverrides } from "../components/ui/InlinePageOverrides";
+import { parseInlineDocument } from "../lib/inlineContent";
 
 export default function StaticPage({ slug: slugProp }: { slug?: string } = {}) {
   const params = useParams<{ slug: string }>();
@@ -43,9 +45,10 @@ export default function StaticPage({ slug: slugProp }: { slug?: string } = {}) {
     );
   }
 
+  const inline = parseInlineDocument(page.content || "");
   return (
-    <>
-      <BlockRenderer content={page.content || ""} />
-    </>
+    <InlinePageOverrides overrides={inline.overrides}>
+      <BlockRenderer content={inline.baseContent} />
+    </InlinePageOverrides>
   );
 }
