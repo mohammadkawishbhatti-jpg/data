@@ -3,17 +3,12 @@ import { db } from "@workspace/db";
 import { customersTable } from "@workspace/db";
 import { eq, desc, ilike, or } from "drizzle-orm";
 import { z } from "zod";
-import { createHash } from "crypto";
-import { requireAdmin } from "../middlewares/auth";
+import crypto from "node:crypto";
+import { requireCapability } from "../middlewares/auth";
 import { sendEmail } from "../lib/email";
+import { hashPassword } from "../lib/security";
 
 const router = Router();
-
-const SALT = "prime_customer_salt_2024";
-
-function hashPassword(plain: string) {
-  return createHash("sha256").update(plain + SALT).digest("hex");
-}
 
 function generateCustomerNumber() {
   const ts = Date.now().toString().slice(-6);
@@ -21,12 +16,31 @@ function generateCustomerNumber() {
 }
 
 function fmt(c: any) {
-  const { passwordHash: _, ...rest } = c;
+  const {
+    passwordHash: _passwordHash,
+    portalPassword: _portalPassword,
+    invitationTokenHash: _invitationTokenHash,
+    passwordResetTokenHash: _passwordResetTokenHash,
+    ...rest
+  } = c;
   return { ...rest, createdAt: c.createdAt?.toISOString?.() ?? c.createdAt };
 }
 
+function tokenHash(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+async function sendInvitation(customer: any, token: string) {
+  const base = process.env.SITE_URL || "https://primepackagingboxes.com";
+  await sendEmail({
+    to: customer.email,
+    subject: "Your Prime Packaging Boxes customer portal invitation",
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px"><h1 style="color:#1B2B5E">Welcome to the Prime Packaging Boxes portal</h1><p>Hello ${customer.name}, your portal account is ready. Activate it securely using the button below.</p><p><a href="${base}/customer-portal/?activate=${token}" style="display:inline-block;background:#E63329;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700">Activate account</a></p><p style="color:#64748b;font-size:12px">This invitation expires in 72 hours. If you were not expecting this, you can ignore it.</p></div>`,
+  });
+}
+
 // GET /admin/customers  — supports ?search=<query>&limit=<n>
-router.get("/admin/customers", requireAdmin, async (req, res) => {
+router.get("/admin/customers", requireCapability("customers"), async (req, res) => {
   try {
     const search = (req.query.search as string | undefined)?.trim();
     const limit = Math.min(Number(req.query.limit) || 100, 200);
@@ -45,20 +59,22 @@ router.get("/admin/customers", requireAdmin, async (req, res) => {
   } catch (e) { req.log.error(e); res.status(500).json({ error: "Internal server error" }); }
 });
 
-// POST /admin/customers  — username + manual password required
-router.post("/admin/customers", requireAdmin, async (req, res) => {
+// POST /admin/customers — create an active account with a password, or an
+// invited account when password is omitted.
+router.post("/admin/customers", requireCapability("customers"), async (req, res) => {
   try {
     const body = z.object({
       name: z.string().min(1),
       email: z.string().email(),
       username: z.string().min(3).regex(/^[a-z0-9_.\-]+$/i, "Username may only contain letters, numbers, dots, dashes, or underscores"),
-      password: z.string().min(6, "Password must be at least 6 characters"),
+      password: z.string().min(6, "Password must be at least 6 characters").optional(),
       phone: z.string().optional(),
       company: z.string().optional(),
       notes: z.string().optional(),
     }).parse(req.body);
 
-    const passwordHash = hashPassword(body.password);
+    const invitationToken = body.password ? null : crypto.randomBytes(32).toString("hex");
+    const passwordHash = await hashPassword(body.password || crypto.randomBytes(32).toString("hex"));
     const customerNumber = generateCustomerNumber();
 
     const [row] = await db.insert(customersTable).values({
@@ -69,11 +85,19 @@ router.post("/admin/customers", requireAdmin, async (req, res) => {
       company: body.company,
       notes: body.notes,
       passwordHash,
-      portalPassword: body.password,
+      portalPassword: null,
       customerNumber,
+      status: body.password ? "active" : "invited",
+      invitedAt: body.password ? null : new Date(),
+      invitationTokenHash: invitationToken ? tokenHash(invitationToken) : null,
+      invitationExpiresAt: invitationToken ? new Date(Date.now() + 72 * 60 * 60 * 1000) : null,
+      activatedAt: body.password ? new Date() : null,
     } as any).returning();
 
-    res.status(201).json(fmt(row));
+    if (invitationToken) {
+      try { await sendInvitation(row, invitationToken); } catch (error) { req.log.warn({ error }, "Customer invitation email failed"); }
+    }
+    res.status(201).json({ ...fmt(row), invitationSent: Boolean(invitationToken) });
   } catch (e: any) {
     if (e?.code === "23505") {
       const detail: string = e.detail || "";
@@ -88,7 +112,7 @@ router.post("/admin/customers", requireAdmin, async (req, res) => {
 });
 
 // GET /admin/customers/:id
-router.get("/admin/customers/:id", requireAdmin, async (req, res) => {
+router.get("/admin/customers/:id", requireCapability("customers"), async (req, res) => {
   try {
     const id = Number(req.params.id);
     const [row] = await db.select().from(customersTable).where(eq(customersTable.id, id));
@@ -98,7 +122,7 @@ router.get("/admin/customers/:id", requireAdmin, async (req, res) => {
 });
 
 // PATCH /admin/customers/:id
-router.patch("/admin/customers/:id", requireAdmin, async (req, res) => {
+router.patch("/admin/customers/:id", requireCapability("customers"), async (req, res) => {
   try {
     const id = Number(req.params.id);
     const body = z.object({
@@ -114,15 +138,23 @@ router.patch("/admin/customers/:id", requireAdmin, async (req, res) => {
 });
 
 // POST /admin/customers/:id/reset-password  — admin types the new password manually
-router.post("/admin/customers/:id/reset-password", requireAdmin, async (req, res) => {
+router.post("/admin/customers/:id/reset-password", requireCapability("customers"), async (req, res) => {
   try {
     const id = Number(req.params.id);
     const { password } = z.object({
       password: z.string().min(6, "Password must be at least 6 characters"),
     }).parse(req.body);
 
-    const passwordHash = hashPassword(password);
-    const [row] = await db.update(customersTable).set({ passwordHash, portalPassword: password } as any).where(eq(customersTable.id, id)).returning();
+    const passwordHash = await hashPassword(password);
+    const [row] = await db.update(customersTable).set({
+      passwordHash,
+      portalPassword: null,
+      status: "active",
+      activatedAt: new Date(),
+      passwordResetTokenHash: null,
+      passwordResetExpiresAt: null,
+      updatedAt: new Date(),
+    } as any).where(eq(customersTable.id, id)).returning();
     if (!row) return res.status(404).json({ error: "Not found" });
     res.json({ ...fmt(row), success: true });
   } catch (e: any) {
@@ -133,7 +165,7 @@ router.post("/admin/customers/:id/reset-password", requireAdmin, async (req, res
 });
 
 // POST /admin/customers/:id/send-credentials
-router.post("/admin/customers/:id/send-credentials", requireAdmin, async (req, res) => {
+router.post("/admin/customers/:id/send-credentials", requireCapability("customers"), async (req, res) => {
   try {
     const id = Number(req.params.id);
     const { password } = z.object({ password: z.string().min(1) }).parse(req.body);
@@ -168,18 +200,53 @@ router.post("/admin/customers/:id/send-credentials", requireAdmin, async (req, r
   } catch (e) { req.log.error(e); res.status(500).json({ error: "Failed to send email" }); }
 });
 
+// POST /admin/customers/:id/invite — issue a new expiring activation link.
+router.post("/admin/customers/:id/invite", requireCapability("customers"), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, id));
+    if (!customer) return res.status(404).json({ error: "Not found" });
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+    await db.update(customersTable).set({
+      status: "invited",
+      invitationTokenHash: tokenHash(token),
+      invitationExpiresAt: expiresAt,
+      invitedAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(customersTable.id, id));
+    await sendInvitation(customer, token);
+    res.json({ success: true, expiresAt: expiresAt.toISOString() });
+  } catch (error) {
+    req.log.error(error);
+    res.status(500).json({ error: "Failed to send invitation" });
+  }
+});
+
+router.patch("/admin/customers/:id/access", requireCapability("customers"), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { status } = z.object({ status: z.enum(["active", "disabled", "invited"]) }).parse(req.body);
+    const [row] = await db.update(customersTable).set({ status, updatedAt: new Date() }).where(eq(customersTable.id, id)).returning();
+    if (!row) return res.status(404).json({ error: "Not found" });
+    res.json(fmt(row));
+  } catch (error: any) {
+    res.status(error?.name === "ZodError" ? 400 : 500).json({ error: "Unable to update portal access" });
+  }
+});
+
 // GET /admin/customers/by-email/:email
-router.get("/admin/customers/by-email/:email", requireAdmin, async (req, res) => {
+router.get("/admin/customers/by-email/:email", requireCapability("customers"), async (req, res) => {
   try {
     const email = decodeURIComponent(String(req.params.email)).toLowerCase();
     const [c] = await db.select().from(customersTable).where(eq(customersTable.email, email)).limit(1);
     if (!c) return res.status(404).json({ error: "Not found" });
-    res.json({ id: c.id, name: c.name, email: c.email, username: c.username, phone: c.phone, company: c.company, customerNumber: c.customerNumber, portalPassword: c.portalPassword });
+    res.json({ id: c.id, name: c.name, email: c.email, username: c.username, phone: c.phone, company: c.company, customerNumber: c.customerNumber, status: c.status });
   } catch (e) { req.log.error(e); res.status(500).json({ error: "Internal server error" }); }
 });
 
 // DELETE /admin/customers/:id
-router.delete("/admin/customers/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/customers/:id", requireCapability("customers"), async (req, res) => {
   try {
     const id = Number(req.params.id);
     await db.delete(customersTable).where(eq(customersTable.id, id));

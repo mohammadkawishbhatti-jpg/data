@@ -24,6 +24,7 @@ export * from './category';
 export * from './categoryInput';
 export * from './categoryUpdate';
 export * from './categoryWithProducts';
+export * from './clarkConversation';
 export * from './healthStatus';
 export * from './lead';
 export * from './listBlogPostsParams';

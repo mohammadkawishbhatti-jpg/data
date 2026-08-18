@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { AdminLayout } from "../components/layout/AdminLayout";
 import { Modal } from "../components/ui/Modal";
 import {
@@ -57,7 +57,8 @@ export default function MenusPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ products: true });
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState("");
 
   const { register, handleSubmit, reset, watch, formState: { isSubmitting } } = useForm<MenuForm>({
@@ -135,6 +136,13 @@ export default function MenusPage() {
         }
       }
     }
+    const item = items.find(candidate => candidate.id === id);
+    const descendantCount = descendants.size - 1;
+    if (!item || !window.confirm(
+      descendantCount > 0
+        ? `Remove "${item.label}" and its ${descendantCount} submenu item${descendantCount === 1 ? "" : "s"}?`
+        : `Remove "${item.label}" from the public menu?`
+    )) return;
     setItems(current => current.filter(item => !descendants.has(item.id)));
     setSaveMessage("Unsaved changes");
   };
@@ -154,6 +162,38 @@ export default function MenusPage() {
       setSaveMessage("Unsaved changes");
       return current.map(candidate => orders.has(candidate.id) ? { ...candidate, order: orders.get(candidate.id)! } : candidate);
     });
+  };
+
+  const moveItemBefore = (dragId: string, targetId: string) => {
+    setItems(current => {
+      const dragged = current.find(item => item.id === dragId);
+      const target = current.find(item => item.id === targetId);
+      if (!dragged || !target || (dragged.parentId ?? null) !== (target.parentId ?? null)) return current;
+      const siblings = current
+        .filter(item => (item.parentId ?? null) === (dragged.parentId ?? null) && item.id !== dragId)
+        .sort((a, b) => a.order - b.order);
+      const targetIndex = siblings.findIndex(item => item.id === targetId);
+      if (targetIndex < 0) return current;
+      siblings.splice(targetIndex, 0, dragged);
+      const orders = new Map(resequence(siblings).map(item => [item.id, item.order]));
+      return current.map(item => orders.has(item.id) ? { ...item, order: orders.get(item.id)! } : item);
+    });
+    setSaveMessage("Unsaved changes");
+  };
+
+  const handleDrop = (event: DragEvent, targetId: string) => {
+    event.preventDefault();
+    const dragId = event.dataTransfer.getData("text/plain");
+    if (dragId && dragId !== targetId) moveItemBefore(dragId, targetId);
+    setDraggingId(null);
+  };
+
+  const expandAll = () => {
+    setExpanded(Object.fromEntries(topLevelItems.filter(item => childrenFor(item.id).length > 0).map(item => [item.id, true])));
+  };
+
+  const collapseAll = () => {
+    setExpanded(Object.fromEntries(topLevelItems.filter(item => childrenFor(item.id).length > 0).map(item => [item.id, false])));
   };
 
   const saveMenu = () => {
@@ -178,10 +218,26 @@ export default function MenusPage() {
   const renderItem = (item: MenuItem, depth = 0) => {
     const children = childrenFor(item.id);
     const isExpanded = expanded[item.id] !== false;
+    const siblings = items
+      .filter(candidate => (candidate.parentId ?? null) === (item.parentId ?? null))
+      .sort((a, b) => a.order - b.order);
+    const siblingIndex = siblings.findIndex(candidate => candidate.id === item.id);
+    const canMoveUp = siblingIndex > 0;
+    const canMoveDown = siblingIndex >= 0 && siblingIndex < siblings.length - 1;
     return (
-      <div key={item.id}>
-        <div className={`group flex items-center gap-3 border-b border-slate-200/80 bg-white px-4 py-3 transition-colors hover:bg-slate-50 ${depth > 0 ? "ml-8 border-l-2 border-l-slate-200 bg-slate-50/70" : ""}`}>
-          <GripVertical className="h-4 w-4 shrink-0 text-slate-300" />
+      <div key={item.id} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, item.id)}>
+        <div
+          draggable
+          onDragStart={(event) => {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", item.id);
+            setDraggingId(item.id);
+          }}
+          onDragEnd={() => setDraggingId(null)}
+          data-testid={`row-menu-item-${item.id}`}
+          className={`group flex items-center gap-3 border-b border-slate-200/80 bg-white px-4 py-3 transition-colors hover:bg-slate-50 ${depth > 0 ? "ml-8 border-l-2 border-l-slate-200 bg-slate-50/70" : ""} ${draggingId === item.id ? "opacity-50" : ""}`}
+        >
+          <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-slate-300 active:cursor-grabbing" aria-label="Drag to reorder" />
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#112b4b]/[0.07] text-[#112b4b]">
             {children.length > 0 ? (
               <button type="button" onClick={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded }))} aria-label={isExpanded ? "Collapse submenu" : "Expand submenu"}>
@@ -203,11 +259,11 @@ export default function MenusPage() {
           <span className="hidden rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500 sm:inline-flex">#{item.order}</span>
           {item.isVisible ? <Eye className="hidden h-4 w-4 text-emerald-500 sm:block" /> : <EyeOff className="hidden h-4 w-4 text-slate-300 sm:block" />}
           <div className="flex items-center gap-1 opacity-70 transition-opacity group-hover:opacity-100">
-            <button type="button" onClick={() => moveItem(item.id, -1)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-800" title="Move up"><ArrowUp className="h-3.5 w-3.5" /></button>
-            <button type="button" onClick={() => moveItem(item.id, 1)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-800" title="Move down"><ArrowDown className="h-3.5 w-3.5" /></button>
-            {!item.parentId && <button type="button" onClick={() => openAdd(item.id)} className="rounded p-1.5 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600" title="Add submenu item"><Plus className="h-3.5 w-3.5" /></button>}
-            <button type="button" onClick={() => openEdit(item)} className="rounded p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600" title="Edit menu item"><Pencil className="h-3.5 w-3.5" /></button>
-            <button type="button" onClick={() => removeItem(item.id)} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Remove menu item"><Trash2 className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => moveItem(item.id, -1)} disabled={!canMoveUp} data-testid={`button-move-menu-item-up-${item.id}`} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-25" title="Move up"><ArrowUp className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => moveItem(item.id, 1)} disabled={!canMoveDown} data-testid={`button-move-menu-item-down-${item.id}`} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-25" title="Move down"><ArrowDown className="h-3.5 w-3.5" /></button>
+            {!item.parentId && <button type="button" onClick={() => openAdd(item.id)} data-testid={`button-add-submenu-${item.id}`} className="rounded-lg p-2 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600" title="Add submenu item"><Plus className="h-3.5 w-3.5" /></button>}
+            <button type="button" onClick={() => openEdit(item)} data-testid={`button-edit-menu-item-${item.id}`} className="rounded-lg p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600" title="Edit menu item or move into a dropdown"><Pencil className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => removeItem(item.id)} data-testid={`button-remove-menu-item-${item.id}`} className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600" title="Remove menu item"><Trash2 className="h-3.5 w-3.5" /></button>
           </div>
         </div>
         {isExpanded && children.map(child => renderItem(child, depth + 1))}
@@ -226,16 +282,16 @@ export default function MenusPage() {
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Add, remove, rename, reorder and nest links in the public header. Changes are saved to the primary menu and appear after the next refresh.</p>
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => openAdd()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm font-bold text-foreground transition hover:bg-muted">
+          <button type="button" onClick={() => openAdd()} data-testid="button-add-menu-item" className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm font-bold text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Plus className="h-4 w-4" /> Add menu item
           </button>
-          <button type="button" onClick={saveMenu} disabled={!menu || updateMenu.isPending || saveMessage.startsWith("Saved")} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-50">
+          <button type="button" onClick={saveMenu} disabled={!menu || updateMenu.isPending || saveMessage.startsWith("Saved")} data-testid="button-save-primary-menu" className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:cursor-not-allowed disabled:opacity-50">
             <Save className="h-4 w-4" /> {updateMenu.isPending ? "Saving..." : "Save Menu"}
           </button>
         </div>
       </div>
 
-      {saveMessage && <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-semibold ${saveMessage.startsWith("Could") ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"}`}>{saveMessage}</div>}
+      {saveMessage && <div data-testid="status-menu-save" className={`mb-4 rounded-xl border px-4 py-3 text-sm font-semibold ${saveMessage.startsWith("Could") ? "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"}`}>{saveMessage}</div>}
 
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border bg-muted/40 px-5 py-4">
@@ -243,8 +299,17 @@ export default function MenusPage() {
             <h2 className="font-extrabold text-foreground">{menu?.name || "Primary navigation"}</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">Header menu · {items.length} item{items.length === 1 ? "" : "s"}</p>
           </div>
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">Live location: primary</span>
+           <div className="flex items-center gap-2">
+             <button type="button" onClick={expandAll} data-testid="button-expand-all-menu-items" className="hidden rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground sm:inline-flex">Expand all</button>
+             <button type="button" onClick={collapseAll} data-testid="button-collapse-all-menu-items" className="hidden rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground sm:inline-flex">Collapse all</button>
+             <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">Live location: primary</span>
+           </div>
         </div>
+         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-border bg-background px-5 py-3 text-xs text-muted-foreground">
+           <span className="inline-flex items-center gap-2"><GripVertical className="h-3.5 w-3.5 text-slate-400" /> Drag rows to reorder sibling links</span>
+           <span className="inline-flex items-center gap-2"><ArrowUp className="h-3.5 w-3.5 text-slate-400" /><ArrowDown className="h-3.5 w-3.5 text-slate-400" /> Use arrows for keyboard-friendly moves</span>
+           <span className="inline-flex items-center gap-2"><Plus className="h-3.5 w-3.5 text-slate-400" /> Edit or add to place a link inside a dropdown</span>
+         </div>
         {isLoading ? (
           <div className="px-5 py-16 text-center text-sm text-muted-foreground">Loading menu…</div>
         ) : isError ? (

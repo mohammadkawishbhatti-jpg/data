@@ -259,7 +259,7 @@ function stableElementPath(element: HTMLElement, root: HTMLElement): string {
   return element.dataset.inlineOverridePath || elementPath(element, root);
 }
 
-export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticated: boolean }) {
+export function AdminInlinePageEditor({ adminAuthenticated, canEditLive = false }: { adminAuthenticated: boolean; canEditLive?: boolean }) {
   const [location] = useLocation();
   const pathname = useMemo(() => pathnameForLocation(location), [location]);
   const pageSlug = useMemo(() => pageSlugForPathname(pathname), [pathname]);
@@ -595,7 +595,11 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
                 <button type="button" onClick={cancelEditing} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"><X className="h-4 w-4" /> Cancel</button>
                 <button type="button" onClick={() => void saveEditing()} disabled={isSaving} className="inline-flex items-center gap-1.5 rounded-lg bg-[#e63329] px-3 py-2 text-sm font-semibold text-white hover:bg-[#c42a21] disabled:opacity-60">
                   {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  {isSaving ? "Submitting..." : resource.kind === "template" ? "Submit Template" : resource.slug === "home" ? "Submit Home Page" : "Submit Page"}
+                   {isSaving
+                     ? canEditLive ? "Saving..." : "Submitting..."
+                     : canEditLive
+                       ? resource.kind === "template" ? "Save Template" : resource.slug === "home" ? "Save Home Page" : "Save Page"
+                       : resource.kind === "template" ? "Submit Template" : resource.slug === "home" ? "Submit Home Page" : "Submit Page"}
                 </button>
               </div>
             </>
@@ -613,8 +617,8 @@ export function AdminInlinePageEditor({ adminAuthenticated }: { adminAuthenticat
                   : "Edit Page"}
             </button>
           )}
-           {saved && !isEditing && <span className="text-xs font-medium text-emerald-600">Submitted for approval</span>}
-           {!isEditing && <span className="hidden text-[11px] text-slate-500 xl:inline">Changes go live after Super Admin approval</span>}
+            {saved && !isEditing && <span className="text-xs font-medium text-emerald-600">{canEditLive ? "Saved and live" : "Submitted for approval"}</span>}
+            {!isEditing && <span className="hidden text-[11px] text-slate-500 xl:inline">{canEditLive ? "Changes are saved live" : "Changes go live after an authorized reviewer approves them"}</span>}
            {error && <span className="max-w-52 text-xs font-medium text-red-600">{error}</span>}
         </div>
       )}

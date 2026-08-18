@@ -2,6 +2,7 @@ import { Menu, Sun, Moon, LogOut, Bell, Search, Command, Monitor, Check } from "
 import { useAdminLogout, useGetAdminStats } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 import { useTheme, type Theme } from "../../contexts/ThemeContext";
+import { useEffect, useRef, useState } from "react";
 
 export function Topbar({
   title,
@@ -14,8 +15,34 @@ export function Topbar({
 }) {
   const logout = useAdminLogout();
   const [, setLocation] = useLocation();
-  const { theme, resolvedTheme, setTheme, toggle } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const { data: stats } = useGetAdminStats();
+  const [roleLabel, setRoleLabel] = useState("");
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/me", { credentials: "include" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => data?.roleLabel && setRoleLabel(`${data.roleLabel} Portal`))
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!themeMenuOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!themeMenuRef.current?.contains(event.target as Node)) setThemeMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setThemeMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [themeMenuOpen]);
 
   const totalNotifs = ((stats as any)?.newQuotes || 0) + ((stats as any)?.newLeads || 0);
 
@@ -27,28 +54,35 @@ export function Topbar({
   };
 
   return (
-    <header className="h-16 flex items-center justify-between px-4 sm:px-6 bg-card/90 backdrop-blur-xl border-b border-border shadow-sm flex-shrink-0 z-10">
+    <header className="z-10 flex h-[74px] flex-shrink-0 items-center justify-between border-b border-border bg-card/95 px-4 shadow-sm backdrop-blur-xl sm:px-7">
       {/* Left */}
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
-           className="md:hidden p-2 -ml-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors"
+           type="button"
+           aria-label="Open admin navigation"
+           aria-controls="admin-navigation-drawer"
+           data-testid="button-open-admin-navigation"
+           className="rounded-xl p-2.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
         <div className="flex items-center gap-2.5">
-           <h1 className="text-base font-bold tracking-tight text-foreground flex items-center gap-2">
+            <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight text-foreground">
             {title}
           </h1>
+          {roleLabel && <span className="hidden sm:inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">{roleLabel}</span>}
         </div>
       </div>
 
       {/* Center Search Command Bar */}
       {onOpenCommandPalette && (
-        <div className="hidden sm:flex items-center flex-1 max-w-md mx-6">
-          <button
-            onClick={onOpenCommandPalette}
-             className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-muted/55 border border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-muted transition-all duration-200 group shadow-inner"
+        <div className="mx-6 hidden max-w-lg flex-1 items-center sm:flex">
+           <button
+             onClick={onOpenCommandPalette}
+             type="button"
+             data-testid="button-admin-search"
+              className="group flex w-full items-center justify-between rounded-xl border border-border bg-muted/55 px-4 py-2.5 text-sm text-muted-foreground shadow-inner transition-all duration-200 hover:border-primary/40 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span className="flex items-center gap-2">
                <Search className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
@@ -65,9 +99,11 @@ export function Topbar({
       <div className="flex items-center gap-2">
 
         {/* Notifications Button */}
-        <button
+         <button
           onClick={() => setLocation("/follow-ups")}
-           className="relative p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 border border-transparent hover:border-border"
+           type="button"
+           data-testid="button-admin-notifications"
+            className="relative rounded-xl border border-transparent p-2.5 text-muted-foreground transition-all duration-150 hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           title="Notifications & Follow ups"
         >
           <Bell className="h-4.5 w-4.5" />
@@ -80,27 +116,34 @@ export function Topbar({
         </button>
 
         {/* Theme picker — dark, white, and system mode */}
-        <div className="relative group">
+        <div ref={themeMenuRef} className="relative">
           <button
-            onClick={toggle}
-            className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 border border-transparent hover:border-border"
-            title={`Theme: ${theme}. Click to cycle dark, light, system`}
+             onClick={() => setThemeMenuOpen(open => !open)}
+             type="button"
+             aria-haspopup="menu"
+             aria-expanded={themeMenuOpen}
+             data-testid="button-admin-theme-menu"
+             className="rounded-xl border border-transparent p-2.5 text-muted-foreground transition-all duration-150 hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+             title={`Theme: ${theme}`}
             aria-label={`Theme: ${theme}`}
           >
             {theme === "system"
               ? <Monitor className="h-4.5 w-4.5 text-primary" />
+              : theme === "midnight"
+                ? <span className="text-sm">✦</span>
               : resolvedTheme === "dark"
                 ? <Sun className="h-4.5 w-4.5 text-amber-400" />
                 : <Moon className="h-4.5 w-4.5 text-indigo-500" />
             }
           </button>
-          <div className="pointer-events-none absolute right-0 top-full z-30 mt-2 w-36 rounded-xl border border-border bg-popover p-1.5 opacity-0 shadow-xl transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+           <div role="menu" className={`absolute right-0 top-full z-30 mt-2 w-52 rounded-xl border border-border bg-popover p-1.5 shadow-xl transition-all ${themeMenuOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"}`}>
             {([
               ["dark", "Dark mode"],
               ["light", "White mode"],
+              ["midnight", "Midnight Emerald"],
               ["system", "System mode"],
             ] as [Theme, string][]).map(([value, label]) => (
-              <button key={value} onClick={() => setTheme(value)} className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-popover-foreground hover:bg-muted">
+               <button key={value} onClick={() => { setTheme(value); setThemeMenuOpen(false); }} role="menuitem" type="button" data-testid={`button-theme-${value}`} className="flex w-full items-center justify-between rounded-lg px-2.5 py-2.5 text-left text-sm font-semibold text-popover-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {label} {theme === value && <Check className="h-3.5 w-3.5 text-primary" />}
               </button>
             ))}
@@ -108,9 +151,11 @@ export function Topbar({
         </div>
 
         {/* Logout */}
-        <button
+         <button
           onClick={handleLogout}
-           className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-muted-foreground hover:text-primary bg-muted/50 hover:bg-primary/10 border border-border hover:border-primary/30 rounded-xl transition-all duration-150 ml-1"
+           type="button"
+           data-testid="button-admin-logout"
+            className="ml-1 flex items-center gap-1.5 rounded-xl border border-border bg-muted/50 px-3.5 py-2.5 text-sm font-bold text-muted-foreground transition-all duration-150 hover:border-primary/30 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <LogOut className="h-4 w-4" />
           <span className="hidden sm:inline">Logout</span>

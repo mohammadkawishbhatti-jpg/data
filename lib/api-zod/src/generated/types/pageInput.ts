@@ -13,4 +13,5 @@ export interface PageInput {
   metaTitle?: string | null;
   metaDescription?: string | null;
   isPublished?: boolean;
+  scheduledAt?: string | null;
 }

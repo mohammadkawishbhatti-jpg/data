@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { adminUsersTable, siteSettingsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { adminUsersTable, siteSettingsTable, securityIpRulesTable, securityLoginAttemptsTable } from "@workspace/db";
+import { and, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
 // otplib v13 — functional API (authenticator class removed in v13)
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const otplib = require("otplib") as {
@@ -12,20 +12,17 @@ const otplib = require("otplib") as {
 };
 import QRCode from "qrcode";
 import crypto from "crypto";
+import { hashPassword, verifyPassword } from "../lib/security";
+import { requireAdministrator } from "../middlewares/auth";
 
 const router = Router();
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "PrimeAdmin2024!";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const SALT = "prime_salt_2024";
 
-function requireAdmin(req: any, res: any, next: any) {
-  if (!req.session?.admin) return res.status(401).json({ error: "Not authenticated" });
-  next();
-}
-
 // ── GET /admin/security/2fa/status ───────────────────────────────────────────
-router.get("/admin/security/2fa/status", requireAdmin, async (req: any, res) => {
+router.get("/admin/security/2fa/status", requireAdministrator, async (req: any, res) => {
   try {
     const { username } = req.session.admin;
     if (username === ADMIN_USERNAME) {
@@ -39,7 +36,7 @@ router.get("/admin/security/2fa/status", requireAdmin, async (req: any, res) => 
 });
 
 // ── POST /admin/security/2fa/setup — generate secret + QR ───────────────────
-router.post("/admin/security/2fa/setup", requireAdmin, async (req: any, res) => {
+router.post("/admin/security/2fa/setup", requireAdministrator, async (req: any, res) => {
   try {
     const { username } = req.session.admin;
     const secret = otplib.generateSecret();
@@ -59,7 +56,7 @@ router.post("/admin/security/2fa/setup", requireAdmin, async (req: any, res) => 
 });
 
 // ── POST /admin/security/2fa/confirm — verify OTP then enable ───────────────
-router.post("/admin/security/2fa/confirm", requireAdmin, async (req: any, res) => {
+router.post("/admin/security/2fa/confirm", requireAdministrator, async (req: any, res) => {
   try {
     const { token } = req.body;
     const secret = req.session.pendingTotpSecret;
@@ -90,7 +87,7 @@ router.post("/admin/security/2fa/confirm", requireAdmin, async (req: any, res) =
 });
 
 // ── POST /admin/security/2fa/disable ────────────────────────────────────────
-router.post("/admin/security/2fa/disable", requireAdmin, async (req: any, res) => {
+router.post("/admin/security/2fa/disable", requireAdministrator, async (req: any, res) => {
   try {
     const { token } = req.body;
     const { username } = req.session.admin;
@@ -148,7 +145,7 @@ router.post("/admin/security/2fa/verify-login", async (req: any, res) => {
 });
 
 // ── POST /admin/security/change-password ────────────────────────────────────
-router.post("/admin/security/change-password", requireAdmin, async (req: any, res) => {
+router.post("/admin/security/change-password", requireAdministrator, async (req: any, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) return res.status(400).json({ error: "Both fields required." });
@@ -157,11 +154,14 @@ router.post("/admin/security/change-password", requireAdmin, async (req: any, re
     const { username } = req.session.admin;
 
     if (username === ADMIN_USERNAME) {
-      // Superadmin uses env var — can't change via UI unless we store it in DB
-      if (currentPassword !== ADMIN_PASSWORD) return res.status(400).json({ error: "Current password is incorrect." });
-      // Store new password in site_settings as override
       const [existing] = await db.select().from(siteSettingsTable).limit(1);
-      const newHash = crypto.createHash("sha256").update(newPassword + SALT).digest("hex");
+      const existingHash = (existing as any)?.superadminPwHash;
+      const currentValid = existingHash
+        ? (await verifyPassword(existingHash, currentPassword)).valid
+        : !!ADMIN_PASSWORD && currentPassword === ADMIN_PASSWORD;
+      if (!currentValid) return res.status(400).json({ error: "Current password is incorrect." });
+      // Store new password in site_settings as override
+      const newHash = await hashPassword(newPassword);
       if (existing) {
         await db.execute(sql`UPDATE site_settings SET superadmin_pw_hash = ${newHash} WHERE id = ${existing.id}`);
       } else {
@@ -174,13 +174,53 @@ router.post("/admin/security/change-password", requireAdmin, async (req: any, re
     const [user] = await db.select().from(adminUsersTable).where(eq(adminUsersTable.username, username));
     if (!user) return res.status(404).json({ error: "User not found." });
 
-    const currentHash = crypto.createHash("sha256").update(currentPassword + SALT).digest("hex");
-    if (user.passwordHash !== currentHash) return res.status(400).json({ error: "Current password is incorrect." });
+    if (!(await verifyPassword(user.passwordHash, currentPassword)).valid) {
+      return res.status(400).json({ error: "Current password is incorrect." });
+    }
 
-    const newHash = crypto.createHash("sha256").update(newPassword + SALT).digest("hex");
+    const newHash = await hashPassword(newPassword);
     await db.update(adminUsersTable).set({ passwordHash: newHash }).where(eq(adminUsersTable.id, user.id));
     res.json({ success: true, message: "Password updated successfully." });
   } catch (e) { res.status(500).json({ error: "Server error" }); }
+});
+
+// ── IP blacklist / whitelist management ─────────────────────────────────────
+router.get("/admin/security/ip-rules", requireAdministrator, async (req: any, res: any) => {
+  const rules = await db.select().from(securityIpRulesTable).orderBy(desc(securityIpRulesTable.createdAt));
+  res.json(rules);
+});
+
+router.post("/admin/security/ip-rules", requireAdministrator, async (req: any, res: any) => {
+  const ipAddress = String(req.body?.ipAddress || "").trim();
+  const ruleType = String(req.body?.ruleType || "blacklist");
+  if (!ipAddress || !["blacklist", "whitelist"].includes(ruleType)) {
+    res.status(400).json({ error: "Valid IP address and rule type are required." });
+    return;
+  }
+  const [rule] = await db.insert(securityIpRulesTable).values({
+    ipAddress,
+    ruleType,
+    reason: String(req.body?.reason || "Added by administrator").slice(0, 500),
+    createdBy: req.session.admin.username,
+  }).onConflictDoUpdate({
+    target: [securityIpRulesTable.ipAddress, securityIpRulesTable.ruleType],
+    set: { active: true, reason: String(req.body?.reason || "Updated by administrator").slice(0, 500), updatedAt: new Date() },
+  }).returning();
+  res.status(201).json(rule);
+});
+
+router.delete("/admin/security/ip-rules/:id", requireAdministrator, async (req: any, res: any) => {
+  await db.delete(securityIpRulesTable).where(eq(securityIpRulesTable.id, Number(req.params.id)));
+  res.json({ success: true });
+});
+
+router.get("/admin/security/login-attempts", requireAdministrator, async (_req: any, res: any) => {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const attempts = await db.select().from(securityLoginAttemptsTable)
+    .where(gte(securityLoginAttemptsTable.createdAt, since))
+    .orderBy(desc(securityLoginAttemptsTable.createdAt))
+    .limit(250);
+  res.json(attempts);
 });
 
 export default router;

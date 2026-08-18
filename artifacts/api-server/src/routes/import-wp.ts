@@ -4,7 +4,7 @@ import { parseStringPromise } from "xml2js";
 import { db } from "@workspace/db";
 import { productsTable, categoriesTable, pagesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { requireAdmin } from "../middlewares/auth";
+import { requireAdministrator } from "../middlewares/auth";
 
 const router = Router();
 
@@ -66,7 +66,7 @@ function getPostMeta(postmeta: any[], key: string): string {
 
 router.post(
   "/admin/import/wordpress",
-  requireAdmin,
+  requireAdministrator,
   upload.single("file"),
   async (req, res) => {
     if (!req.file) {
@@ -414,7 +414,7 @@ function col(row: Record<string, string>, ...keys: string[]): string {
 // ?mode=skip     → (default) skips products whose slug already exists.
 router.post(
   "/admin/import/csv",
-  requireAdmin,
+  requireAdministrator,
   upload.single("file"),
   async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "No CSV file uploaded." });

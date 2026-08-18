@@ -4,7 +4,12 @@
 
 /* ── Global mobile overflow fix ── */
 html, body {
-  overflow-x: hidden;
+  /*
+   * `hidden` can create an implicit scroll container and break position: sticky
+   * for the product gallery. `clip` prevents sideways overflow without changing
+   * the page's vertical scrolling context.
+   */
+  overflow-x: clip;
   max-width: 100vw;
 }
 
@@ -291,6 +296,16 @@ html, body {
    */
   font-family: 'Outfit', var(--app-font-sans), sans-serif;
   letter-spacing: -0.035em;
+}
+
+/* Packhelp-style product gallery: the page scrolls, the gallery stays visible. */
+@media (min-width: 1024px) {
+  .prime-product-gallery {
+    position: sticky;
+    top: 6rem;
+    align-self: flex-start;
+    z-index: 10;
+  }
 }
 
 /* ── CTA button shimmer sweep on hover ─────────────────────────────────────── */

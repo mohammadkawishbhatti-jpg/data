@@ -1,5 +1,5 @@
 import { AdminLayout } from "../components/layout/AdminLayout";
-import { useGetAdminStats, useListQuotes, useListLeads } from "@workspace/api-client-react";
+import { useGetAdminStats, useListQuotes, useListLeads, useGetAdminMe } from "@workspace/api-client-react";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { format, isToday, parseISO } from "date-fns";
 import { Link } from "wouter";
@@ -7,11 +7,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  Package, FolderOpen, FileText, Mail, BookOpen,
+  Package, FolderOpen, FileText, Mail, BookOpen, ClipboardCheck,
   Loader2, Plus, Settings, Bell, CheckCircle,
   Clock, Zap, TrendingUp, Users, ArrowRight,
   AlertCircle, Database, MessageSquare, Download, Activity,
-  Sparkles, Layers, ShieldCheck, ChevronRight, Inbox
+  Sparkles, Layers, ShieldCheck, ChevronRight, Inbox, Receipt, LifeBuoy
 } from "lucide-react";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "").replace("/admin", "") + "/api";
@@ -92,6 +92,7 @@ export default function DashboardPage() {
   const { data: stats, isLoading, error } = useGetAdminStats();
   const { data: quotesData } = useListQuotes();
   const { data: leadsData } = useListLeads();
+  const { data: admin } = useGetAdminMe({ query: { retry: false, staleTime: 30_000 } as any });
 
   if (isLoading) {
     return (
@@ -116,6 +117,7 @@ export default function DashboardPage() {
     users:      apiStats?.users           ?? 0,
     newQuotes:  apiStats?.newQuotes       ?? 0,
     newLeads:   apiStats?.newLeads        ?? 0,
+    pendingApprovals: apiStats?.pendingApprovals ?? 0,
   };
 
   const chartData = [
@@ -129,6 +131,8 @@ export default function DashboardPage() {
 
   const recentQuotes = (quotesData || []).slice(0, 5);
   const recentLeads = (leadsData || []).slice(0, 5);
+  const salesSummary = (apiStats?.salesCommandCenter || {}) as Record<string, number>;
+  const showSalesCommandCenter = admin?.role === "sales" || admin?.role === "superadmin";
 
   const todayQuotes = (quotesData || []).filter(q => {
     try { return isToday(parseISO(q.createdAt || "")); } catch { return false; }
@@ -160,6 +164,11 @@ export default function DashboardPage() {
 
             {/* Quick Actions */}
             <div className="flex flex-wrap items-center gap-3">
+              <Link href="/content-approvals">
+                <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 font-bold text-xs border border-amber-400/30 shadow-lg shadow-amber-500/10 transition-all hover:scale-105 active:scale-95">
+                  <ClipboardCheck className="h-4 w-4" /> Approvals {s.pendingApprovals > 0 && `(${s.pendingApprovals})`}
+                </button>
+              </Link>
               <Link href="/products/new">
                 <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold text-xs shadow-lg shadow-rose-500/25 transition-all hover:scale-105 active:scale-95">
                   <Plus className="h-4 w-4" /> Add Product
@@ -174,6 +183,60 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        <Link href="/content-approvals" className="block">
+          <section className={`rounded-3xl border p-5 shadow-xl transition-all hover:-translate-y-0.5 ${s.pendingApprovals > 0 ? "border-amber-400/30 bg-gradient-to-r from-amber-950/70 via-slate-900/80 to-rose-950/60" : "border-emerald-500/20 bg-gradient-to-r from-emerald-950/50 via-slate-900/80 to-cyan-950/50"}`}>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className={`rounded-2xl p-3 ${s.pendingApprovals > 0 ? "bg-amber-400/15 text-amber-300" : "bg-emerald-400/15 text-emerald-300"}`}>
+                  <ClipboardCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className={`text-xs font-bold uppercase tracking-widest ${s.pendingApprovals > 0 ? "text-amber-300" : "text-emerald-300"}`}>Approval Center</div>
+                  <h2 className="mt-1 text-xl font-black text-white">
+                    {s.pendingApprovals > 0 ? `${s.pendingApprovals} change${s.pendingApprovals === 1 ? "" : "s"} waiting for review` : "Everything is approved"}
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-400">Products, deletes, pages, blogs, and templates are reviewed here before going live.</p>
+                </div>
+              </div>
+              <span className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-xs font-bold ${s.pendingApprovals > 0 ? "bg-amber-400 text-amber-950" : "bg-emerald-400 text-emerald-950"}`}>
+                Open Approval Center <ArrowRight className="ml-2 h-4 w-4" />
+              </span>
+            </div>
+          </section>
+        </Link>
+
+        {showSalesCommandCenter && (
+          <section className="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-950/50 via-slate-900/80 to-cyan-950/50 p-5 shadow-xl backdrop-blur-xl">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-300">
+                  <TrendingUp className="h-4 w-4" /> Sales Command Center
+                </div>
+                <h2 className="mt-1 text-xl font-black text-white">Today’s revenue conversations</h2>
+              </div>
+              <Link href="/quote-pipeline" className="text-xs font-bold text-emerald-300 hover:text-white">Open sales workspace →</Link>
+            </div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              {[
+                { label: "New leads", value: salesSummary.newLeads ?? s.newLeads, href: "/leads", icon: Inbox, tone: "text-cyan-300" },
+                { label: "Open quotes", value: salesSummary.openQuotes ?? s.newQuotes, href: "/quote-pipeline", icon: FileText, tone: "text-emerald-300" },
+                { label: "Overdue follow-ups", value: salesSummary.overdueFollowUps ?? 0, href: "/follow-ups", icon: Bell, tone: "text-amber-300" },
+                { label: "Pending invoices", value: salesSummary.pendingInvoices ?? 0, href: "/invoices", icon: Receipt, tone: "text-violet-300" },
+                { label: "Support tickets", value: salesSummary.openSupportTickets ?? 0, href: "/support-tickets", icon: LifeBuoy, tone: "text-rose-300" },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link key={item.label} href={item.href} className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.1]">
+                    <Icon className={`mb-3 h-5 w-5 ${item.tone}`} />
+                    <div className="text-2xl font-black text-white">{item.value}</div>
+                    <div className="mt-1 text-[11px] font-semibold text-slate-400">{item.label}</div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Heavy Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

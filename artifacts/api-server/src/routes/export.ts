@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { productsTable, categoriesTable } from "@workspace/db";
-import { requireAdmin } from "../middlewares/auth";
+import { requireCapability } from "../middlewares/auth";
 
 const router = Router();
 
@@ -26,7 +26,7 @@ function csvRow(vals: (string | null | undefined)[]): string {
 }
 
 // ── GET /api/admin/export/products.csv ────────────────────────────────────────
-router.get("/admin/export/products.csv", requireAdmin, async (_req, res) => {
+router.get("/admin/export/products.csv", requireCapability("exports"), async (_req, res) => {
   const prods = await db.select().from(productsTable).orderBy(productsTable.name);
   const cats  = await db.select().from(categoriesTable);
   const catMap = new Map(cats.map(c => [c.id, c.name]));
@@ -77,7 +77,7 @@ router.get("/admin/export/products.csv", requireAdmin, async (_req, res) => {
 });
 
 // ── GET /api/admin/export/products.xml ────────────────────────────────────────
-router.get("/admin/export/products.xml", requireAdmin, async (_req, res) => {
+router.get("/admin/export/products.xml", requireCapability("exports"), async (_req, res) => {
   const prods = await db.select().from(productsTable).orderBy(productsTable.name);
   const cats  = await db.select().from(categoriesTable);
   const catMap = new Map(cats.map(c => [c.id, { name: c.name, slug: c.slug }]));
@@ -130,7 +130,7 @@ ${items}
 });
 
 // ── GET /api/admin/export/categories.csv ──────────────────────────────────────
-router.get("/admin/export/categories.csv", requireAdmin, async (_req, res) => {
+router.get("/admin/export/categories.csv", requireCapability("exports"), async (_req, res) => {
   const cats = await db.select().from(categoriesTable).orderBy(categoriesTable.name);
 
   const headers = ["ID","Name","Slug","Description","Image URL","Active","Sort Order","Meta Title","Meta Description"];
@@ -151,7 +151,7 @@ router.get("/admin/export/categories.csv", requireAdmin, async (_req, res) => {
 });
 
 // ── GET /api/admin/export/categories.xml ──────────────────────────────────────
-router.get("/admin/export/categories.xml", requireAdmin, async (_req, res) => {
+router.get("/admin/export/categories.xml", requireCapability("exports"), async (_req, res) => {
   const cats = await db.select().from(categoriesTable).orderBy(categoriesTable.name);
 
   const terms = cats.map(c => `  <wp:term>

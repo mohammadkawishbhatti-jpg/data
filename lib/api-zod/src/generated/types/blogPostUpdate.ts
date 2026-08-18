@@ -22,4 +22,6 @@ export interface BlogPostUpdate {
   metaTitle?: string | null;
   /** @nullable */
   metaDescription?: string | null;
+  /** @nullable */
+  scheduledAt?: string | null;
 }

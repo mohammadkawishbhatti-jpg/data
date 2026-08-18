@@ -67,6 +67,7 @@ function MainSite() {
           <Route path="/shop" component={ShopPage} />
           <Route path="/products" component={ProductsPage} />
           <Route path="/blog" component={BlogPage} />
+          <Route path="/blog/:slug" component={BlogPostPage} />
           {/* Public static pages use the backed-up detailed React designs.
               Admin inline editing remains available on supported pages and
               shared product, category, and blog templates. */}

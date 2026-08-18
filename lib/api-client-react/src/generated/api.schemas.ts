@@ -84,6 +84,7 @@ export interface PageInput {
   metaTitle?: string | null;
   metaDescription?: string | null;
   isPublished?: boolean;
+  scheduledAt?: string | null;
 }
 
 export interface SubmitQuoteInput {
@@ -166,9 +167,28 @@ export interface Quote {
   company?: string | null;
   productType?: string | null;
   quantity?: string | null;
+  dimensions?: string | null;
+  material?: string | null;
+  printingDetails?: string | null;
   additionalNotes?: string | null;
+  source?: string | null;
   status: string;
   createdAt?: string;
+}
+
+export interface ClarkConversation {
+  id: number;
+  sessionId: string;
+  transcript: string;
+  /** @nullable */
+  ip?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  city?: string | null;
+  createdAt: string;
+  lastActivity: string;
+  quote?: Quote | null;
 }
 
 export interface Banner {
@@ -225,6 +245,8 @@ export interface BlogPostInput {
   metaTitle?: string | null;
   /** @nullable */
   metaDescription?: string | null;
+  /** @nullable */
+  scheduledAt?: string | null;
 }
 
 export interface BlogPostUpdate {
@@ -243,6 +265,8 @@ export interface BlogPostUpdate {
   metaTitle?: string | null;
   /** @nullable */
   metaDescription?: string | null;
+  /** @nullable */
+  scheduledAt?: string | null;
 }
 
 export interface CategoryInput {
@@ -354,6 +378,17 @@ export interface SiteSettings {
   phone?: string | null;
   address?: string | null;
   adminEmail?: string | null;
+  announcementBar?: string | null;
+  popupEnabled?: string | null;
+  popupBadge?: string | null;
+  popupTitle?: string | null;
+  popupMessage?: string | null;
+  popupButtonText?: string | null;
+  popupButtonUrl?: string | null;
+  popupImageUrl?: string | null;
+  tawkEnabled?: string | null;
+  tawkPropertyId?: string | null;
+  tawkHandoffLabel?: string | null;
   updatedAt?: string | null;
 }
 

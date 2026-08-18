@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Eye, EyeOff, Lock, User, ArrowRight, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -9,6 +9,18 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<'login' | 'forgot' | 'reset' | 'activate'>('login');
+  const [lifecyclePassword, setLifecyclePassword] = useState('');
+  const [success, setSuccess] = useState('');
+  const [token, setToken] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reset = params.get('reset');
+    const activate = params.get('activate');
+    if (reset) { setToken(reset); setMode('reset'); }
+    if (activate) { setToken(activate); setMode('activate'); }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,6 +30,38 @@ export default function LoginPage() {
       await login(username.trim(), password);
     } catch (err: any) {
       setError(err?.message ?? 'Invalid customer credentials. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLifecycleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    try {
+      const base = (import.meta as any).env?.VITE_API_BASE ?? '';
+      const endpoint = mode === 'forgot'
+        ? '/api/portal/password-reset/request'
+        : mode === 'reset'
+          ? '/api/portal/password-reset/confirm'
+          : '/api/portal/activate';
+      const body = mode === 'forgot'
+        ? { identifier: username.trim() }
+        : { token, password: lifecyclePassword };
+      const response = await fetch(`${base}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Unable to complete this request.');
+      setSuccess(result.message || (mode === 'forgot' ? 'Check your email for a secure link.' : 'Done.'));
+      if (mode !== 'forgot') setTimeout(() => setMode('login'), 1200);
+    } catch (err: any) {
+      setError(err?.message ?? 'Unable to complete this request.');
     } finally {
       setLoading(false);
     }
@@ -162,10 +206,10 @@ export default function LoginPage() {
           {/* Header text */}
           <div style={{ marginBottom: 32 }}>
             <h3 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 900, fontSize: 30, color: '#0D1F3C', marginBottom: 6 }}>
-              Customer Sign In
+              {mode === 'login' ? 'Customer Sign In' : mode === 'forgot' ? 'Forgot Password' : mode === 'reset' ? 'Set New Password' : 'Activate Portal Account'}
             </h3>
             <p style={{ fontSize: 14, color: '#64748B' }}>
-              Enter your portal account credentials to continue.
+              {mode === 'login' ? 'Enter your portal account credentials to continue.' : mode === 'forgot' ? 'We will email a secure, expiring reset link if your account matches.' : mode === 'reset' ? 'Choose a new password for your customer portal.' : 'Choose a password to activate your invitation.'}
             </p>
           </div>
 
@@ -180,8 +224,13 @@ export default function LoginPage() {
               ⚠️ {error}
             </div>
           )}
+          {success && (
+            <div style={{ marginBottom: 24, padding: '12px 16px', borderRadius: 12, background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#047857', fontSize: 13, fontWeight: 600 }}>
+              ✓ {success}
+            </div>
+          )}
 
-          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+          {mode === 'login' ? <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             {/* Username Input */}
             <div style={{ marginBottom: 20 }}>
               <label style={{
@@ -195,6 +244,8 @@ export default function LoginPage() {
                 <User size={18} color="#94A3B8" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type="text"
+                  name="username"
+                  autoComplete="username"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   placeholder="e.g. customer123 or email"
@@ -230,6 +281,8 @@ export default function LoginPage() {
                 <Lock size={18} color="#94A3B8" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type={showPw ? 'text' : 'password'}
+                  name="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••••••"
@@ -299,7 +352,37 @@ export default function LoginPage() {
                 </>
               )}
             </button>
-          </form>
+          </form> : <form onSubmit={handleLifecycleSubmit} style={{ width: '100%' }}>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+                {mode === 'forgot' ? 'Username, email, or customer ID' : 'Password'}
+              </label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                {mode === 'forgot' ? <User size={18} color="#94A3B8" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} /> : <Lock size={18} color="#94A3B8" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />}
+                <input
+                  type={mode === 'forgot' ? 'text' : 'password'}
+                  value={mode === 'forgot' ? username : lifecyclePassword}
+                  onChange={e => mode === 'forgot' ? setUsername(e.target.value) : setLifecyclePassword(e.target.value)}
+                  required
+                  minLength={mode === 'forgot' ? undefined : 8}
+                  placeholder={mode === 'forgot' ? 'you@company.com' : 'At least 8 characters'}
+                  style={{ width: '100%', padding: '12px 16px 12px 42px', borderRadius: 12, border: '1.5px solid #E2E8F0', outline: 'none', fontSize: 14, color: '#0F172A', background: '#F8FAFC', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px 20px', background: loading ? '#64748B' : '#0D1F3C', color: '#FFFFFF', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer' }}>
+              {loading ? 'Please wait…' : mode === 'forgot' ? 'Email Reset Link' : mode === 'reset' ? 'Update Password' : 'Activate Account'}
+            </button>
+            <button type="button" onClick={() => { setMode('login'); setError(''); setSuccess(''); }} style={{ width: '100%', marginTop: 12, padding: '10px', background: 'transparent', color: '#E63329', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              ← Back to sign in
+            </button>
+          </form>}
+
+          {mode === 'login' && (
+            <button type="button" onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }} style={{ width: '100%', marginTop: 12, background: 'transparent', border: 'none', color: '#E63329', fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'right' }}>
+              Forgot password?
+            </button>
+          )}
 
           {/* Help Support Notice */}
           <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #F1F5F9', textAlign: 'center' }}>

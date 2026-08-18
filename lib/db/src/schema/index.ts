@@ -238,6 +238,11 @@ export const siteSettingsTable = pgTable("site_settings", {
   clarkToneNotes: text("clark_tone_notes"),
   clarkQuoteHours: text("clark_quote_hours").default("2"),
   clarkCustomFaqs: text("clark_custom_faqs"),   // JSON: [{q,a}]
+  // Public Tawk.to browser widget configuration. Never store private Tawk API
+  // credentials here; Tawk notifications and agent settings stay in Tawk.
+  tawkEnabled: text("tawk_enabled").default("false"),
+  tawkPropertyId: text("tawk_property_id"),
+  tawkHandoffLabel: text("tawk_handoff_label").default("Talk to a real person"),
   // Contact & social
   whatsapp: text("whatsapp"),
   facebook: text("facebook"),
@@ -370,8 +375,8 @@ export const adminAuditLogsTable = pgTable("admin_audit_logs", {
 ]);
 
 // ── CMS revision and approval history ─────────────────────────────────────────
-// Revisions are append-only. Base page/blog/template rows are only updated by
-// the Super Admin approval endpoint, so normal editors cannot publish directly.
+// Revisions are append-only. Editor changes remain pending; Super Admin and
+// Basic Admin changes are recorded as revisions and applied live immediately.
 export const contentRevisionsTable = pgTable("content_revisions", {
   id: serial("id").primaryKey(),
   entityType: text("entity_type").notNull(), // page | blog | template

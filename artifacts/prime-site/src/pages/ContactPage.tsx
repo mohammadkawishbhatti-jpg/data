@@ -142,6 +142,9 @@ export default function ContactPage() {
                 <img
                   src="/api/uploads/custom-corrugated-mailer-boxes-with-logo.webp"
                   alt="Custom corrugated mailer boxes with logo — Prime Packaging USA"
+                  width={800}
+                  height={600}
+                  decoding="async"
                   className="relative rounded-2xl shadow-2xl w-full object-cover max-h-[400px]"
                   loading="eager"
                 />

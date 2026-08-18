@@ -4,7 +4,7 @@ import { leadsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { SubmitContactBody, UpdateLeadStatusParams, UpdateLeadStatusBody } from "@workspace/api-zod";
 import { sendContactEmail } from "../lib/email";
-import { requireAdmin } from "../middlewares/auth";
+import { requireCapability } from "../middlewares/auth";
 
 const router = Router();
 
@@ -29,7 +29,7 @@ router.post("/contact", async (req, res) => {
 });
 
 // Admin: GET /admin/leads
-router.get("/admin/leads", requireAdmin, async (req, res) => {
+router.get("/admin/leads", requireCapability("sales"), async (req, res) => {
   try {
     const rows = await db.select().from(leadsTable).orderBy(desc(leadsTable.createdAt));
     res.json(rows.map(fmt));
@@ -40,7 +40,7 @@ router.get("/admin/leads", requireAdmin, async (req, res) => {
 });
 
 // Admin: PATCH /admin/leads/:id
-router.patch("/admin/leads/:id", requireAdmin, async (req, res) => {
+router.patch("/admin/leads/:id", requireCapability("sales"), async (req, res) => {
   try {
     const { id } = UpdateLeadStatusParams.parse(req.params);
     const body: Record<string, any> = {};

@@ -32,9 +32,12 @@ export function PageHero({
           src={bgImage}
           alt=""
           aria-hidden="true"
+          width={1600}
+          height={900}
           className="w-full h-full object-cover"
           style={{ opacity: overlay === "dark" ? 0.18 : 0.28 }}
           loading="eager"
+          fetchPriority="high"
           decoding="async"
           onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
         />

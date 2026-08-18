@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useRoute, Link } from "wouter";
 import { ChevronRight, ChevronDown, ChevronUp, Star, Printer, Package, Zap, Layers, User, Paperclip, ZoomIn, Ruler, Lightbulb, CheckCircle, X, ChevronLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { ProductCard } from "../components/ui/ProductCard";
 import { useGetProduct, useSubmitQuote, useListProducts } from "@workspace/api-client-react";
 import {
   TemplateRenderer,
@@ -12,12 +11,40 @@ import {
 } from "../components/ui/TemplateRenderer";
 import { useMemo } from "react";
 import { toAbsoluteUrl, useSEO, useSchemaOrg } from "../lib/useSEO";
+import oneColourPackagingImage from "@assets/packaging-references/print-one-colour-blue.png";
+import kraftPackagingImage from "@assets/image_1786955142190.png";
+import threeColourPackagingImage from "@assets/image_1786955205706.png";
+import fullColourPackagingImage from "@assets/image_1786955276794.png";
+import noColourPackagingImage from "@assets/image_1786955383782.png";
+import kraftMaterialImage from "@assets/image_1786957626817.png";
+import blackKraftMaterialImage from "@assets/image_1786957646397.png";
+import bleachedMaterialImage from "@assets/image_1786957667497.png";
+import rigidMaterialImage from "@assets/image_1786957878769.png";
+import coverageInsideImage from "@assets/packaging-references/coverage-inside.jpg";
+import coverageOutsideImage from "@assets/packaging-references/coverage-outside.webp";
+import coverageOutsideInsideImage from "@assets/packaging-references/coverage-outside-inside.webp";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const CARD_MATERIALS = ["Cardboard","Kraft","Corrugated","Rigid / Chipboard","Eco Kraft","White SBS"];
-const PRINTING_OPTIONS = ["CMYK Full Color","PMS / Pantone","No Print / Plain"];
-const PRINT_COLOURS = ["1 Color","2 Colors","3 Colors","4 Colors (Full Color)"];
+const PRINTING_OPTIONS = ["Digital / CMYK","PMS / Pantone","No Print / Plain"];
 const EXTRA_FINISHES = ["Matt","Gloss","Spot UV","Embossing","Spot UV Coating","Foiling"];
+const PRINT_COLOUR_MODES = [
+  { value: "one-colour", label: "1 Colour", description: "Single blue ink colour", image: oneColourPackagingImage },
+  { value: "two-colour", label: "2 Colours", description: "Two spot colours", image: kraftPackagingImage },
+  { value: "three-colour", label: "3 Colours", description: "Three spot colours", image: threeColourPackagingImage },
+  { value: "full-colour", label: "Full Colour", description: "CMYK full colour", image: fullColourPackagingImage },
+  { value: "no-print", label: "No Colour", description: "Plain white · no print", image: noColourPackagingImage },
+];
+const MATERIAL_OPTIONS = [
+  { value: "kraft-brown", label: "Kraft Brown", description: "Natural kraft board", image: kraftMaterialImage },
+  { value: "bleached-card", label: "Bleached Card", description: "Clean white card", image: bleachedMaterialImage },
+  { value: "black-kraft", label: "Black Kraft", description: "Deep black kraft board", image: blackKraftMaterialImage },
+  { value: "rigid-card", label: "Rigid Card", description: "Sturdy premium board", image: rigidMaterialImage },
+];
+const PRINT_COVERAGE = [
+  { value: "outside", label: "Outside", image: coverageOutsideImage },
+  { value: "inside", label: "Inside", image: coverageInsideImage },
+  { value: "outside-inside", label: "Outside + Inside", image: coverageOutsideInsideImage },
+];
 const TECH_DETAILS = [
   ["Interior Options","Kraft, Eco Kraft, White SBS and E Flute Corrugated"],
   ["Paper Thickness","14pt (Glossy), Custom Up to 24pt Uncoated"],
@@ -26,13 +53,13 @@ const TECH_DETAILS = [
   ["Custom Add-ons","Window cut-outs, Custom Shapes, Die-cuts, Flat Edges"],
   ["Box Sizes","Fully Custom — any Length, Width & Height"],
   ["Minimum Order","100 Boxes (Our MOQ)"],
-  ["Turnaround Time","6–8 Business Days after artwork approval"],
+  ["Turnaround Time","7–9 Working Days after artwork approval; rush 5–6 days"],
 ];
 const HOW_IT_WORKS = [
   { step: "01", title: "Share Your Idea", desc: "Tell us your product dimensions, style, and design vision. Our team reviews your brief same day." },
   { step: "02", title: "Approve Digital Proof", desc: "Our designers create a 3D digital mockup for your approval. Unlimited revisions included — free." },
   { step: "03", title: "We Print & Make", desc: "Once approved, your boxes are printed and manufactured to exact spec in our quality-controlled facility." },
-  { step: "04", title: "Delivered Fast", desc: "Shipped directly to your door in 6–8 business days. Rush options available for urgent orders." },
+  { step: "04", title: "Delivered Fast", desc: "Shipped directly to your door in 7–9 working days. Rush 5–6 day options are available for urgent orders." },
 ];
 const INDUSTRIES = [
   "Cosmetics & Beauty","Food & Beverage","E-Commerce Brands","Cannabis & CBD",
@@ -44,7 +71,7 @@ const TESTIMONIALS = [
   { name: "Emily Davis", company: "Eden Naturals", text: "First order and already impressed. Same-day response, 3D mockup within 24 hours, and the boxes arrived ahead of schedule. Highly recommend!" },
 ];
 const FAQS = [
-  { q: "What is your turnaround time?", a: "Standard production is 6–8 business days after artwork approval. Rush options (3–5 days) are available — contact us to request." },
+  { q: "What is your turnaround time?", a: "Standard production is 7–9 working days after artwork approval. Rush production is 5–6 working days — contact us to request it." },
   { q: "What is your minimum order quantity?", a: "Our MOQ is 100 boxes. We keep minimums low so small brands can access the same quality packaging as large corporations." },
   { q: "What file formats do you accept for artwork?", a: "We accept PDF, AI, PSD, PNG, and JPEG files (300 DPI at print size). If you only have a low-res logo, our design team can vectorize it at no charge." },
   { q: "Can you help me design my box?", a: "Yes — free design support is included with every order. Our structural engineers and graphic designers handle everything from the dieline to the final artwork." },
@@ -164,8 +191,10 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 // ─── Form fields ──────────────────────────────────────────────────────────────
 interface OrderForm {
-  style: string; unit: string; length: string; width: string; height: string;
-  cardMaterial: string; printing: string; printColour: string; quantity: string;
+  unit: string; length: string; width: string; height: string;
+  cardMaterial: string; printing: string; quantity: string;
+  printColourMode: string; printCoverage: string;
+  artworkFileName: string; turnaround: string;
   finishes: string[]; name: string; email: string; phone: string; zip: string; message: string;
 }
 
@@ -197,6 +226,9 @@ export default function ProductDetailPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [zoomOpen, setZoomOpen] = useState(false);
+  // Keep the full configurator open by default. Customers need to see and
+  // complete every packaging specification before requesting a quote.
+  const advancedOpen = true;
 
   const { data: product, isLoading, isError } = useGetProduct(slug, {
     query: { enabled: !!slug, retry: false, queryKey: ["product", slug] },
@@ -228,7 +260,14 @@ export default function ProductDetailPage() {
   } : {});
 
   const { register, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<OrderForm>({
-    defaultValues: { style: "Style 1", unit: "inch", finishes: [] },
+    defaultValues: {
+      unit: "inch",
+      printColourMode: "full-colour",
+      printCoverage: "outside",
+      turnaround: "standard",
+      finishes: [],
+      artworkFileName: "",
+    },
   });
   const selectedFinishes = watch("finishes") || [];
 
@@ -240,11 +279,12 @@ export default function ProductDetailPage() {
   const onSubmit = (data: OrderForm) => {
     setSubmitError("");
     const notes = [
-      `Box Style: ${data.style}`,
       `Dimensions (${data.unit}): L ${data.length || "?"} × W ${data.width || "?"} × H ${data.height || "?"}`,
       `Card Material: ${data.cardMaterial}`,
       `Printing: ${data.printing}`,
-      `Print Colour: ${data.printColour}`,
+      `Print Colour Mode: ${PRINT_COLOUR_MODES.find(mode => mode.value === data.printColourMode)?.label || "Not selected"}`,
+      `Print Coverage: ${data.printCoverage || "Not selected"}`,
+      data.artworkFileName ? `Artwork File: ${data.artworkFileName}` : "",
       `Extra Finishes: ${data.finishes.join(", ") || "None"}`,
       data.zip ? `ZIP: ${data.zip}` : "",
       data.message || "",
@@ -297,50 +337,55 @@ export default function ProductDetailPage() {
   return (
     <>
       <div data-inline-dynamic="true">
-      {/* ── Product Hero — exact WP match ── */}
-      <div className="bg-[#1a2f5a] pt-6 pb-5 relative">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-            <div className="flex-1">
+      {/* ── Product Hero ── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#12264d] via-[#1a2f5a] to-[#244477] py-5 md:py-6">
+        <div className="pointer-events-none absolute -right-24 -top-36 h-96 w-96 rounded-full bg-[#4f7eb8]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-44 left-1/3 h-80 w-80 rounded-full bg-[#f5c518]/[0.06] blur-3xl" />
+        <div className="container relative z-10 mx-auto max-w-7xl px-4">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12">
+            <div className="min-w-0 max-w-3xl">
               {/* Breadcrumb */}
-              <div className="flex items-center flex-wrap text-xs text-white/50 gap-1 mb-3">
+              <div className="mb-4 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-white/50">
                 <Link href="/" className="hover:text-white/90 transition-colors">Home</Link>
-                <ChevronRight className="h-3 w-3" />
+                <ChevronRight className="h-3 w-3 text-white/30" />
                 <Link href="/shop" className="hover:text-white/90 transition-colors">Shop</Link>
                 {product.categoryName && (
                   <>
-                    <ChevronRight className="h-3 w-3" />
+                    <ChevronRight className="h-3 w-3 text-white/30" />
                     <Link href={`/${product.categorySlug || product.categoryId}`} className="hover:text-white/90 transition-colors">{product.categoryName}</Link>
                   </>
                 )}
-                <ChevronRight className="h-3 w-3" />
+                <ChevronRight className="h-3 w-3 text-white/30" />
                 <span className="text-white/90 font-medium">{product.name}</span>
               </div>
               {/* Custom Packaging badge */}
-              <span className="inline-flex items-center gap-1 border border-white/30 text-white/80 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded mb-4">
-                + CUSTOM PACKAGING
+              <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/[0.08] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/80 shadow-sm">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#f5c518] shadow-[0_0_0_3px_rgba(245,197,24,0.14)]" />
+                Custom packaging
               </span>
-              {/* H1 — yellow like WP original */}
-              <h1 className="text-3xl md:text-4xl xl:text-5xl font-extrabold mb-3 leading-tight" style={{ color: "#f5c518" }}>{product.name}</h1>
+              {/* H1 */}
+              <h1 className="mb-3 text-[2.5rem] font-extrabold leading-[0.98] tracking-[-0.045em] text-[#f5c518] md:text-[3rem] xl:text-[3.6rem]">{product.name}</h1>
               {/* Short description */}
-              <p className="text-white/65 text-sm leading-relaxed max-w-xl">
+              <p className="max-w-2xl text-[13px] leading-6 text-white/70 md:text-sm">
                 {product.shortDescription
                   ? product.shortDescription
                   : <>Premium <strong className="text-white/90 font-semibold">{product.name.toLowerCase()}</strong> with full-color printing, low minimums &amp; fast delivery.</>}
               </p>
             </div>
-            {/* 3 info badges — right side, stacked vertically like WP */}
-            <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
+            {/* Product promises */}
+            <div className="flex shrink-0 flex-col gap-2.5 sm:flex-row lg:flex-col">
               {[
                 { Icon: Printer, label: "Printing",      value: "Full Color CMYK" },
                 { Icon: Package, label: "Minimum Order",  value: "100 Units Only" },
-                { Icon: Zap,     label: "Turnaround",     value: "7–10 Business Days" },
+                { Icon: Zap,     label: "Turnaround",     value: "7–9 Working Days" },
               ].map(b => (
-                <div key={b.label} className="flex items-center gap-3 rounded-lg px-4 py-2.5 border border-white/20 bg-white/[0.07] sm:min-w-[170px]">
-                  <b.Icon className="w-5 h-5 text-white/70 shrink-0" />
+                <div key={b.label} className="flex min-w-[190px] items-center gap-3 rounded-xl border border-white/15 bg-white/[0.09] px-3.5 py-3 shadow-[0_8px_24px_rgba(5,19,48,0.14)] backdrop-blur-sm sm:min-w-[175px]">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f5c518]/[0.12] text-[#f5c518]">
+                    <b.Icon className="h-[18px] w-[18px]" />
+                  </span>
                   <div>
-                    <div className="text-white/45 text-[10px] uppercase font-bold tracking-wider leading-none mb-0.5">{b.label}</div>
-                    <div className="text-white font-bold text-sm leading-tight">{b.value}</div>
+                    <div className="mb-1 text-[9px] font-bold uppercase leading-none tracking-[0.16em] text-white/45">{b.label}</div>
+                    <div className="text-[13px] font-bold leading-tight text-white">{b.value}</div>
                   </div>
                 </div>
               ))}
@@ -350,9 +395,9 @@ export default function ProductDetailPage() {
       </div>
 
       {/* ── Trust Bar — separate strip below hero, like WP ── */}
-      <div className="bg-[#162547] border-b border-white/[0.06]">
-        <div className="container mx-auto px-4 py-2.5">
-          <div className="flex flex-wrap gap-x-6 gap-y-1.5 items-center">
+      <div className="border-b border-white/[0.07] bg-[#101f3b]">
+        <div className="container mx-auto max-w-7xl px-4 py-2.5">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {[
               { icon: "✓", text: "Free Design Support" },
               { icon: "✓", text: "Eco-Friendly Materials" },
@@ -360,8 +405,8 @@ export default function ProductDetailPage() {
               { icon: "✓", text: "USA Shipping" },
               { icon: "✓", text: "No Hidden Charges" },
             ].map(t => (
-              <span key={t.text} className="flex items-center gap-1.5 text-xs text-white/75">
-                <span className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-[9px] shrink-0">{t.icon}</span>
+              <span key={t.text} className="flex items-center gap-1.5 text-[11px] font-medium text-white/75 md:text-xs">
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white shadow-[0_0_0_3px_rgba(16,185,129,0.12)]">{t.icon}</span>
                 {t.text}
               </span>
             ))}
@@ -369,13 +414,13 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 pt-6 pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-8 items-start max-w-6xl mx-auto">
+      <div className="container mx-auto max-w-7xl px-4 pt-6 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_560px] gap-8 items-start">
 
           {/* ── Left: Images ── */}
-          <div className="flex justify-end">
-            {/* Inner wrapper keeps image + thumbnails together, right-aligned */}
-            <div className="flex flex-col gap-3 w-full max-w-[500px]">
+          <div className="prime-product-gallery flex justify-start lg:justify-end lg:-translate-x-20 self-start min-w-0">
+            {/* Packhelp-style gallery: remains beside the long form while the page scrolls. */}
+            <div className="flex flex-col gap-3 w-full max-w-[280px] xl:max-w-[380px]">
               {/* Main image */}
               <div className="w-full rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm relative" style={{ aspectRatio: "1/1" }}>
                 {images.length > 0 ? (
@@ -383,7 +428,7 @@ export default function ProductDetailPage() {
                     <img
                       src={images[activeImage]}
                       alt={product.name}
-                      className="w-full h-full object-cover cursor-zoom-in"
+                       className="w-full h-full object-contain p-4 cursor-zoom-in"
                       onClick={() => setZoomOpen(true)}
                     />
                     <button
@@ -403,12 +448,12 @@ export default function ProductDetailPage() {
                   </div>
                 )}
               </div>
-              {/* Thumbnails — left-aligned under image */}
+              {/* Thumbnails — horizontally scrollable on narrow screens and for larger galleries */}
               {images.length > 1 && (
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 overflow-x-auto flex-nowrap pb-1 scroll-smooth overscroll-x-contain">
                   {images.map((img, idx) => (
                     <button key={idx} onClick={() => setActiveImage(idx)}
-                      className={`w-[72px] h-[72px] rounded-lg overflow-hidden border-2 shrink-0 transition-all bg-white flex items-center justify-center ${activeImage === idx ? "border-[#e63329] shadow-sm" : "border-gray-200 hover:border-gray-400"}`}>
+                      className={`w-[80px] h-[80px] rounded-lg overflow-hidden border-2 shrink-0 transition-all bg-white flex items-center justify-center ${activeImage === idx ? "border-[#e63329] shadow-sm" : "border-gray-200 hover:border-gray-400"}`}>
                       <img src={img} alt="" className="w-full h-full object-contain p-1" />
                     </button>
                   ))}
@@ -417,17 +462,20 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* ── Right: Sticky order form ── */}
-          <div className="sticky top-20">
+          {/* ── Right: normal page-flow configurator ── */}
+          <div className="self-start min-w-0">
             <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
 
               {/* Form Header */}
               <div className="bg-gradient-to-r from-[#1a2f5a] to-[#243d6e] px-6 py-4">
-                <h2 className="text-white font-bold text-base">Get an Instant Quote</h2>
-                <p className="text-white/60 text-xs mt-0.5">Fill in your specs — we'll reply within 2 hours</p>
+                <h2 className="text-white font-bold text-base">Configure your custom box</h2>
+                <p className="text-white/60 text-xs mt-0.5">Tell us every specification — your packaging specialist will prepare a custom quote</p>
               </div>
 
-              <div className="p-5 space-y-5">
+              <div className="p-6 space-y-6">
+                <input type="hidden" {...register("printColourMode")} />
+                <input type="hidden" {...register("printCoverage")} />
+                <input type="hidden" {...register("artworkFileName")} />
 
                 {/* Section: Dimensions */}
                 <div>
@@ -440,18 +488,6 @@ export default function ProductDetailPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-2">Box Style *</label>
-                      <div className="flex flex-wrap gap-2">
-                        {["Style 1","Style 2","Style 3","Style 4"].map(s => (
-                          <button key={s} type="button" onClick={() => setValue("style", s)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-all ${watch("style") === s ? "bg-[#e63329] text-white border-[#e63329] shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-[#1a2f5a] hover:text-[#1a2f5a]"}`}>
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-2">Unit of Measure</label>
                       <div className="flex gap-2">
@@ -498,42 +534,74 @@ export default function ProductDetailPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Material *</label>
-                        <select {...register("cardMaterial", { required: true })}
-                          className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#1a2f5a] transition-colors">
-                          <option value="">Select material</option>
-                          {CARD_MATERIALS.map(m => <option key={m} value={m}>{m}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Printing *</label>
-                        <select {...register("printing", { required: true })}
-                          className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#1a2f5a] transition-colors">
-                          <option value="">Select printing</option>
-                          {PRINTING_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Colour</label>
-                        <select {...register("printColour")}
-                          className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#1a2f5a] transition-colors">
-                          <option value="">Select colour</option>
-                          {PRINT_COLOURS.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Quantity</label>
-                        <input {...register("quantity")} placeholder="e.g. 500"
-                          className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1a2f5a] transition-colors" />
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-2">Material *</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {MATERIAL_OPTIONS.map((option) => (
+                          <button key={option.value} type="button"
+                            onClick={() => setValue("cardMaterial", option.value)}
+                            className={`flex items-center gap-2.5 rounded-xl border-2 p-2.5 text-left transition-all ${watch("cardMaterial") === option.value ? "border-[#1a2f5a] bg-blue-50/60" : "border-gray-200 bg-white hover:border-[#1a2f5a]/50"}`}>
+                              <span className="h-12 w-12 overflow-hidden rounded-lg border border-gray-200 bg-white shrink-0 flex items-center justify-center">
+                                <img src={option.image} alt="" className="h-full w-full object-contain p-0.5" />
+                             </span>
+                            <span>
+                              <span className="block text-[11px] font-bold text-[#1a2f5a]">{option.label}</span>
+                              <span className="block text-[10px] text-gray-400">{option.description}</span>
+                            </span>
+                          </button>
+                        ))}
                       </div>
                     </div>
 
                     <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">Printing *</label>
+                      <select {...register("printing", { required: true })}
+                        className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#1a2f5a] transition-colors">
+                        <option value="">Select printing</option>
+                        {PRINTING_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-xs font-semibold text-gray-600">Print colour mode *</label>
+                        <span className="text-[11px] text-gray-400">Select one</span>
+                      </div>
+                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                         {PRINT_COLOUR_MODES.map((option) => (
+                          <button key={option.value} type="button"
+                            onClick={() => setValue("printColourMode", option.value)}
+                            className={`group rounded-xl border-2 p-2 text-left transition-all ${watch("printColourMode") === option.value ? "border-[#1a2f5a] bg-blue-50/60 shadow-sm" : "border-gray-200 bg-white hover:border-[#1a2f5a]/50"}`}>
+                             <div className="h-16 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center mb-2">
+                               <img src={option.image} alt="" className="h-full w-full object-cover" />
+                            </div>
+                            <span className="block text-[11px] font-bold text-[#1a2f5a]">{option.label}</span>
+                            <span className="block text-[10px] text-gray-400 mt-0.5">{option.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-2">Print coverage *</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {PRINT_COVERAGE.map((option) => (
+                          <button key={option.value} type="button" onClick={() => setValue("printCoverage", option.value)}
+                            className={`rounded-xl border-2 p-2 text-left transition-all ${watch("printCoverage") === option.value ? "border-[#1a2f5a] bg-blue-50/60" : "border-gray-200 bg-white hover:border-[#1a2f5a]/50"}`}>
+                            <img src={option.image} alt="" className="mb-2 h-14 w-full rounded-lg object-cover" />
+                            <span className="block text-[11px] font-bold text-[#1a2f5a]">{option.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                     <div>
+                       <label className="block text-xs font-semibold text-gray-600 mb-1.5">Quantity</label>
+                       <input {...register("quantity")} placeholder="e.g. 500"
+                         className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1a2f5a] transition-colors" />
+                    </div>
+
+                    {advancedOpen && <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-2">Finishes</label>
                       <div className="flex flex-wrap gap-2">
                         {EXTRA_FINISHES.map(f => (
@@ -543,9 +611,9 @@ export default function ProductDetailPage() {
                           </button>
                         ))}
                       </div>
-                    </div>
+                    </div>}
 
-                    <div>
+                    {advancedOpen && <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1.5">Artwork File</label>
                       <label className="flex items-center gap-3 border-2 border-dashed border-gray-200 rounded-xl px-4 py-3 cursor-pointer hover:border-[#1a2f5a] hover:bg-blue-50/30 transition-all group">
                         <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-[#1a2f5a]/10 flex items-center justify-center shrink-0 transition-colors">
@@ -555,9 +623,11 @@ export default function ProductDetailPage() {
                           <div className="text-sm font-semibold text-gray-700">Upload artwork file</div>
                           <div className="text-xs text-gray-400">PDF, AI, PNG, JPEG, PSD · Max 50 MB</div>
                         </div>
-                        <input type="file" className="hidden" accept=".pdf,.ai,.png,.jpg,.jpeg,.psd" />
+                        <input type="file" className="hidden" accept=".pdf,.ai,.png,.jpg,.jpeg,.psd"
+                          onChange={(event) => setValue("artworkFileName", event.target.files?.[0]?.name || "")} />
                       </label>
-                    </div>
+                      {watch("artworkFileName") && <p className="mt-1.5 text-[11px] font-semibold text-green-700">Selected: {watch("artworkFileName")}</p>}
+                    </div>}
                   </div>
                 </div>
 
@@ -565,7 +635,7 @@ export default function ProductDetailPage() {
                 <div className="border-t border-gray-100" />
 
                 {/* Section: Delivery & Rush */}
-                <div>
+                {advancedOpen && <div>
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-6 h-6 rounded bg-[#e63329]/10 flex items-center justify-center shrink-0">
                       <Zap className="w-3.5 h-3.5 text-[#e63329]" />
@@ -576,8 +646,8 @@ export default function ProductDetailPage() {
 
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { label: "Standard", sub: "6–8 Business Days", value: "standard" },
-                      { label: "Rush", sub: "3–5 Business Days", value: "rush", badge: "+" },
+                      { label: "Standard", sub: "7–9 Working Days", value: "standard" },
+                      { label: "Rush", sub: "5–6 Working Days", value: "rush", badge: "+" },
                     ].map(opt => (
                       <button key={opt.value} type="button"
                         onClick={() => setValue("turnaround" as any, opt.value)}
@@ -590,24 +660,7 @@ export default function ProductDetailPage() {
                       </button>
                     ))}
                   </div>
-                </div>
-
-                {/* Trust strip */}
-                <div className="rounded-xl bg-gradient-to-r from-[#f0f4ff] to-[#fff5f5] border border-[#e8edf8] px-4 py-3">
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    {[
-                      { icon: "🎨", title: "Free Design", sub: "Included always" },
-                      { icon: "⚡", title: "2hr Reply", sub: "Mon–Fri 9–6" },
-                      { icon: "✅", title: "100% Quality", sub: "Or we reprint" },
-                    ].map(t => (
-                      <div key={t.title}>
-                        <div className="text-lg mb-0.5">{t.icon}</div>
-                        <div className="text-[11px] font-bold text-[#1a2f5a] leading-tight">{t.title}</div>
-                        <div className="text-[10px] text-gray-400 leading-tight">{t.sub}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                </div>}
 
                 {/* Divider */}
                 <div className="border-t border-gray-100" />
@@ -666,18 +719,57 @@ export default function ProductDetailPage() {
                         className="w-full bg-[#e63329] hover:bg-[#c42a21] text-white font-bold py-3.5 rounded-xl transition-all text-sm shadow-md hover:shadow-lg disabled:opacity-60 flex items-center justify-center gap-2 mt-1">
                         {isSubmitting
                           ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Sending...</>
-                          : <><span>Get My Free Quote</span><span className="text-lg leading-none">→</span></>}
+                          : <><span>Request My Custom Quote</span><span className="text-lg leading-none">→</span></>}
                       </button>
                        {submitError && <p role="alert" className="text-center text-xs text-red-600">{submitError}</p>}
 
-                      <p className="text-center text-[11px] text-gray-400">
-                        🔒 Your info is secure · No spam · Reply in &lt; 2 hours
-                      </p>
                     </div>
                   )}
                 </div>
               </div>
             </form>
+
+            {/* Packhelp-style support and discovery cards stay beside the configurator. */}
+            <div className="mt-5 space-y-4">
+              <div className="rounded-2xl border border-[#dbe5f5] bg-[#eef4ff] p-4">
+                <h3 className="text-base font-extrabold text-[#1a2f5a]">Need help with packaging?</h3>
+                <p className="mt-1 text-xs leading-relaxed text-gray-600">Our packaging team can recommend the right board, finish, and construction for your product.</p>
+                <Link href="/contact" className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-[#1a2f5a] hover:text-[#e63329]">
+                  Talk to our packaging team <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div>
+                  <h3 className="text-base font-extrabold text-gray-900">Sample packs</h3>
+                  <p className="text-xs text-gray-500">With refund on next order</p>
+                  <Link href="/request-sample" className="mt-3 inline-block text-xs font-bold text-gray-900 underline underline-offset-4 hover:text-[#e63329]">Order now</Link>
+                </div>
+                {images[0] && <img src={images[0]} alt="Sample packaging pack" className="h-16 w-20 rounded-lg object-cover" />}
+              </div>
+
+              {related.length > 0 && (
+                <div>
+                  <h3 className="mb-3 text-lg font-extrabold text-gray-900">Related products</h3>
+                  <div className="space-y-2">
+                    {related.slice(0, 3).map((p) => {
+                      const rawImage = p.images?.[0] || p.imageUrl || "";
+                      const image = rawImage.startsWith("/uploads/") ? `/api/uploads/${rawImage.slice("/uploads/".length)}` : rawImage;
+                      return (
+                        <div key={p.id} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-2.5">
+                          {image ? <img src={image} alt={p.name} className="h-14 w-16 rounded-lg bg-gray-50 object-cover" /> : <div className="h-14 w-16 rounded-lg bg-gray-100" />}
+                          <div className="min-w-0 flex-1">
+                            <Link href={`/${p.slug}`} className="block truncate text-xs font-bold text-gray-900 hover:text-[#e63329]">{p.name}</Link>
+                            <span className="mt-1 block text-[10px] text-gray-500">Custom packaging</span>
+                          </div>
+                          <Link href={`/${p.slug}`} className="shrink-0 rounded-full border border-gray-200 px-2.5 py-1 text-[10px] font-bold text-gray-700 hover:border-[#1a2f5a] hover:text-[#1a2f5a]">More</Link>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -866,17 +958,6 @@ export default function ProductDetailPage() {
         </div>
       </section>
 
-      {/* ── Related Products ── */}
-      {related.length > 0 && (
-        <section className="py-12 bg-white border-t border-gray-200">
-          <div className="container mx-auto px-4">
-            <h2 className="text-2xl font-extrabold text-[#1a2f5a] mb-6">You May Also Like</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-              {related.map(p => <ProductCard key={p.id} product={p} />)}
-            </div>
-          </div>
-        </section>
-      )}
       </div>
 
       {/* ── Shared Product Template Blocks ── */}

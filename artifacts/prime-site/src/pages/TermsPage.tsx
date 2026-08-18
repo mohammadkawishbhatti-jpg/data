@@ -6,7 +6,7 @@ export default function TermsPage() {
   useSEO({
     title: "Terms & Conditions | Prime Packaging Boxes",
     description: "Read the Terms and Conditions for Prime Packaging Boxes. Understand our ordering process, payment terms, and policies.",
-    canonical: "/terms-conditions"
+    canonical: "/terms-and-conditions"
   });
 
   const legalSections = [

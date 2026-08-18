@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, menusTable, type MenuItem } from "@workspace/db";
 import { AdminGetMenuResponse, AdminUpdateMenuBody } from "@workspace/api-zod";
 import { eq } from "drizzle-orm";
-import { requireAdmin, requireSameOrigin } from "../middlewares/auth";
+import { requireCapability, requireSameOrigin } from "../middlewares/auth";
 
 const router = Router();
 const KNOWN_PRODUCT_GROUPS = new Set(["By industry", "Hot selling", "By style / material"]);
@@ -61,7 +61,7 @@ router.get("/menus/:location", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/admin/menus/:location", requireAdmin, async (req, res): Promise<void> => {
+router.get("/admin/menus/:location", requireCapability("content"), async (req, res): Promise<void> => {
   try {
     const location = Array.isArray(req.params.location) ? req.params.location[0] : req.params.location;
     let [row] = await db.select().from(menusTable).where(eq(menusTable.location, location)).limit(1);
@@ -80,7 +80,7 @@ router.get("/admin/menus/:location", requireAdmin, async (req, res): Promise<voi
   }
 });
 
-router.put("/admin/menus/:location", requireAdmin, requireSameOrigin, async (req, res): Promise<void> => {
+router.put("/admin/menus/:location", requireCapability("content"), requireSameOrigin, async (req, res): Promise<void> => {
   try {
     const location = Array.isArray(req.params.location) ? req.params.location[0] : req.params.location;
     const parsed = AdminUpdateMenuBody.safeParse(req.body);

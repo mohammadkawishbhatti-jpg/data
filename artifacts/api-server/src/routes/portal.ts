@@ -1,17 +1,13 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { customersTable, ordersTable, invoicesTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 import { z } from "zod";
-import { createHash } from "crypto";
+import crypto from "node:crypto";
+import { hashPassword, verifyPassword } from "../lib/security";
+import { sendEmail } from "../lib/email";
 
 const router = Router();
-const SALT = "prime_customer_salt_2024";
-
-function hashPassword(plain: string) {
-  return createHash("sha256").update(plain + SALT).digest("hex");
-}
-
 function requireCustomer(req: any, res: any, next: any) {
   if (!req.session?.customer) return res.status(401).json({ error: "Not authenticated" });
   next();
@@ -25,14 +21,26 @@ router.post("/portal/login", async (req, res) => {
       password: z.string().min(1),
     }).parse(req.body);
 
+    const identifier = username.toLowerCase().trim();
     const [customer] = await db
       .select()
       .from(customersTable)
-      .where(eq(customersTable.username, username.toLowerCase().trim()));
+      .where(or(
+        eq(customersTable.username, identifier),
+        eq(customersTable.email, identifier),
+        eq(customersTable.customerNumber, identifier.toUpperCase()),
+      ));
 
-    if (!customer || customer.passwordHash !== hashPassword(password)) {
+    const verification = customer ? await verifyPassword(customer.passwordHash, password) : { valid: false, needsUpgrade: false };
+    if (!customer || !verification.valid) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
+    if (customer.status === "invited") return res.status(403).json({ error: "Activate your portal account using the invitation link first." });
+    if (customer.status !== "active") return res.status(403).json({ error: "This portal account is currently disabled. Contact support." });
+    if (verification.needsUpgrade) {
+      await db.update(customersTable).set({ passwordHash: await hashPassword(password) }).where(eq(customersTable.id, customer.id));
+    }
+    await db.update(customersTable).set({ lastLoginAt: new Date() }).where(eq(customersTable.id, customer.id));
 
     // Regenerate session on login to prevent session fixation
     await new Promise<void>((resolve, reject) => {
@@ -60,6 +68,90 @@ router.post("/portal/login", async (req, res) => {
     });
   } catch (e) {
     res.status(400).json({ error: "Bad request" });
+  }
+});
+
+function tokenHash(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+// Requesting a reset never reveals whether an account exists.
+router.post("/portal/password-reset/request", async (req, res) => {
+  try {
+    const { identifier } = z.object({ identifier: z.string().min(1) }).parse(req.body);
+    const normalized = identifier.toLowerCase().trim();
+    const [customer] = await db.select().from(customersTable).where(or(
+      eq(customersTable.email, normalized),
+      eq(customersTable.username, normalized),
+      eq(customersTable.customerNumber, normalized.toUpperCase()),
+    ));
+    if (customer && customer.status !== "disabled") {
+      const token = crypto.randomBytes(32).toString("hex");
+      await db.update(customersTable).set({
+        passwordResetTokenHash: tokenHash(token),
+        passwordResetExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        updatedAt: new Date(),
+      }).where(eq(customersTable.id, customer.id));
+      const base = process.env.SITE_URL || "https://primepackagingboxes.com";
+      await sendEmail({
+        to: customer.email,
+        subject: "Reset your Prime Packaging Boxes portal password",
+        html: `<p>Hello ${customer.name},</p><p>Use the secure link below to reset your customer portal password. It expires in one hour.</p><p><a href="${base}/customer-portal/?reset=${token}">Reset portal password</a></p><p>If you did not request this, you can ignore this email.</p>`,
+      });
+    }
+    res.json({ success: true, message: "If an account matches, a reset link has been sent." });
+  } catch {
+    res.status(400).json({ error: "Invalid reset request" });
+  }
+});
+
+router.post("/portal/password-reset/confirm", async (req, res) => {
+  try {
+    const { token, password } = z.object({
+      token: z.string().min(32),
+      password: z.string().min(8),
+    }).parse(req.body);
+    const [customer] = await db.select().from(customersTable).where(eq(customersTable.passwordResetTokenHash, tokenHash(token)));
+    if (!customer || !customer.passwordResetExpiresAt || customer.passwordResetExpiresAt.getTime() < Date.now()) {
+      return res.status(400).json({ error: "This reset link is invalid or expired." });
+    }
+    await db.update(customersTable).set({
+      passwordHash: await hashPassword(password),
+      portalPassword: null,
+      status: "active",
+      passwordResetTokenHash: null,
+      passwordResetExpiresAt: null,
+      activatedAt: customer.activatedAt ?? new Date(),
+      updatedAt: new Date(),
+    }).where(eq(customersTable.id, customer.id));
+    res.json({ success: true, message: "Password updated. You can now sign in." });
+  } catch (error: any) {
+    res.status(error?.name === "ZodError" ? 400 : 500).json({ error: "Unable to reset password" });
+  }
+});
+
+router.post("/portal/activate", async (req, res) => {
+  try {
+    const { token, password } = z.object({
+      token: z.string().min(32),
+      password: z.string().min(8),
+    }).parse(req.body);
+    const [customer] = await db.select().from(customersTable).where(eq(customersTable.invitationTokenHash, tokenHash(token)));
+    if (!customer || customer.status !== "invited" || !customer.invitationExpiresAt || customer.invitationExpiresAt.getTime() < Date.now()) {
+      return res.status(400).json({ error: "This invitation is invalid or expired." });
+    }
+    await db.update(customersTable).set({
+      passwordHash: await hashPassword(password),
+      portalPassword: null,
+      status: "active",
+      invitationTokenHash: null,
+      invitationExpiresAt: null,
+      activatedAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(customersTable.id, customer.id));
+    res.json({ success: true, message: "Account activated. You can now sign in." });
+  } catch (error: any) {
+    res.status(error?.name === "ZodError" ? 400 : 500).json({ error: "Unable to activate account" });
   }
 });
 

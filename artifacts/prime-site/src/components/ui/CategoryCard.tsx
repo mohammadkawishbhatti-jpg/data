@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, Package } from "lucide-react";
+import { responsiveImageProps } from "../../lib/responsiveImage";
 
 interface Category {
   id: number;
@@ -27,9 +28,12 @@ export function CategoryCard({ category, productCount }: CategoryCardProps) {
       {/* Background image */}
       {category.imageUrl ? (
         <img
-          src={category.imageUrl}
+          {...responsiveImageProps(category.imageUrl)}
           alt={category.name}
+          width={800}
+          height={600}
           loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
           style={{ transform: "scale(1)" }}
           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

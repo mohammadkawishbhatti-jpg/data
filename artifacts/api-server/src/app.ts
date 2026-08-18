@@ -7,21 +7,30 @@ import connectPgSimple from "connect-pg-simple";
 import path from "path";
 import fs from "fs/promises";
 import rateLimit from "express-rate-limit";
+import sharp from "sharp";
 import router from "./routes";
 import sitemapRouter from "./routes/sitemap";
 import { logger } from "./lib/logger";
 import { countryBlockMiddleware } from "./middlewares/countryBlock";
+import { adminAuditMiddleware, pruneAdminAuditLogs } from "./lib/audit";
+import { publishScheduledContent } from "./lib/scheduled-publishing";
+import { monitoringMiddleware } from "./lib/monitoring";
 
 // ── Security headers middleware ───────────────────────────────────────────────
 function securityHeaders(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
-  res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+  res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+  if (process.env.NODE_ENV === "production" || process.env.SECURE_COOKIE === "true") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
   if (!req.path.startsWith("/uploads")) {
     res.setHeader("Content-Security-Policy",
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self';"
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
     );
   }
   next();
@@ -83,15 +92,25 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  rolling: true,
   cookie: {
     httpOnly: true,
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days — survives server restarts
-    // In production (cPanel HTTPS) cookies must be secure + sameSite=none for cross-origin.
-    // In development (HTTP localhost) these flags prevent cookies from being set at all.
-    secure: process.env.SECURE_COOKIE === "true",
-    sameSite: process.env.SECURE_COOKIE === "true" ? "none" : "lax",
+    maxAge: 8 * 60 * 60 * 1000,
+    secure: process.env.NODE_ENV === "production" || process.env.SECURE_COOKIE === "true",
+    sameSite: "lax",
   },
 }));
+
+// Record every successful authenticated admin mutation without coupling audit
+// persistence to the mutation response. Entries are automatically pruned after
+// seven days, with this interval covering quiet workspaces too.
+app.use(adminAuditMiddleware);
+app.use(monitoringMiddleware);
+const auditCleanupTimer = setInterval(() => void pruneAdminAuditLogs(true), 60 * 60 * 1000);
+auditCleanupTimer.unref?.();
+void publishScheduledContent();
+const scheduledPublishingTimer = setInterval(() => void publishScheduledContent(), 60 * 1000);
+scheduledPublishingTimer.unref?.();
 
 const UPLOADS_DIR = path.join(process.cwd(), "uploads");
 
@@ -117,8 +136,30 @@ async function svgFallback(req: express.Request, res: express.Response, next: ex
 }
 
 // Serve uploaded media at both /uploads/ (direct) and /api/uploads/ (Replit proxy-compatible)
-app.use("/uploads",     svgFallback, express.static(UPLOADS_DIR, { maxAge: "7d" }));
-app.use("/api/uploads", svgFallback, express.static(UPLOADS_DIR, { maxAge: "7d" }));
+async function responsiveUpload(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const requestedWidth = Number(req.query.w);
+  const fileName = path.basename(req.path);
+  if (!Number.isInteger(requestedWidth) || requestedWidth < 160 || requestedWidth > 2400 || !/\.(webp|png|jpe?g)$/i.test(fileName)) {
+    return next();
+  }
+
+  const source = path.join(UPLOADS_DIR, fileName);
+  try {
+    await fs.access(source);
+    const body = await sharp(source)
+      .resize({ width: requestedWidth, withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
+    res.setHeader("Content-Type", "image/webp");
+    res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+    return res.send(body);
+  } catch {
+    return next();
+  }
+}
+
+app.use("/uploads",     responsiveUpload, svgFallback, express.static(UPLOADS_DIR, { maxAge: "7d" }));
+app.use("/api/uploads", responsiveUpload, svgFallback, express.static(UPLOADS_DIR, { maxAge: "7d" }));
 
 // ── Public API response cache (5 min for public GET routes) ──────────────────
 function publicCache(seconds: number) {
@@ -137,10 +178,26 @@ app.use("/api/pages",      (_req, res, next) => {
 app.use("/api/banners",    publicCache(600));
 // /api/settings intentionally NOT cached publicly — it may contain sensitive admin config fields
 
+// Browser fetch clients cannot use a bodyless 304 response as JSON. Keep API
+// responses revalidated by the server without conditional 304s; the explicit
+// publicCache middleware above can still opt public catalog routes into caching.
+app.use("/api", (req, res, next) => {
+  if (req.path.startsWith("/uploads/")) return next();
+  // Express can still convert a response to 304 when the browser sends
+  // If-None-Match/If-Modified-Since, even with no-cache headers. API clients
+  // need the JSON body on every request because fetch cannot rehydrate a 304.
+  delete req.headers["if-none-match"];
+  delete req.headers["if-modified-since"];
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  next();
+});
+
 // ── Rate limiting ─────────────────────────────────────────────────────────────
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 min
-  max: 10,
+  max: 20,
   message: { error: "Too many login attempts. Try again in 15 minutes." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -191,8 +248,21 @@ const PUBLIC_SITE_ORIGIN = "https://www.primepackagingboxes.com";
 
 type PublicSeo = { title: string; description: string; canonical?: string };
 
+function immutableAssetHeaders(res: express.Response, filePath: string) {
+  if (filePath.endsWith("index.html")) {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    return;
+  }
+  // Vite fingerprints production JS/CSS assets. New builds receive new URLs,
+  // so these can safely stay in the browser cache for a year.
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+}
+
 const PUBLIC_SEO: Record<string, PublicSeo> = {
   "/": { title: "Custom Packaging Boxes | Free Design, Low MOQ, Fast US & UK Shipping | Prime Packaging Boxes", description: "Premium custom packaging boxes with free design support, low minimums from 100 units, and 7–10 day turnaround for USA and UK brands." },
+  "/shop": { title: "Shop Custom Packaging Boxes | Prime Packaging Boxes", description: "Explore custom packaging styles for retail, food, beauty, gifts, shipping, and more. Every box is made to your brand with free design support." },
   "/products": { title: "Custom Packaging Products | Prime Packaging Boxes", description: "Browse custom mailer, rigid, corrugated, retail, food, and specialty packaging boxes with low MOQs and free design support." },
   "/about": { title: "About Prime Packaging Boxes | Custom Packaging USA", description: "Learn about Prime Packaging Boxes, a Torrance, California packaging partner serving brands with custom boxes, free design, and reliable production." },
   "/contact": { title: "Contact Prime Packaging Boxes | Custom Packaging Support", description: "Contact Prime Packaging Boxes for custom packaging quotes, design support, samples, materials, quantities, and production timelines." },
@@ -206,6 +276,7 @@ const PUBLIC_SEO: Record<string, PublicSeo> = {
   "/terms-and-conditions": { title: "Terms & Conditions | Prime Packaging Boxes", description: "Read the terms that apply to quotes, custom packaging orders, artwork, approvals, payments, production, and delivery." },
   "/disclaimer": { title: "Disclaimer | Prime Packaging Boxes", description: "Review important information about packaging specifications, estimates, third-party services, customer artwork, and website content." },
   "/returns-claims-support": { title: "Returns & Claims Support | Prime Packaging Boxes", description: "Get help with damaged orders, manufacturing defects, printing issues, returns, claims, reprints, and customer support." },
+  "/sitemap": { title: "Sitemap | Prime Packaging Boxes", description: "Browse the Prime Packaging Boxes website by product, category, resource, and policy page." },
 };
 
 function escapeHtml(value: string): string {
@@ -266,8 +337,9 @@ app.get(["/customer-portal", "/customer-portal/*splat"], (_req, res) =>
   sendSpaEntry(path.join(PORTAL_DIR, "index.html"), res)
 );
 
-// Main site SPA — served at /*  (must come last)
-app.use(express.static(SITE_DIR, { maxAge: "1h" }));
+// Main site SPA — served at /*  (must come last). HTML stays revalidated while
+// fingerprinted build assets are cached for a year.
+app.use(express.static(SITE_DIR, { maxAge: "1y", setHeaders: immutableAssetHeaders }));
 app.get("*splat", (req, res) => {
   const publicPath = req.path.replace(/\/+$/, "") || "/";
   const seo = PUBLIC_SEO[publicPath];

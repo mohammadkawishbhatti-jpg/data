@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowUpRight, ShieldCheck, X } from "lucide-react";
 
-type AdminUser = { username?: string; role?: string };
+type AdminUser = { username?: string; role?: string; roleLabel?: string };
 
 export function AdminToolbar({ admin }: { admin: AdminUser }) {
   const [dismissed, setDismissed] = useState(false);
@@ -14,6 +14,7 @@ export function AdminToolbar({ admin }: { admin: AdminUser }) {
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#e63329]"><ShieldCheck className="h-3.5 w-3.5" /></span>
           <span className="truncate text-white/80">
             Admin mode <span className="hidden text-white/45 sm:inline">· Signed in as </span><strong className="text-white">{admin.username || "admin"}</strong>
+            {admin.roleLabel && <span className="hidden text-white/50 md:inline"> · {admin.roleLabel}</span>}
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">

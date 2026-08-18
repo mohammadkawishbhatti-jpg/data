@@ -7,7 +7,16 @@ const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? "";
 interface MediaFile {
   filename: string;
   url: string;
+  originalName?: string;
   size: number;
+  sizeBytes?: number;
+  mimeType?: string;
+  width?: number | null;
+  height?: number | null;
+  altText?: string | null;
+  variants?: Record<string, string>;
+  warnings?: string[];
+  optimizationStatus?: string;
   createdAt: string;
 }
 
@@ -27,6 +36,8 @@ export default function MediaPage() {
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   const [selected, setSelected] = useState<MediaFile | null>(null);
+  const [altText, setAltText] = useState("");
+  const [savingAlt, setSavingAlt] = useState(false);
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,6 +91,23 @@ export default function MediaPage() {
       }
     }
     await fetchFiles();
+  };
+
+  const handleSaveMetadata = async () => {
+    if (!selected) return;
+    setSavingAlt(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/media/${encodeURIComponent(selected.filename)}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ altText }),
+      });
+      if (response.ok) {
+        setFiles(files => files.map(file => file.filename === selected.filename ? { ...file, altText } : file));
+        setSelected(file => file ? { ...file, altText } : file);
+      }
+    } finally { setSavingAlt(false); }
   };
 
   const handleDelete = async (filename: string) => {
@@ -204,7 +232,7 @@ export default function MediaPage() {
               {filtered.map(f => (
                 <div key={f.filename}
                   className={`group border rounded-xl overflow-hidden cursor-pointer transition-all ${selected?.filename === f.filename ? "border-primary ring-2 ring-primary/30" : "hover:border-primary/50"}`}
-                  onClick={() => setSelected(selected?.filename === f.filename ? null : f)}>
+                  onClick={() => { const next = selected?.filename === f.filename ? null : f; setSelected(next); setAltText(next?.altText ?? ""); }}>
                   <div className="aspect-square bg-muted/20 overflow-hidden">
                     {isImg(f.filename)
                       ? <img src={`${API_BASE}${f.url}`} alt={f.filename} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -212,7 +240,8 @@ export default function MediaPage() {
                   </div>
                   <div className="px-2 py-1.5">
                     <p className="truncate text-xs font-medium">{f.filename}</p>
-                    <p className="text-xs text-muted-foreground">{fmt(f.size)}</p>
+                    <p className="text-xs text-muted-foreground">{fmt(f.size)}{f.width && f.height ? ` · ${f.width}×${f.height}` : ""}</p>
+                    {f.warnings?.length ? <p className="truncate text-[10px] font-semibold text-amber-700">Quality warning</p> : null}
                   </div>
                 </div>
               ))}
@@ -274,8 +303,22 @@ export default function MediaPage() {
                 <div>
                   <p className="text-sm font-semibold break-all">{selected.filename}</p>
                   <p className="text-xs text-muted-foreground mt-1">{fmt(selected.size)}</p>
+                   {selected.width && selected.height && <p className="text-xs text-muted-foreground">{selected.width} × {selected.height}px</p>}
+                   <p className="text-xs text-muted-foreground">Optimization: <strong>{selected.optimizationStatus || "legacy"}</strong></p>
+                   {selected.warnings?.map(warning => <p key={warning} className="mt-1 text-[11px] font-semibold text-amber-700">{warning}</p>)}
                   <p className="text-xs text-muted-foreground">{new Date(selected.createdAt).toLocaleDateString()}</p>
                 </div>
+                 <div>
+                   <label className="text-xs font-medium text-muted-foreground">Alt text</label>
+                   <textarea value={altText} onChange={event => setAltText(event.target.value)} rows={2} maxLength={300} placeholder="Describe this image for accessibility and SEO" className="mt-1 w-full resize-none rounded border border-border bg-background px-2 py-1.5 text-xs" />
+                   <button type="button" disabled={savingAlt} onClick={() => void handleSaveMetadata()} className="mt-1 w-full rounded border border-primary px-2 py-1.5 text-xs font-semibold text-primary disabled:opacity-50">{savingAlt ? "Saving…" : "Save alt text"}</button>
+                 </div>
+                 {selected.variants && Object.keys(selected.variants).length > 0 && (
+                   <div>
+                     <p className="text-xs font-medium text-muted-foreground mb-1">Responsive variants</p>
+                     <div className="flex flex-wrap gap-1">{Object.entries(selected.variants).map(([key, url]) => <a key={key} href={`${API_BASE}${url}`} target="_blank" rel="noreferrer" className="rounded bg-muted/20 px-2 py-1 text-[10px] font-semibold hover:bg-muted/40">{key}</a>)}</div>
+                   </div>
+                 )}
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-1">File URL</p>
                   <div className="flex gap-1">

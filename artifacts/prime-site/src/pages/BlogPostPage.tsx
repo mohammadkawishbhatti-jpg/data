@@ -70,9 +70,9 @@ export default function BlogPostPage() {
         {/* ── Post Hero ── */}
         <section className="relative bg-[#0d1f3c] overflow-hidden min-h-[340px] flex items-center">
           {post.imageUrl ? (
-            <img src={post.imageUrl} alt={post.title} className="absolute inset-0 w-full h-full object-cover" style={{opacity:0.22}} loading="eager" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
+            <img src={post.imageUrl} alt={post.title} width={1600} height={900} className="absolute inset-0 w-full h-full object-cover" style={{opacity:0.22}} loading="eager" fetchPriority="high" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
           ) : (
-            <img src={DEFAULT_OG_IMAGE} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{opacity:0.18}} loading="eager" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
+            <img src={DEFAULT_OG_IMAGE} alt="" aria-hidden="true" width={1600} height={900} className="absolute inset-0 w-full h-full object-cover" style={{opacity:0.18}} loading="eager" fetchPriority="high" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
           )}
           <div className="absolute inset-0" style={{background:"linear-gradient(135deg,#0d1f3c 0%,rgba(13,31,60,0.85) 100%)"}} />
           <div className="absolute inset-0 opacity-[0.035]" style={{backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)",backgroundSize:"28px 28px"}} />
@@ -121,6 +121,9 @@ export default function BlogPostPage() {
               <img 
                 src={post.imageUrl} 
                 alt={post.title} 
+                width={1400}
+                height={600}
+                decoding="async"
                 className="w-full h-full object-cover"
                 onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = DEFAULT_OG_IMAGE; }}
               />

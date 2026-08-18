@@ -108,32 +108,9 @@ export function useSEO({
     setLink("canonical", canon);
     setMeta("og:url", canon, "property");
 
-    // hreflang — same content served to both US and UK audiences
-    const setHreflang = (lang: string, href: string) => {
-      const id = `hreflang-${lang}`;
-      let el = document.querySelector(`link[hreflang="${lang}"]`);
-      if (!el) {
-        el = document.createElement("link");
-        el.setAttribute("rel", "alternate");
-        el.setAttribute("hreflang", lang);
-        el.setAttribute("data-hreflang-dynamic", "true");
-        document.head.appendChild(el);
-      }
-      el.setAttribute("href", href);
-    };
-    const base = SITE_ORIGIN;
-    let path = window.location.pathname;
-    if (canonical) {
-      try {
-        path = new URL(canonical, SITE_ORIGIN).pathname;
-      } catch {
-        path = canonical;
-      }
-    }
-    setHreflang("en-us",    base + path);
-    setHreflang("en-gb",    base + path);
-    setHreflang("en",       base + path);
-    setHreflang("x-default", base + path);
+    // Do not emit duplicate regional alternatives until real US/UK routes
+    // exist. Pointing every language at the same URL is misleading.
+    document.querySelectorAll('link[data-hreflang-dynamic="true"]').forEach((el) => el.remove());
   }, [title, description, canonical, ogImage, ogType, noindex, keywords]);
 }
 

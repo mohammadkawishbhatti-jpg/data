@@ -6,11 +6,12 @@ import {
   useUpdateCategory, 
   useDeleteCategory,
   useAdminListProducts,
+  useGetAdminMe,
   getAdminListCategoriesQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit, Trash2, Check, X, ExternalLink, Download } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Modal } from "../components/ui/Modal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useForm } from "react-hook-form";
@@ -26,6 +27,7 @@ const slugify = (text: string) => {
 };
 
 export default function CategoriesPage() {
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { data: categories = [], isLoading } = useAdminListCategories();
   const { data: products = [] } = useAdminListProducts();
@@ -33,6 +35,8 @@ export default function CategoriesPage() {
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
+  const { data: admin } = useGetAdminMe({ query: { retry: false, staleTime: 30_000 } as any });
+  const isLiveAdmin = Boolean((admin as any)?.role === "superadmin" || (admin as any)?.capabilities?.includes("*") || (admin as any)?.capabilities?.includes("content-approval"));
 
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -115,16 +119,24 @@ export default function CategoriesPage() {
 
     if (editingId) {
       updateCategory.mutate({ id: editingId, data: payload }, {
-        onSuccess: () => {
+        onSuccess: (result: any) => {
           queryClient.invalidateQueries({ queryKey: getAdminListCategoriesQueryKey() });
           setModalOpen(false);
+          if (result?.pendingApproval) {
+            window.alert("Category change is live.");
+            setLocation("/content-approvals");
+          }
         }
       });
     } else {
       createCategory.mutate({ data: payload }, {
-        onSuccess: () => {
+        onSuccess: (result: any) => {
           queryClient.invalidateQueries({ queryKey: getAdminListCategoriesQueryKey() });
           setModalOpen(false);
+          if (result?.pendingApproval) {
+            window.alert("New category is live.");
+            setLocation("/content-approvals");
+          }
         }
       });
     }
@@ -133,9 +145,13 @@ export default function CategoriesPage() {
   const confirmDelete = () => {
     if (deleteId) {
       deleteCategory.mutate({ id: deleteId }, {
-        onSuccess: () => {
+        onSuccess: (result: any) => {
           queryClient.invalidateQueries({ queryKey: getAdminListCategoriesQueryKey() });
           setDeleteId(null);
+          if (result?.pendingApproval) {
+            window.alert("Category deleted.");
+            setLocation("/content-approvals");
+          }
         }
       });
     }
@@ -149,7 +165,13 @@ export default function CategoriesPage() {
     updateCategory.mutate(
       { id: category.id, data: { isFeatured: !category.isFeatured } as any },
       {
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListCategoriesQueryKey() }),
+        onSuccess: (result: any) => {
+          queryClient.invalidateQueries({ queryKey: getAdminListCategoriesQueryKey() });
+          if (result?.pendingApproval) {
+            window.alert("Homepage feature change is live.");
+            setLocation("/content-approvals");
+          }
+        },
         onError: () => window.alert("Homepage feature update failed. Please try again."),
       },
     );
@@ -197,7 +219,7 @@ export default function CategoriesPage() {
           </div>
           <button onClick={openAddModal}
             className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md font-medium text-sm justify-center">
-            <Plus className="h-4 w-4" /> Add Category
+             <Plus className="h-4 w-4" /> {isLiveAdmin ? "Add Category" : "Submit Category"}
           </button>
         </div>
       </div>
@@ -333,7 +355,7 @@ export default function CategoriesPage() {
           <div className="flex justify-end gap-3 pt-4 border-t mt-6">
             <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 border rounded-md text-sm font-medium hover:bg-muted">Cancel</button>
             <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
-              {editingId ? "Save Changes" : "Create Category"}
+               {editingId ? (isLiveAdmin ? "Save Changes" : "Submit for Approval") : (isLiveAdmin ? "Create Category" : "Submit for Approval")}
             </button>
           </div>
         </form>

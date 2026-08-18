@@ -2,6 +2,7 @@ import { useState, memo } from "react";
 import { Link } from "wouter";
 import { useSettings } from "../../context/SettingsContext";
 import { Phone, Mail, MapPin, Facebook, Instagram, Twitter, Linkedin, ArrowRight, Send, CheckCircle } from "lucide-react";
+import { responsiveImageProps } from "../../lib/responsiveImage";
 
 const PRODUCTS_COL = [
   { label: "Custom Mailer Boxes",    slug: "mailer-boxes" },
@@ -29,7 +30,7 @@ const COMPANY_COL = [
   { label: "Delivery Policy",   href: "/delivery-policy" },
   { label: "Refund Policy",     href: "/refund-return-policy" },
   { label: "Privacy Policy",    href: "/privacy-policy" },
-  { label: "Terms & Conditions",href: "/terms-conditions" },
+  { label: "Terms & Conditions",href: "/terms-and-conditions" },
   { label: "Disclaimer",        href: "/disclaimer" },
   { label: "Sitemap",           href: "/sitemap" },
 ];
@@ -74,7 +75,8 @@ function _Footer() {
             <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide flex-1">
               {PRODUCT_SHOWCASE.map((p) => (
                 <div key={p.alt} className="shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-white/10 bg-white/5">
-                  <img src={p.img} alt={p.alt} className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                  <img {...responsiveImageProps(p.img)} alt={p.alt} className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                    width={64} height={64} loading="lazy" decoding="async"
                     onError={e => { (e.target as HTMLImageElement).style.opacity = "0.2"; }} />
                 </div>
               ))}
@@ -283,7 +285,7 @@ function _Footer() {
             <div className="flex items-center gap-5 flex-wrap justify-center">
               {[
                 { label: "Privacy Policy",    href: "/privacy-policy" },
-                { label: "Terms",             href: "/terms-conditions" },
+                { label: "Terms",             href: "/terms-and-conditions" },
                 { label: "Refund Policy",     href: "/refund-return-policy" },
                 { label: "Delivery Policy",   href: "/delivery-policy" },
                 { label: "Sitemap",           href: "/sitemap" },

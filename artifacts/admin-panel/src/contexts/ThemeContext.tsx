@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
-export type Theme = "light" | "dark" | "system";
+export type Theme = "light" | "dark" | "midnight" | "system";
 
 interface ThemeContextType {
   theme: Theme;
@@ -27,7 +27,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [systemDark, setSystemDark] = useState(() =>
     typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)").matches : true
   );
-  const resolvedTheme = theme === "system" ? (systemDark ? "dark" : "light") : theme;
+  const resolvedTheme = theme === "system"
+    ? (systemDark ? "dark" : "light")
+    : theme === "light" ? "light" : "dark";
 
   useEffect(() => {
     const root = document.documentElement;
@@ -49,7 +51,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => media.removeEventListener?.("change", onChange);
   }, []);
 
-  const toggle = () => setTheme(t => t === "dark" ? "light" : t === "light" ? "system" : "dark");
+  const toggle = () => setTheme(t => t === "dark" ? "light" : t === "light" ? "midnight" : t === "midnight" ? "system" : "dark");
 
   return (
     <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggle }}>

@@ -40,6 +40,9 @@ const InvoiceBuilderPage = lazy(() => import("./pages/InvoiceBuilderPage"));
 const QuoteBuilderPage = lazy(() => import("./pages/QuoteBuilderPage"));
 const FormsPage = lazy(() => import("./pages/FormsPage"));
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
+const ContentApprovalsPage = lazy(() => import("./pages/ContentApprovalsPage"));
+const ContentPreviewPage = lazy(() => import("./pages/ContentPreviewPage"));
+const MonitoringPage = lazy(() => import("./pages/MonitoringPage"));
 
 function WorkspaceLoading() {
   return (
@@ -90,12 +93,30 @@ function CapabilityGuard({ capability, children }: { capability: string; childre
 
 export default function App() {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+  useEffect(() => {
+    const report = (message: string, name?: string) => {
+      void fetch("/api/monitoring/frontend-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: message.slice(0, 500), name, route: window.location.pathname, browser: navigator.userAgent.slice(0, 200) }),
+      }).catch(() => undefined);
+    };
+    const onError = (event: ErrorEvent) => report(event.message || "Unhandled browser error", event.error?.name);
+    const onRejection = (event: PromiseRejectionEvent) => report(String(event.reason || "Unhandled promise rejection"), "UnhandledRejection");
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, []);
   return (
     <ThemeProvider>
     <WouterRouter base={base}>
     <Suspense fallback={<WorkspaceLoading />}>
       <Switch>
         <Route path="/login" component={LoginPage} />
+        <Route path="/preview/:token" component={ContentPreviewPage} />
 
         <Route path="/">
           <CapabilityGuard capability="dashboard"><DashboardPage /></CapabilityGuard>
@@ -179,7 +200,7 @@ export default function App() {
           <CapabilityGuard capability="sales"><OrdersPage /></CapabilityGuard>
         </Route>
         <Route path="/import-products">
-          <CapabilityGuard capability="catalog"><ImportProductsPage /></CapabilityGuard>
+          <CapabilityGuard capability="superadmin"><ImportProductsPage /></CapabilityGuard>
         </Route>
         <Route path="/follow-ups">
           <CapabilityGuard capability="sales"><FollowUpsPage /></CapabilityGuard>
@@ -190,14 +211,20 @@ export default function App() {
         <Route path="/security">
           <CapabilityGuard capability="superadmin"><SecurityPage /></CapabilityGuard>
         </Route>
+        <Route path="/monitoring">
+          <CapabilityGuard capability="superadmin"><MonitoringPage /></CapabilityGuard>
+        </Route>
         <Route path="/database">
           <CapabilityGuard capability="superadmin"><DatabasePage /></CapabilityGuard>
         </Route>
         <Route path="/clark">
-          <CapabilityGuard capability="superadmin"><ClarkPage /></CapabilityGuard>
+          <CapabilityGuard capability="sales"><ClarkPage /></CapabilityGuard>
         </Route>
         <Route path="/audit-log">
           <CapabilityGuard capability="superadmin"><AuditLogPage /></CapabilityGuard>
+        </Route>
+        <Route path="/content-approvals">
+          <CapabilityGuard capability="content-approval"><ContentApprovalsPage /></CapabilityGuard>
         </Route>
         <Route>
           <AdminLayout title="Not Found">

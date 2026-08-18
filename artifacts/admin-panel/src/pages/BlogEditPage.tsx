@@ -20,6 +20,7 @@ const slugify = (t: string) =>
 interface BlogForm {
   title: string; slug: string; excerpt: string; content: string;
   imageUrl: string; author: string; status: string;
+  scheduledAt: string;
   metaTitle: string; metaDescription: string; focusKeyword: string; tags: string;
 }
 
@@ -40,7 +41,7 @@ export default function BlogEditPage() {
   const updatePost = useUpdateBlogPost();
 
   const { register, handleSubmit, reset, setValue, control, watch, formState: { isSubmitting, errors } } = useForm<BlogForm>({
-    defaultValues: { title: "", slug: "", excerpt: "", content: "", imageUrl: "", author: "Prime Packaging Team", status: "draft", metaTitle: "", metaDescription: "", focusKeyword: "", tags: "" },
+    defaultValues: { title: "", slug: "", excerpt: "", content: "", imageUrl: "", author: "Prime Packaging Team", status: "draft", scheduledAt: "", metaTitle: "", metaDescription: "", focusKeyword: "", tags: "" },
   });
 
   const watched = watch();
@@ -55,6 +56,7 @@ export default function BlogEditPage() {
         imageUrl: (post as any).imageUrl || "",
         author: (post as any).author || "Prime Packaging Team",
         status: post.status || "draft",
+        scheduledAt: (post as any).scheduledAt ? new Date((post as any).scheduledAt).toISOString().slice(0, 16) : "",
         metaTitle: (post as any).metaTitle || "",
         metaDescription: (post as any).metaDescription || "",
         focusKeyword: (post as any).focusKeyword || "",
@@ -129,6 +131,7 @@ export default function BlogEditPage() {
             <select {...register("status")} className="h-9 border border-border rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background">
               <option value="draft">Draft</option>
               <option value="published">Published</option>
+              <option value="scheduled">Scheduled</option>
             </select>
             <button type="submit" disabled={isSubmitting}
               className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-5 rounded-lg text-sm font-semibold disabled:opacity-60">
@@ -241,8 +244,17 @@ export default function BlogEditPage() {
                   <select {...register("status")} className="flex-1 h-8 border border-border rounded px-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
+                    <option value="scheduled">Scheduled</option>
                   </select>
                 </div>
+                {watched.status === "scheduled" && (
+                  <div className="space-y-1">
+                    <label className="text-sm text-muted-foreground">Publish at</label>
+                    <input type="datetime-local" {...register("scheduledAt", { required: true })}
+                      className="w-full h-8 border border-border rounded px-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
+                    <p className="text-[11px] text-muted-foreground">The server will publish this post automatically when due.</p>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-muted-foreground w-20">Author</span>
                   <input {...register("author")} className="flex-1 h-8 border border-border rounded px-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary" />

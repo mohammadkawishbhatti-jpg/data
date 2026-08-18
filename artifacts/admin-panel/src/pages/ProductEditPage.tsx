@@ -88,6 +88,7 @@ export default function ProductEditPage() {
   const galleryUploadRef = useRef<HTMLInputElement>(null);
   const [attrRows, setAttrRows] = useState<Array<{name:string,value:string}>>([{name:"",value:""}]);
   const [saving, setSaving] = useState(false);
+  const [isLiveAdmin, setIsLiveAdmin] = useState(false);
   const [seoOpen, setSeoOpen] = useState(true);
   const [codeMode, setCodeMode] = useState(false);
   const [codeValue, setCodeValue] = useState("");
@@ -105,6 +106,13 @@ export default function ProductEditPage() {
 
   const watchedData = watch();
   const seoScore = calcSeoScore(watchedData);
+
+  useEffect(() => {
+    fetch("/api/admin/me", { credentials: "include" })
+      .then(response => response.ok ? response.json() : null)
+      .then(admin => setIsLiveAdmin(Boolean(admin?.capabilities?.includes("*") || admin?.capabilities?.includes("content-approval"))))
+      .catch(() => setIsLiveAdmin(false));
+  }, []);
 
   // Load existing product
   useEffect(() => {
@@ -179,13 +187,14 @@ export default function ProductEditPage() {
       attributes: cleanAttrs,
     };
     try {
-      if (isNew) {
-        await createProduct.mutateAsync({ data: payload });
+       let result: any;
+       if (isNew) {
+         result = await createProduct.mutateAsync({ data: payload });
       } else {
-        await updateProduct.mutateAsync({ id: editId!, data: payload });
+         result = await updateProduct.mutateAsync({ id: editId!, data: payload });
       }
       queryClient.invalidateQueries();
-      setLocation("/products");
+        setLocation(result?.pendingApproval ? "/content-approvals" : "/products");
     } finally {
       setSaving(false);
     }
@@ -218,7 +227,7 @@ export default function ProductEditPage() {
             <button type="submit" disabled={saving}
               className="flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
               <Save className="h-4 w-4" />
-              {saving ? "Saving…" : isNew ? "Publish" : "Update"}
+               {saving ? "Saving…" : isLiveAdmin ? (isNew ? "Create Product" : "Save Changes") : (isNew ? "Submit for Approval" : "Submit Changes")}
             </button>
           </div>
         </div>
@@ -499,7 +508,7 @@ export default function ProductEditPage() {
                 <div className="pt-2 flex flex-col gap-2">
                   <button type="submit" disabled={saving}
                     className="w-full py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
-                    {saving ? "Saving…" : isNew ? "Publish" : "Update"}
+                    {saving ? "Saving…" : isLiveAdmin ? (isNew ? "Create Product" : "Submit Changes") : (isNew ? "Submit for Approval" : "Submit Changes")}
                   </button>
                   <button type="button" onClick={() => { setValue("status","draft"); onSubmit(); }}
                     className="w-full py-2 border rounded-md text-sm hover:bg-muted transition-colors">

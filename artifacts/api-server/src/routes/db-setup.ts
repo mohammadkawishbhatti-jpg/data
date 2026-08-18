@@ -248,6 +248,13 @@ CREATE TABLE IF NOT EXISTS site_settings (
   meta_title text,
   meta_description text,
   announcement_bar text,
+  popup_enabled text DEFAULT 'true',
+  popup_badge text,
+  popup_title text,
+  popup_message text,
+  popup_button_text text,
+  popup_button_url text,
+  popup_image_url text,
   updated_at timestamp DEFAULT now()
 );
 

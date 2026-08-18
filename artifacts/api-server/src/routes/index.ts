@@ -25,6 +25,12 @@ import databaseRouter from "./database";
 import chatRouter from "./chat";
 import resolveRouter from "./resolve";
 import menusRouter from "./menus";
+import supportTicketsRouter from "./support-tickets";
+import formsRouter from "./forms";
+import auditRouter from "./audit";
+import contentRevisionsRouter from "./content-revisions";
+import monitoringRouter from "./monitoring";
+import capabilitiesRouter from "./capabilities";
 
 const router: IRouter = Router();
 
@@ -33,6 +39,12 @@ router.use("/db-setup", dbSetupRouter);
 router.use(seoRouter);
 router.use(resolveRouter);
 router.use(menusRouter);
+router.use(supportTicketsRouter);
+router.use(formsRouter);
+router.use(auditRouter);
+router.use(contentRevisionsRouter);
+router.use(monitoringRouter);
+router.use(capabilitiesRouter);
 router.use(productsRouter);
 router.use(categoriesRouter);
 router.use(bannersRouter);

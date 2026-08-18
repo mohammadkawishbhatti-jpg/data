@@ -1,10 +1,20 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { quotesTable, leadsTable, productsTable, categoriesTable, blogPostsTable, siteSettingsTable } from "@workspace/db";
-import { eq, count, desc, sql, and, gte } from "drizzle-orm";
+import { quotesTable, leadsTable, productsTable, categoriesTable, blogPostsTable, siteSettingsTable, adminUsersTable, invoicesTable, supportTicketsTable, contentRevisionsTable, clarkConversationsTable } from "@workspace/db";
+import { eq, count, desc, sql, and, gte, lt, notInArray, inArray, or } from "drizzle-orm";
 import { AdminLoginBody, UpdateSettingsBody } from "@workspace/api-zod";
-import { requireAdmin } from "../middlewares/auth";
+import {
+  requireAdmin,
+  requireAdministrator,
+  requireCapability,
+  canAdminAccess,
+  getAdminRole,
+  getAdminCapabilities,
+  ADMIN_ROLE_LABELS,
+} from "../middlewares/auth";
 import { invalidateCountryBlockCache } from "../middlewares/countryBlock";
+import { verifyPassword } from "../lib/security";
+import { blacklistAfterThreshold, createCaptcha, inspectLoginProtection, recordLoginAttempt } from "../lib/login-protection";
 
 const router = Router();
 
@@ -15,7 +25,27 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 router.post("/admin/login", async (req, res) => {
   try {
     const { username, password } = AdminLoginBody.parse(req.body);
-    const crypto = await import("crypto");
+    const captchaAnswer = typeof req.body?.captchaAnswer === "string" ? req.body.captchaAnswer.trim() : "";
+    const protection = await inspectLoginProtection(req, username);
+    if (protection.blocked) {
+      res.status(403).json({ error: "This IP address is blocked. Contact an administrator.", lockedOut: true });
+      return;
+    }
+
+    let captchaPassed = false;
+    if (protection.captchaRequired) {
+      const pending = (req as any).session.adminCaptcha;
+      if (!pending || pending.expiresAt < Date.now() || captchaAnswer !== pending.answer) {
+        const challenge = createCaptcha();
+        (req as any).session.adminCaptcha = { ...challenge, expiresAt: Date.now() + 5 * 60 * 1000 };
+        if (captchaAnswer) {
+          await recordLoginAttempt({ ipAddress: protection.ipAddress, username, success: false, captchaPassed: false, reason: "Invalid captcha" });
+        }
+        res.status(429).json({ error: "Complete the security check before trying again.", captchaRequired: true, captchaChallenge: (req as any).session.adminCaptcha.question });
+        return;
+      }
+      captchaPassed = true;
+    }
 
     let matchedUser: { username: string; role: string; id?: number } | null = null;
 
@@ -25,8 +55,7 @@ router.post("/admin/login", async (req, res) => {
       const dbPwHash = (settings as any)?.superadminPwHash;
       let pwOk = false;
       if (dbPwHash) {
-        const hash = crypto.createHash("sha256").update(password + "prime_salt_2024").digest("hex");
-        pwOk = hash === dbPwHash;
+        pwOk = (await verifyPassword(dbPwHash, password)).valid;
       } else if (ADMIN_PASSWORD) {
         pwOk = password === ADMIN_PASSWORD;
       }
@@ -35,15 +64,39 @@ router.post("/admin/login", async (req, res) => {
 
     // 2. Check admin_users table
     if (!matchedUser) {
-      const hash = crypto.createHash("sha256").update(password + "prime_salt_2024").digest("hex");
-      const rows = await db.execute(
-        sql`SELECT id, username, email, role, totp_enabled FROM admin_users WHERE username = ${username} AND password_hash = ${hash} LIMIT 1`
-      );
-      const user = rows.rows[0] as any;
-      if (user) matchedUser = { username: user.username, role: user.role, id: user.id };
+      const [user] = await db.select().from(adminUsersTable).where(eq(adminUsersTable.username, username)).limit(1);
+      if (user) {
+        const verified = await verifyPassword(user.passwordHash, password);
+        if (verified.valid) {
+          if (verified.needsUpgrade) {
+            const { hashPassword } = await import("../lib/security");
+            await db.update(adminUsersTable).set({ passwordHash: await hashPassword(password) }).where(eq(adminUsersTable.id, user.id));
+          }
+          matchedUser = { username: user.username, role: user.role, id: user.id };
+        }
+      }
     }
 
-    if (!matchedUser) return res.status(401).json({ error: "Invalid credentials" });
+    if (!matchedUser) {
+      await recordLoginAttempt({ ipAddress: protection.ipAddress, username, success: false, captchaPassed, reason: "Invalid credentials" });
+      const locked = await blacklistAfterThreshold({ ipAddress: protection.ipAddress, username, captchaPassed });
+      if (locked) {
+        res.status(403).json({ error: "This IP address has been blocked after repeated failed attempts.", lockedOut: true });
+        return;
+      }
+      const next = await inspectLoginProtection(req, username);
+      if (next.captchaRequired) {
+        const challenge = createCaptcha();
+        (req as any).session.adminCaptcha = { ...challenge, expiresAt: Date.now() + 5 * 60 * 1000 };
+        res.status(429).json({ error: "Too many failed attempts. Complete the security check.", captchaRequired: true, captchaChallenge: challenge.question });
+        return;
+      }
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
+    }
+
+    await recordLoginAttempt({ ipAddress: protection.ipAddress, username, success: true, captchaPassed });
+    delete (req as any).session.adminCaptcha;
 
     // 3. Check if 2FA is enabled for this user
     let totpEnabled = false;
@@ -84,11 +137,18 @@ router.post("/admin/logout", (req, res) => {
 router.get("/admin/me", (req, res) => {
   const admin = (req as any).session?.admin;
   if (!admin) return res.status(401).json({ error: "Not authenticated" });
-  res.json({ username: admin.username, role: admin.role ?? "superadmin", id: admin.id ?? null });
+  const role = getAdminRole(req);
+  res.json({
+    username: admin.username,
+    role,
+    roleLabel: ADMIN_ROLE_LABELS[role],
+    capabilities: getAdminCapabilities(req),
+    id: admin.id ?? null,
+  });
 });
 
 // GET /admin/stats
-router.get("/admin/stats", requireAdmin, async (req, res) => {
+router.get("/admin/stats", requireCapability("dashboard"), async (req, res) => {
   try {
     const now = new Date();
     const startOf6MonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
@@ -99,6 +159,7 @@ router.get("/admin/stats", requireAdmin, async (req, res) => {
       [newQuotesRow], [newLeadsRow],
       monthlyQuotesRaw, monthlyLeadsRaw,
       todayQRaw, todayLRaw,
+      [openQuotesRow], [openLeadsRow], [overdueQuotesRow], [overdueLeadsRow], [pendingInvoicesRow], [openTicketsRow], [pendingApprovalsRow],
       settings,
     ] = await Promise.all([
       db.select({ cnt: count() }).from(productsTable),
@@ -114,6 +175,21 @@ router.get("/admin/stats", requireAdmin, async (req, res) => {
       db.execute(sql`SELECT TO_CHAR(created_at,'YYYY-MM') as month, COUNT(*)::int as cnt FROM leads  WHERE created_at >= ${startOf6MonthsAgo} GROUP BY month ORDER BY month`),
       db.execute(sql`SELECT COUNT(*)::int as cnt FROM quotes WHERE follow_up_done = false AND follow_up_date IS NOT NULL AND follow_up_date::date = CURRENT_DATE`),
       db.execute(sql`SELECT COUNT(*)::int as cnt FROM leads  WHERE follow_up_done = false AND follow_up_date IS NOT NULL AND follow_up_date::date = CURRENT_DATE`),
+      db.select({ cnt: count() }).from(quotesTable).where(notInArray(quotesTable.status, ["closed", "won", "lost", "cancelled"])),
+      db.select({ cnt: count() }).from(leadsTable).where(notInArray(leadsTable.status, ["closed", "converted", "lost", "cancelled"])),
+      db.select({ cnt: count() }).from(quotesTable).where(and(eq(quotesTable.followUpDone, false), lt(quotesTable.followUpDate, now))),
+      db.select({ cnt: count() }).from(leadsTable).where(and(eq(leadsTable.followUpDone, false), lt(leadsTable.followUpDate, now))),
+      db.select({ cnt: count() }).from(invoicesTable).where(inArray(invoicesTable.status, ["draft", "sent", "overdue", "pending"])),
+      db.select({ cnt: count() }).from(supportTicketsTable).where(notInArray(supportTicketsTable.status, ["closed", "resolved"])),
+        canAdminAccess(req, "content-approval")
+         ? db.select({ cnt: count() }).from(contentRevisionsTable).where(eq(contentRevisionsTable.status, "pending"))
+         : db.select({ cnt: count() }).from(contentRevisionsTable).where(and(
+             eq(contentRevisionsTable.status, "pending"),
+             or(
+               eq(contentRevisionsTable.createdById, Number((req as any).session?.admin?.id) || -1),
+               eq(contentRevisionsTable.createdByUsername, String((req as any).session?.admin?.username || "")),
+             ),
+           )),
       db.select().from(siteSettingsTable).limit(1),
     ]);
 
@@ -146,7 +222,15 @@ router.get("/admin/stats", requireAdmin, async (req, res) => {
       totalLeads: Number(totalLeads.cnt),
       newLeads: Number(newLeadsRow.cnt),
       totalBlogPosts: Number(totalBlogPosts.cnt),
+      pendingApprovals: Number(pendingApprovalsRow.cnt),
       todayFollowUps,
+      salesCommandCenter: {
+        newLeads: Number(newLeadsRow.cnt),
+        openQuotes: Number(openQuotesRow.cnt),
+        overdueFollowUps: Number(overdueQuotesRow.cnt) + Number(overdueLeadsRow.cnt),
+        pendingInvoices: Number(pendingInvoicesRow.cnt),
+        openSupportTickets: Number(openTicketsRow.cnt),
+      },
       smtpConfigured,
       monthlyTrend,
       recentQuotes: recentQuotes.map(fmtQ),
@@ -164,9 +248,12 @@ const PUBLIC_SETTINGS_KEYS = new Set([
   "facebook", "instagram", "twitter", "linkedin",
   "metaTitle", "metaDescription", "announcementBar",
   "logoUrl", "faviconUrl", "siteName",
+  "popupEnabled", "popupBadge", "popupTitle", "popupMessage",
+  "popupButtonText", "popupButtonUrl", "popupImageUrl",
   "clarkEnabled", "clarkBotName", "clarkGreeting",
   "clarkCompanyPhone", "clarkCompanyEmail", "clarkCompanyAddress",
   "clarkToneNotes", "clarkQuoteHours", "clarkCustomFaqs",
+  "tawkEnabled", "tawkPropertyId", "tawkHandoffLabel",
 ]);
 
 function filterPublicSettings(row: Record<string, any>): Record<string, any> {
@@ -189,7 +276,7 @@ router.get("/settings", async (req, res) => {
 });
 
 // GET /admin/settings
-router.get("/admin/settings", requireAdmin, async (req, res) => {
+router.get("/admin/settings", requireAdministrator, async (req, res) => {
   try {
     const [row] = await db.select().from(siteSettingsTable).limit(1);
     res.json(row ?? getDefaults());
@@ -241,6 +328,11 @@ async function handleUpdateSettings(req: any, res: any) {
     if (body.clarkToneNotes       !== undefined) extFields.clarkToneNotes       = body.clarkToneNotes || null;
     if (body.clarkQuoteHours      !== undefined) extFields.clarkQuoteHours      = body.clarkQuoteHours || "2";
     if (body.clarkCustomFaqs      !== undefined) extFields.clarkCustomFaqs      = body.clarkCustomFaqs || null;
+    // Tawk browser embed config is public by design. Private credentials are
+    // not accepted or returned by this route.
+    if (body.tawkEnabled         !== undefined) extFields.tawkEnabled         = body.tawkEnabled ?? "false";
+    if (body.tawkPropertyId      !== undefined) extFields.tawkPropertyId      = body.tawkPropertyId?.trim() || null;
+    if (body.tawkHandoffLabel    !== undefined) extFields.tawkHandoffLabel    = body.tawkHandoffLabel?.trim() || "Talk to a real person";
     // Contact & social
     if (body.whatsapp             !== undefined) extFields.whatsapp             = body.whatsapp || null;
     if (body.facebook             !== undefined) extFields.facebook             = body.facebook || null;
@@ -252,6 +344,14 @@ async function handleUpdateSettings(req: any, res: any) {
     if (body.metaDescription      !== undefined) extFields.metaDescription      = body.metaDescription || null;
     // Announcement bar
     if (body.announcementBar      !== undefined) extFields.announcementBar      = body.announcementBar || null;
+    // Public promotional popup
+    if (body.popupEnabled         !== undefined) extFields.popupEnabled         = body.popupEnabled ?? "false";
+    if (body.popupBadge           !== undefined) extFields.popupBadge           = body.popupBadge || null;
+    if (body.popupTitle           !== undefined) extFields.popupTitle           = body.popupTitle || null;
+    if (body.popupMessage         !== undefined) extFields.popupMessage         = body.popupMessage || null;
+    if (body.popupButtonText      !== undefined) extFields.popupButtonText      = body.popupButtonText || null;
+    if (body.popupButtonUrl       !== undefined) extFields.popupButtonUrl       = body.popupButtonUrl || null;
+    if (body.popupImageUrl        !== undefined) extFields.popupImageUrl        = body.popupImageUrl || null;
     // Site name (also in base schema but handle here for safety)
     if (body.siteName             !== undefined) extFields.siteName             = body.siteName || null;
 
@@ -274,11 +374,11 @@ async function handleUpdateSettings(req: any, res: any) {
 }
 
 // Accept both PATCH (standard) and PUT (generated API client sends PUT)
-router.patch("/admin/settings", requireAdmin, handleUpdateSettings);
-router.put("/admin/settings",   requireAdmin, handleUpdateSettings);
+router.patch("/admin/settings", requireAdministrator, handleUpdateSettings);
+router.put("/admin/settings",   requireAdministrator, handleUpdateSettings);
 
 // POST /admin/smtp-test — send a test email using configured SMTP (primary → fallback)
-router.post("/admin/smtp-test", requireAdmin, async (req: any, res: any) => {
+router.post("/admin/smtp-test", requireAdministrator, async (req: any, res: any) => {
   try {
     const { testSmtp } = await import("../lib/email.js");
     const result = await testSmtp();
@@ -292,8 +392,56 @@ router.post("/admin/smtp-test", requireAdmin, async (req: any, res: any) => {
 
 // ── Clark live-session routes ─────────────────────────────────────────────────
 
+// GET /admin/clark/conversations — every durable Clark transcript, including
+// anonymous visitors, with any matching sales quote attached.
+router.get("/admin/clark/conversations", requireCapability("sales"), async (req, res): Promise<void> => {
+  try {
+    const [conversations, quotes] = await Promise.all([
+      db.select().from(clarkConversationsTable).orderBy(desc(clarkConversationsTable.lastActivity)),
+      db.select({
+        id: quotesTable.id,
+        name: quotesTable.name,
+        email: quotesTable.email,
+        phone: quotesTable.phone,
+        company: quotesTable.company,
+        productType: quotesTable.productType,
+        quantity: quotesTable.quantity,
+        dimensions: quotesTable.dimensions,
+        material: quotesTable.material,
+        printingDetails: quotesTable.printingDetails,
+        additionalNotes: quotesTable.additionalNotes,
+        source: quotesTable.source,
+        status: quotesTable.status,
+        createdAt: quotesTable.createdAt,
+        clarkSessionId: quotesTable.clarkSessionId,
+      }).from(quotesTable).where(eq(quotesTable.source, "clark")),
+    ]);
+
+    const quoteBySession = new Map(
+      quotes
+        .filter(quote => quote.clarkSessionId)
+        .map(quote => [quote.clarkSessionId as string, quote]),
+    );
+
+    res.json(conversations.map(conversation => ({
+      id: conversation.id,
+      sessionId: conversation.sessionId,
+      transcript: conversation.transcript,
+      ip: conversation.ip,
+      country: conversation.country,
+      city: conversation.city,
+      createdAt: conversation.createdAt,
+      lastActivity: conversation.lastActivity,
+      quote: quoteBySession.get(conversation.sessionId) ?? null,
+    })));
+  } catch (e) {
+    req.log.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /admin/clark/sessions — conversations active in last 30 min
-router.get("/admin/clark/sessions", requireAdmin, async (req, res) => {
+router.get("/admin/clark/sessions", requireCapability("superadmin"), async (req, res) => {
   try {
     const cutoff = new Date(Date.now() - 30 * 60 * 1000);
     const rows = await db
@@ -325,7 +473,7 @@ router.get("/admin/clark/sessions", requireAdmin, async (req, res) => {
 });
 
 // POST /admin/clark/sessions/:sessionId/inject — send admin message to customer
-router.post("/admin/clark/sessions/:sessionId/inject", requireAdmin, async (req, res) => {
+router.post("/admin/clark/sessions/:sessionId/inject", requireCapability("superadmin"), async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { message } = req.body as { message?: string };
@@ -347,7 +495,7 @@ router.post("/admin/clark/sessions/:sessionId/inject", requireAdmin, async (req,
 });
 
 // POST /admin/clark/sessions/:sessionId/release — hand back to AI
-router.post("/admin/clark/sessions/:sessionId/release", requireAdmin, async (req, res) => {
+router.post("/admin/clark/sessions/:sessionId/release", requireCapability("superadmin"), async (req, res) => {
   try {
     const { sessionId } = req.params;
     await db
@@ -371,6 +519,13 @@ function getDefaults() {
     metaTitle: "Prime Packaging Boxes — Custom Packaging That Sells Your Brand",
     metaDescription: "Premium custom boxes, mailers, and retail packaging — designed, printed, and shipped fast. Low minimums, free design support, and a price you will love.",
     announcementBar: null,
+    popupEnabled: "true",
+    popupBadge: "Limited-time offer",
+    popupTitle: "Make your next unboxing unforgettable",
+    popupMessage: "Get free design support and a fast custom packaging quote from our team.",
+    popupButtonText: "Get a free quote",
+    popupButtonUrl: "/get-a-quote",
+    popupImageUrl: null,
   };
 }
 

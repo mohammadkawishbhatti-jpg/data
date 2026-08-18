@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { AdminLayout } from "../components/layout/AdminLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Users, ShieldCheck, Edit3 } from "lucide-react";
+import { KeyRound, Plus, Trash2, Users, ShieldCheck, Edit3 } from "lucide-react";
 import { Modal } from "../components/ui/Modal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useForm } from "react-hook-form";
@@ -23,18 +23,46 @@ function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: async (id: number) => { const r = await api(`/admin/users/${id}`, { method: "DELETE" }); if (!r.ok) throw new Error("Failed"); return r.json(); }, onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }) });
 }
+function useUpdateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, username, password }: { id: number; username?: string; password?: string }) => {
+      const r = await api(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify({ username, password }) });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Failed");
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+}
 
 const ROLE_BADGE: Record<string, string> = {
+  superadmin: "bg-red-100 text-red-800 border-red-200",
   administrator: "bg-red-100 text-red-800 border-red-200",
   editor: "bg-blue-100 text-blue-800 border-blue-200",
-  author: "bg-green-100 text-green-800 border-green-200",
+  sales: "bg-amber-100 text-amber-800 border-amber-200",
+  admin: "bg-slate-100 text-slate-800 border-slate-200",
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  superadmin: "Super Admin",
+  administrator: "Super Admin",
+  editor: "Editor",
+  sales: "Sales Team",
+  admin: "Basic Admin",
 };
 
 export default function UsersPage() {
   const { data: users = [], isLoading } = useAdminUsers();
   const createUser = useCreateUser();
   const deleteUser = useDeleteUser();
+  const updateUser = useUpdateUser();
   const [modalOpen, setModalOpen] = useState(false);
+  const [editUser, setEditUser] = useState<AdminUser | null>(null);
+  const [editUsername, setEditUsername] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editConfirm, setEditConfirm] = useState("");
+  const [editError, setEditError] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm({
@@ -50,6 +78,42 @@ export default function UsersPage() {
       reset();
     } catch (e: any) { setError(e.message || "Failed to create user"); }
   });
+
+  const openEdit = (user: AdminUser) => {
+    setEditUser(user);
+    setEditUsername(user.username);
+    setEditPassword("");
+    setEditConfirm("");
+    setEditError("");
+  };
+
+  const saveEdit = async (event: FormEvent) => {
+    event.preventDefault();
+    setEditError("");
+    if (!editUser) return;
+    if (editPassword && editPassword !== editConfirm) {
+      setEditError("Passwords do not match");
+      return;
+    }
+    if (!editUsername.trim()) {
+      setEditError("Username is required");
+      return;
+    }
+    if (!editPassword && editUsername.trim() === editUser.username) {
+      setEditError("Enter a new username or password");
+      return;
+    }
+    try {
+      await updateUser.mutateAsync({
+        id: editUser.id,
+        username: editUsername.trim() === editUser.username ? undefined : editUsername.trim(),
+        password: editPassword || undefined,
+      });
+      setEditUser(null);
+    } catch (e: any) {
+      setEditError(e.message || "Unable to update user");
+    }
+  };
 
   return (
     <AdminLayout title="Users">
@@ -96,13 +160,16 @@ export default function UsersPage() {
                 <td className="px-4 py-3 text-muted-foreground">{u.email || "—"}</td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${ROLE_BADGE[u.role] || "bg-gray-100 text-gray-700 border-gray-200"}`}>
-                    <ShieldCheck className="h-3 w-3" /> {u.role}
+                    <ShieldCheck className="h-3 w-3" /> {ROLE_LABEL[u.role] || u.role}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">
                   {new Date(u.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </td>
                 <td className="px-4 py-3 text-right">
+                  <button onClick={() => openEdit(u)} title="Change username or password" className="mr-2 p-1.5 text-muted-foreground hover:text-primary transition-colors rounded hover:bg-primary/10">
+                    <KeyRound className="h-4 w-4" />
+                  </button>
                   {u.username !== "admin" && (
                     <button onClick={() => setDeleteId(u.id)} className="p-1.5 text-muted-foreground hover:text-red-600 transition-colors rounded hover:bg-red-50">
                       <Trash2 className="h-4 w-4" />
@@ -114,6 +181,33 @@ export default function UsersPage() {
           </tbody>
         </table>
       </div>
+
+      <Modal isOpen={editUser !== null} onClose={() => setEditUser(null)} title="Change User Credentials">
+        <form onSubmit={saveEdit} className="space-y-4 pt-2">
+          {editError && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{editError}</div>}
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Passwords are stored securely and are never displayed. Leave the password fields blank if you only want to change the username.
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Username</label>
+            <input value={editUsername} onChange={e => setEditUsername(e.target.value)} autoComplete="username" className="w-full h-9 rounded-md border border-input px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">New Password</label>
+            <input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} minLength={editPassword ? 8 : undefined} autoComplete="new-password" placeholder="Leave blank to keep current password" className="w-full h-9 rounded-md border border-input px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Confirm New Password</label>
+            <input type="password" value={editConfirm} onChange={e => setEditConfirm(e.target.value)} autoComplete="new-password" className="w-full h-9 rounded-md border border-input px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none" />
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <button type="button" onClick={() => setEditUser(null)} className="px-4 py-2 border rounded-md text-sm font-medium hover:bg-muted">Cancel</button>
+            <button type="submit" disabled={updateUser.isPending} className="px-5 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+              {updateUser.isPending ? "Saving..." : "Save Credentials"}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Add New User">
         <form onSubmit={onSubmit} className="space-y-4 pt-2">
@@ -138,9 +232,10 @@ export default function UsersPage() {
             <div className="space-y-1.5 col-span-2">
               <label className="text-sm font-medium">Role</label>
               <select {...register("role")} className="w-full h-9 rounded-md border border-input px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none">
-                <option value="editor">Editor — can manage products, categories, blog</option>
-                <option value="author">Author — can manage blog only</option>
-                <option value="administrator">Administrator — full access</option>
+                <option value="editor">Editor — products, categories, blog & content</option>
+                <option value="sales">Sales Team — leads, quotes, customers, orders & invoices</option>
+                <option value="admin">Basic Admin — dashboard and support only</option>
+                <option value="superadmin">Super Admin — full access</option>
               </select>
             </div>
           </div>

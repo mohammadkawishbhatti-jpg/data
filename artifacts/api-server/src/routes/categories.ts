@@ -9,7 +9,11 @@ import {
   UpdateCategoryParams,
   DeleteCategoryParams,
 } from "@workspace/api-zod";
-import { requireAdmin } from "../middlewares/auth";
+import { canEditContentLive, requireCapability } from "../middlewares/auth";
+import {
+  createContentRevision,
+  revisionPayloadFromCategory,
+} from "../lib/content-revisions";
 
 const router = Router();
 
@@ -66,7 +70,7 @@ router.get("/categories/:slug", async (req, res) => {
 });
 
 // Admin: GET /admin/categories
-router.get("/admin/categories", requireAdmin, async (req, res) => {
+router.get("/admin/categories", requireCapability("catalog"), async (req, res) => {
   try {
     const cats = await db.select().from(categoriesTable).orderBy(categoriesTable.sortOrder, categoriesTable.name);
     const counts = await db
@@ -82,11 +86,25 @@ router.get("/admin/categories", requireAdmin, async (req, res) => {
 });
 
 // Admin: POST /admin/categories
-router.post("/admin/categories", requireAdmin, async (req, res) => {
+router.post("/admin/categories", requireCapability("catalog"), async (req, res) => {
   try {
     const data = CreateCategoryBody.parse(req.body);
+    if (!canEditContentLive(req)) {
+      const revision = await createContentRevision({
+        entityType: "category",
+        entityId: 0,
+        entityLabel: data.name,
+        payload: revisionPayloadFromCategory(data, {}, "create"),
+        req,
+      });
+      return res.status(202).json({
+        pendingApproval: true,
+        revisionId: revision.id,
+        category: { ...formatCat({ id: 0, ...data }), productCount: 0 },
+      });
+    }
     const [row] = await db.insert(categoriesTable).values(data).returning();
-    res.status(201).json({ ...formatCat(row), productCount: 0 });
+    res.status(201).json({ pendingApproval: false, ...formatCat(row), productCount: 0 });
   } catch (e) {
     req.log.error(e);
     res.status(400).json({ error: "Bad request" });
@@ -94,16 +112,32 @@ router.post("/admin/categories", requireAdmin, async (req, res) => {
 });
 
 // Admin: PUT /admin/categories/:id
-router.put("/admin/categories/:id", requireAdmin, async (req, res) => {
+router.put("/admin/categories/:id", requireCapability("catalog"), async (req, res) => {
   try {
     const { id } = UpdateCategoryParams.parse(req.params);
     const data = UpdateCategoryBody.parse(req.body);
+    const [existing] = await db.select().from(categoriesTable).where(eq(categoriesTable.id, id));
+    if (!existing) return res.status(404).json({ error: "Not found" });
+    if (!canEditContentLive(req)) {
+      const revision = await createContentRevision({
+        entityType: "category",
+        entityId: id,
+        entityLabel: String((data as any).name ?? existing.name),
+        payload: revisionPayloadFromCategory(existing, data),
+        req,
+      });
+      return res.status(202).json({
+        pendingApproval: true,
+        revisionId: revision.id,
+        category: { ...formatCat({ ...existing, ...data }), productCount: 0 },
+      });
+    }
     const [row] = await db.update(categoriesTable)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(categoriesTable.id, id))
       .returning();
     if (!row) return res.status(404).json({ error: "Not found" });
-    res.json({ ...formatCat(row), productCount: 0 });
+    res.json({ pendingApproval: false, ...formatCat(row), productCount: 0 });
   } catch (e) {
     req.log.error(e);
     res.status(400).json({ error: "Bad request" });
@@ -111,11 +145,30 @@ router.put("/admin/categories/:id", requireAdmin, async (req, res) => {
 });
 
 // Admin: DELETE /admin/categories/:id
-router.delete("/admin/categories/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/categories/:id", requireCapability("catalog"), async (req, res) => {
   try {
     const { id } = DeleteCategoryParams.parse(req.params);
+    const [existing] = await db.select({ id: categoriesTable.id, name: categoriesTable.name, slug: categoriesTable.slug })
+      .from(categoriesTable)
+      .where(eq(categoriesTable.id, id));
+    if (!existing) return res.status(404).json({ error: "Not found" });
+    if (!canEditContentLive(req)) {
+      const revision = await createContentRevision({
+        entityType: "category",
+        entityId: id,
+        entityLabel: existing.name,
+        payload: { operation: "delete", name: existing.name, slug: existing.slug },
+        req,
+      });
+      return res.status(202).json({
+        success: true,
+        pendingApproval: true,
+        revisionId: revision.id,
+        categoryId: id,
+      });
+    }
     await db.delete(categoriesTable).where(eq(categoriesTable.id, id));
-    res.json({ success: true });
+    res.json({ success: true, pendingApproval: false });
   } catch (e) {
     req.log.error(e);
     res.status(500).json({ error: "Internal server error" });

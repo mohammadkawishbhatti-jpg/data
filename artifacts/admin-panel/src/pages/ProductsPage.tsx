@@ -5,11 +5,12 @@ import {
   useDeleteProduct,
   useUpdateProduct,
   useAdminListCategories,
+  useGetAdminMe,
   getAdminListProductsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Plus, Edit, Trash2, Check, X, Search, ExternalLink, Download, ChevronDown, Star, LayoutGrid } from "lucide-react";
+import { Plus, Edit, Trash2, Check, X, Search, ExternalLink, Download, ChevronDown, Star, LayoutGrid, ListChecks } from "lucide-react";
 import { useState as useMenuState } from "react";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
@@ -20,12 +21,17 @@ export default function ProductsPage() {
   const { data: categories = [] } = useAdminListCategories();
   const deleteProduct = useDeleteProduct();
   const updateProduct = useUpdateProduct();
+  const { data: admin } = useGetAdminMe({ query: { retry: false, staleTime: 30_000 } as any });
+  const isLiveAdmin = Boolean((admin as any)?.role === "superadmin" || (admin as any)?.capabilities?.includes("*") || (admin as any)?.capabilities?.includes("content-approval"));
 
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [exportOpen, setExportOpen] = useMenuState(false);
   const [exporting, setExporting] = useMenuState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [notice, setNotice] = useState("");
 
   const downloadExport = async (url: string, filename: string) => {
     setExporting(filename);
@@ -47,9 +53,12 @@ export default function ProductsPage() {
   const confirmDelete = () => {
     if (!deleteId) return;
     deleteProduct.mutate({ id: deleteId }, {
-      onSuccess: () => {
+      onSuccess: (result: any) => {
         queryClient.invalidateQueries({ queryKey: getAdminListProductsQueryKey() });
         setDeleteId(null);
+          setNotice(result?.pendingApproval
+             ? "Deletion request submitted for an authorized reviewer."
+            : "Product deleted successfully.");
       }
     });
   };
@@ -57,7 +66,12 @@ export default function ProductsPage() {
   const togglePlacement = (product: any, field: "isFeatured" | "isShowcase") => {
     updateProduct.mutate(
       { id: product.id, data: { [field]: !product[field] } },
-      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListProductsQueryKey() }) },
+        { onSuccess: (result: any) => {
+           queryClient.invalidateQueries({ queryKey: getAdminListProductsQueryKey() });
+            setNotice(result?.pendingApproval
+               ? "Product change submitted for review."
+              : "Product change saved and is now live.");
+         } },
     );
   };
 
@@ -69,6 +83,32 @@ export default function ProductsPage() {
     const matchCat = !filterCat || p.categoryId?.toString() === filterCat;
     return matchSearch && matchCat;
   });
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((p: any) => selectedIds.includes(p.id));
+  const toggleSelected = (id: number) => setSelectedIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+  const runBulkAction = async (action: string) => {
+    if (!selectedIds.length) return;
+    setBulkSaving(true);
+    try {
+      const response = await fetch("/api/admin/products/bulk", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds, action }),
+      });
+      if (!response.ok) throw new Error("Bulk update failed");
+      await queryClient.invalidateQueries({ queryKey: getAdminListProductsQueryKey() });
+      setSelectedIds([]);
+       const result = await response.json().catch(() => ({}));
+       setNotice(result?.pending
+         ? "Bulk changes submitted for review."
+         : "Bulk changes saved and are now live.");
+    } catch {
+      alert("Bulk update failed. Please try again.");
+    } finally {
+      setBulkSaving(false);
+    }
+  };
 
   return (
     <AdminLayout title="Products">
@@ -119,6 +159,29 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      {notice && (
+        <div role="status" className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span>{notice}</span>
+          <button type="button" onClick={() => setNotice("")} className="font-bold text-amber-700 hover:text-amber-950" aria-label="Dismiss notice">×</button>
+        </div>
+      )}
+
+      {selectedIds.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
+          <span className="mr-2 flex items-center gap-2 text-xs font-bold text-primary"><ListChecks className="h-4 w-4" /> {selectedIds.length} selected</span>
+          {[
+            ["activate", "Activate"], ["deactivate", "Deactivate"],
+            ["feature", "Add Best Selling"], ["unfeature", "Remove Best Selling"],
+            ["showcase", "Add Showcase"], ["unshowcase", "Remove Showcase"],
+          ].map(([action, label]) => (
+            <button key={action} disabled={bulkSaving} onClick={() => void runBulkAction(action)}
+              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-50">
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
         <div className="px-4 py-2 bg-muted/20 border-b text-xs text-muted-foreground">
           {filtered.length} product{filtered.length !== 1 ? "s" : ""}{search || filterCat ? " (filtered)" : ""}
@@ -127,6 +190,11 @@ export default function ProductsPage() {
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-muted-foreground bg-muted/10 border-b">
               <tr>
+                <th className="px-4 py-3 font-medium w-[56px]">
+                  <input type="checkbox" checked={allFilteredSelected}
+                    onChange={() => setSelectedIds(allFilteredSelected ? [] : filtered.map((p: any) => p.id))}
+                    aria-label="Select all filtered products" />
+                </th>
                 <th className="px-4 py-3 font-medium w-[56px]">Img</th>
                 <th className="px-4 py-3 font-medium">Name / Slug</th>
                 <th className="px-4 py-3 font-medium">Category</th>
@@ -143,6 +211,11 @@ export default function ProductsPage() {
                 <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">No products found.</td></tr>
               ) : filtered.map((product: any) => (
                 <tr key={product.id} className="hover:bg-muted/5 transition-colors">
+                  <td className="px-4 py-3">
+                    <input type="checkbox" checked={selectedIds.includes(product.id)}
+                      onChange={() => toggleSelected(product.id)}
+                      aria-label={`Select ${product.name}`} />
+                  </td>
                   <td className="px-4 py-3">
                     {product.imageUrl
                       ? <img src={product.imageUrl} alt={product.name} className="w-10 h-10 rounded object-cover border" />
@@ -203,8 +276,8 @@ export default function ProductsPage() {
         onClose={() => setDeleteId(null)}
         onConfirm={confirmDelete}
         title="Delete Product"
-        description="Are you sure you want to delete this product? This action cannot be undone."
-        confirmText="Delete"
+         description={isLiveAdmin ? "This product will be deleted immediately." : "This product will be held for an authorized reviewer before removal."}
+         confirmText="Delete Product"
         isDanger={true}
       />
     </AdminLayout>

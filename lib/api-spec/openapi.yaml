@@ -368,6 +368,21 @@ paths:
                 items:
                   $ref: "#/components/schemas/Quote"
 
+  /admin/clark/conversations:
+    get:
+      operationId: listClarkConversations
+      tags: [admin]
+      summary: List all Clark conversations with linked quote details
+      responses:
+        "200":
+          description: Clark conversation list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClarkConversation"
+
   /admin/pages:
     get:
       operationId: adminListPages
@@ -1060,6 +1075,9 @@ components:
           nullable: true
         isPublished:
           type: boolean
+        scheduledAt:
+          type: string
+          nullable: true
 
     SubmitQuoteInput:
       type: object
@@ -1223,7 +1241,19 @@ components:
         quantity:
           type: string
           nullable: true
+        dimensions:
+          type: string
+          nullable: true
+        material:
+          type: string
+          nullable: true
+        printingDetails:
+          type: string
+          nullable: true
         additionalNotes:
+          type: string
+          nullable: true
+        source:
           type: string
           nullable: true
         status:
@@ -1231,6 +1261,31 @@ components:
         createdAt:
           type: string
       required: [id, name, email, status]
+
+    ClarkConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        sessionId:
+          type: string
+        transcript:
+          type: string
+        ip:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        lastActivity:
+          type: string
+        quote:
+          anyOf:
+            - $ref: "#/components/schemas/Quote"
+            - type: "null"
+      required: [id, sessionId, transcript, createdAt, lastActivity]
 
     Banner:
       type: object
@@ -1307,6 +1362,8 @@ components:
           type: ["string", "null"]
         metaDescription:
           type: ["string", "null"]
+        scheduledAt:
+          type: ["string", "null"]
       required: [title, slug]
 
     BlogPostUpdate:
@@ -1329,6 +1386,8 @@ components:
         metaTitle:
           type: ["string", "null"]
         metaDescription:
+          type: ["string", "null"]
+        scheduledAt:
           type: ["string", "null"]
 
     CategoryInput:
@@ -1492,6 +1551,39 @@ components:
           type: string
           nullable: true
         adminEmail:
+          type: string
+          nullable: true
+        announcementBar:
+          type: string
+          nullable: true
+        popupEnabled:
+          type: string
+          nullable: true
+        popupBadge:
+          type: string
+          nullable: true
+        popupTitle:
+          type: string
+          nullable: true
+        popupMessage:
+          type: string
+          nullable: true
+        popupButtonText:
+          type: string
+          nullable: true
+        popupButtonUrl:
+          type: string
+          nullable: true
+        popupImageUrl:
+          type: string
+          nullable: true
+        tawkEnabled:
+          type: string
+          nullable: true
+        tawkPropertyId:
+          type: string
+          nullable: true
+        tawkHandoffLabel:
           type: string
           nullable: true
         updatedAt:

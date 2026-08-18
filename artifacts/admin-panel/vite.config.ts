@@ -69,6 +69,12 @@ export default defineConfig({
     strictPort: true,
     host: '0.0.0.0',
     allowedHosts: true,
+    // Browser extensions can inject non-application errors into the page
+    // (notably the Chrome M_ID error) and obscure the preview with the
+    // development overlay. Application errors are still logged normally.
+    hmr: {
+      overlay: false,
+    },
     fs: {
       strict: true,
     },

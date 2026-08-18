@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { ordersTable, customersTable } from "@workspace/db";
 import { eq, desc, or } from "drizzle-orm";
 import { z } from "zod";
-import { requireAdmin } from "../middlewares/auth";
+import { requireCapability } from "../middlewares/auth";
 
 const router = Router();
 
@@ -41,7 +41,7 @@ const OrderBody = z.object({
 });
 
 // GET /admin/orders
-router.get("/admin/orders", requireAdmin, async (req, res) => {
+router.get("/admin/orders", requireCapability("sales"), async (req, res) => {
   try {
     const rows = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt));
     res.json(rows.map(fmt));
@@ -49,7 +49,7 @@ router.get("/admin/orders", requireAdmin, async (req, res) => {
 });
 
 // POST /admin/orders
-router.post("/admin/orders", requireAdmin, async (req, res) => {
+router.post("/admin/orders", requireCapability("sales"), async (req, res) => {
   try {
     const body = OrderBody.parse(req.body);
     // If customerId provided, look up customer info
@@ -70,7 +70,7 @@ router.post("/admin/orders", requireAdmin, async (req, res) => {
 });
 
 // GET /admin/orders/:id
-router.get("/admin/orders/:id", requireAdmin, async (req, res) => {
+router.get("/admin/orders/:id", requireCapability("sales"), async (req, res) => {
   try {
     const id = Number(req.params.id);
     const [row] = await db.select().from(ordersTable).where(eq(ordersTable.id, id));
@@ -80,7 +80,7 @@ router.get("/admin/orders/:id", requireAdmin, async (req, res) => {
 });
 
 // PATCH /admin/orders/:id
-router.patch("/admin/orders/:id", requireAdmin, async (req, res) => {
+router.patch("/admin/orders/:id", requireCapability("sales"), async (req, res) => {
   try {
     const id = Number(req.params.id);
     const body = OrderBody.partial().parse(req.body);
@@ -91,7 +91,7 @@ router.patch("/admin/orders/:id", requireAdmin, async (req, res) => {
 });
 
 // DELETE /admin/orders/:id
-router.delete("/admin/orders/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/orders/:id", requireCapability("sales"), async (req, res) => {
   try {
     const id = Number(req.params.id);
     await db.delete(ordersTable).where(eq(ordersTable.id, id));

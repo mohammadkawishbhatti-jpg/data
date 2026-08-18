@@ -2,13 +2,13 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { quotesTable, leadsTable } from "@workspace/db";
 import { eq, desc, gte, lt } from "drizzle-orm";
-import { requireAdmin } from "../middlewares/auth";
+import { requireCapability } from "../middlewares/auth";
 
 const router = Router();
 
 // GET /api/admin/follow-ups?date=YYYY-MM-DD
 // Returns combined quotes + leads, optionally filtered by submission date
-router.get("/admin/follow-ups", requireAdmin, async (req, res) => {
+router.get("/admin/follow-ups", requireCapability("sales"), async (req, res) => {
   try {
     const { date } = req.query as { date?: string };
 
@@ -93,7 +93,7 @@ router.get("/admin/follow-ups", requireAdmin, async (req, res) => {
 });
 
 // PATCH /api/admin/follow-ups/:type/:id   (type = "quote" | "lead")
-router.patch("/admin/follow-ups/:type/:id", requireAdmin, async (req, res) => {
+router.patch("/admin/follow-ups/:type/:id", requireCapability("sales"), async (req, res) => {
   try {
     const type = String(req.params.type);
     const id = String(req.params.id);

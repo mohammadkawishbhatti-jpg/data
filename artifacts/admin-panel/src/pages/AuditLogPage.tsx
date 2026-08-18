@@ -4,6 +4,7 @@ import { ChevronDown, Clock3, Loader2, RefreshCw, Search, ShieldCheck } from "lu
 
 type AuditLog = {
   id: number;
+  actorId?: string | null;
   username: string;
   role: string;
   action: string;
@@ -23,6 +24,10 @@ export default function AuditLogPage() {
   const [username, setUsername] = useState("");
   const [action, setAction] = useState("");
   const [entityType, setEntityType] = useState("");
+  const [retentionDays, setRetentionDays] = useState(30);
+  const [alertEmail, setAlertEmail] = useState("");
+  const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
   const loadLogs = async () => {
     setLoading(true);
@@ -48,6 +53,38 @@ export default function AuditLogPage() {
     return () => window.clearTimeout(timer);
   }, [search, username, action, entityType]);
 
+  useEffect(() => {
+    fetch("/api/admin/audit-settings", { credentials: "include" })
+      .then(response => response.ok ? response.json() : null)
+      .then(settings => {
+        if (!settings) return;
+        setRetentionDays(settings.retentionDays ?? 30);
+        setAlertEmail(settings.sensitiveAlertEmail ?? "");
+        setAlertsEnabled(settings.sensitiveAlertsEnabled !== false);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const exportLogs = (format: "csv" | "json") => {
+    const params = new URLSearchParams({ format });
+    if (username) params.set("username", username);
+    if (action) params.set("action", action);
+    if (entityType) params.set("entityType", entityType);
+    window.open(`/api/admin/audit-logs/export?${params}`, "_blank", "noopener,noreferrer");
+  };
+
+  const saveSettings = async () => {
+    setSettingsSaving(true);
+    try {
+      await fetch("/api/admin/audit-settings", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ retentionDays, sensitiveAlertEmail: alertEmail || null, sensitiveAlertsEnabled: alertsEnabled }),
+      });
+    } finally { setSettingsSaving(false); }
+  };
+
   const usernames = useMemo(() => [...new Set(logs.map(log => log.username))].sort(), [logs]);
   const actions = useMemo(() => [...new Set(logs.map(log => log.action))].sort(), [logs]);
   const entityTypes = useMemo(() => [...new Set(logs.map(log => log.entityType))].sort(), [logs]);
@@ -61,11 +98,29 @@ export default function AuditLogPage() {
             <div className="rounded-xl bg-primary/15 p-2 text-primary"><ShieldCheck className="h-5 w-5" /></div>
             <div className="min-w-0">
               <h1 className="font-bold">Super Admin activity history</h1>
-              <p className="mt-1 text-sm text-muted-foreground">Every successful admin mutation is recorded with the user, action, target and time. Logs are automatically deleted after 7 days.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Every successful admin mutation is recorded with actor ID, username, action, target, time, and a chained integrity hash. Retention is configurable below.</p>
             </div>
             <button type="button" onClick={() => void loadLogs()} className="ml-auto shrink-0 rounded-lg border border-primary/20 bg-background p-2 text-primary hover:bg-primary/10" title="Refresh audit log" aria-label="Refresh audit log">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => exportLogs("csv")} className="rounded-lg border px-3 py-2 text-xs font-semibold hover:bg-muted/20">Export CSV</button>
+          <button type="button" onClick={() => exportLogs("json")} className="rounded-lg border px-3 py-2 text-xs font-semibold hover:bg-muted/20">Export immutable JSON</button>
+        </div>
+
+        <div className="grid gap-4 rounded-2xl border bg-card p-5 md:grid-cols-[160px_1fr_auto] md:items-end">
+          <label className="text-xs font-semibold text-muted-foreground">Retention days
+            <input type="number" min={1} max={3650} value={retentionDays} onChange={event => setRetentionDays(Number(event.target.value))} className="mt-1 h-10 w-full rounded-lg border bg-background px-3 text-sm" />
+          </label>
+          <label className="text-xs font-semibold text-muted-foreground">Sensitive-action alert email
+            <input type="email" value={alertEmail} onChange={event => setAlertEmail(event.target.value)} placeholder="security@example.com" className="mt-1 h-10 w-full rounded-lg border bg-background px-3 text-sm" />
+          </label>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-xs font-semibold"><input type="checkbox" checked={alertsEnabled} onChange={event => setAlertsEnabled(event.target.checked)} /> Alerts enabled</label>
+            <button type="button" onClick={() => void saveSettings()} disabled={settingsSaving} className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50">{settingsSaving ? "Saving…" : "Save settings"}</button>
           </div>
         </div>
 
@@ -121,6 +176,7 @@ export default function AuditLogPage() {
                   </summary>
                   <div className="border-t bg-muted/20 px-4 py-4 sm:pl-16">
                     <div className="grid gap-3 text-xs sm:grid-cols-3">
+                      <div><span className="font-semibold text-muted-foreground">Actor</span><p className="mt-1">{log.username} · ID {log.actorId || "—"}</p></div>
                       <div><span className="font-semibold text-muted-foreground">Action</span><p className="mt-1 capitalize">{log.action}</p></div>
                       <div><span className="font-semibold text-muted-foreground">Area</span><p className="mt-1">{log.entityType}{log.entityId ? ` #${log.entityId}` : ""}</p></div>
                       <div><span className="font-semibold text-muted-foreground">Timestamp</span><p className="mt-1">{new Date(log.createdAt).toISOString()}</p></div>

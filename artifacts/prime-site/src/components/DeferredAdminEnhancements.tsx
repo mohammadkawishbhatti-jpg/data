@@ -3,7 +3,7 @@ import { ReactNode, lazy, Suspense, useEffect, useState } from "react";
 const AdminToolbar = lazy(() => import("./layout/AdminToolbar").then(({ AdminToolbar }) => ({ default: AdminToolbar })));
 const AdminInlinePageEditor = lazy(() => import("./AdminInlinePageEditor").then(({ AdminInlinePageEditor }) => ({ default: AdminInlinePageEditor })));
 
-type AdminUser = { username?: string; role?: string };
+type AdminUser = { username?: string; role?: string; capabilities?: string[] };
 
 function useDeferredAdminUser() {
   const [admin, setAdmin] = useState<AdminUser | null>(null);
@@ -47,12 +47,15 @@ export function DeferredAdminEnhancements({ children }: { children: ReactNode })
     <>
       {admin && (
         <Suspense fallback={null}>
-          <AdminToolbar admin={admin} />
+          <AdminToolbar admin={{ ...admin, roleLabel: admin.role === "admin" ? "Basic Admin" : admin.role === "superadmin" ? "Super Admin" : admin.role }} />
         </Suspense>
       )}
       {admin && (
         <Suspense fallback={null}>
-          <AdminInlinePageEditor adminAuthenticated />
+          <AdminInlinePageEditor
+            adminAuthenticated
+            canEditLive={Boolean(admin.capabilities?.includes("*") || admin.capabilities?.includes("content-approval"))}
+          />
         </Suspense>
       )}
       {children}

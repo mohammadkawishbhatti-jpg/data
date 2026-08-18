@@ -21,6 +21,7 @@ import {
   User,
   ExternalLink,
 } from "lucide-react";
+import { responsiveImageProps } from "../../lib/responsiveImage";
 
 const BY_INDUSTRY = [
   { label: "Apparel Boxes", slug: "apparel-boxes" },
@@ -76,7 +77,7 @@ const FEATURED_IN_MENU = [
 
 const TICKER: { Icon: ElementType; text: string }[] = [
   { Icon: Truck, text: "Free Shipping — USA & UK" },
-  { Icon: Zap, text: "7–10 Day Turnaround" },
+  { Icon: Zap, text: "7–9 Day Turnaround" },
   { Icon: Palette, text: "Free Design Support" },
   { Icon: Package, text: "100 Unit Minimum" },
   { Icon: CheckCircle2, text: "100% Quality Guarantee" },
@@ -180,6 +181,24 @@ function _Header() {
     setOpenMenuId(null);
   };
 
+  useEffect(() => {
+    if (!openMenuId) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!(event.target as HTMLElement).closest("[data-primary-navigation]")) {
+        setOpenMenuId(null);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenMenuId(null);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [openMenuId]);
+
   const isActive = (href: string) => location === href;
 
   return (
@@ -206,7 +225,7 @@ function _Header() {
       </div>
 
       <div className={`relative border-b transition-all duration-300 ${scrolled ? "border-[#dce4eb]/80 bg-[#fbfcfd]/95 shadow-[0_10px_30px_rgba(17,43,75,0.09)] backdrop-blur-md" : "border-[#e5ebf0] bg-[#fbfcfd]"}`}>
-        <div className="mx-auto flex h-[74px] max-w-[1440px] items-center gap-5 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-[82px] max-w-[1440px] items-center gap-5 px-4 sm:px-6 lg:px-8">
           <Link href="/" onClick={closeAll} className="group shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3483e] focus-visible:ring-offset-2">
             {logoFailed ? (
               <div className="flex items-center gap-2.5">
@@ -218,11 +237,11 @@ function _Header() {
                 </div>
               </div>
             ) : (
-              <img src={LOGO_SRC} alt="Prime Packaging Boxes" className="h-[48px] w-auto transition-transform duration-200 group-hover:scale-[1.02]" onError={() => setLogoFailed(true)} />
+              <img src={LOGO_SRC} alt="Prime Packaging Boxes" width={240} height={52} decoding="async" className="h-[52px] w-auto transition-transform duration-200 group-hover:scale-[1.02]" onError={() => setLogoFailed(true)} />
             )}
           </Link>
 
-          <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex" aria-label="Primary navigation">
+          <nav data-primary-navigation className="hidden flex-1 items-center justify-center gap-1 xl:flex" aria-label="Primary navigation">
             {menuItems.map(item => {
               const children = childrenFor(item.id);
               if (item.id === "products") {
@@ -232,6 +251,7 @@ function _Header() {
                       type="button"
                       aria-expanded={dropOpen}
                       aria-haspopup="true"
+                      aria-controls="primary-products-menu"
                       onClick={() => setOpenMenuId(current => current === item.id ? null : item.id)}
                       className={`nav-link-ul inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-bold transition-colors ${dropOpen ? "bg-[#e3483e]/[0.07] text-[#d93c34]" : "text-[#30465c] hover:bg-[#edf2f5] hover:text-[#d93c34]"}`}
                     >
@@ -240,11 +260,13 @@ function _Header() {
                     </button>
                     {dropOpen && (
                       <div
-                        className="absolute inset-x-4 top-full z-[9999] mx-auto mt-2 max-w-[1120px] overflow-hidden rounded-2xl border border-[#dfe7ed] bg-[#fbfcfd] shadow-[0_25px_70px_rgba(17,43,75,0.19)]"
+                        id="primary-products-menu"
+                        className="absolute inset-x-4 top-full z-[9999] mx-auto max-w-[1120px] pt-2"
                         onMouseEnter={() => openDrop(item.id)}
                         onMouseLeave={closeDrop}
                         style={{ animation: "megaFadeIn 180ms ease-out both" }}
                       >
+                        <div className="overflow-hidden rounded-2xl border border-[#dfe7ed] bg-[#fbfcfd] shadow-[0_25px_70px_rgba(17,43,75,0.19)]">
                         <div className="flex items-center justify-between bg-[#112b4b] px-7 py-3.5">
                           <div className="flex items-center gap-2.5">
                             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#e3483e] text-white"><Package className="h-3.5 w-3.5" /></span>
@@ -278,6 +300,7 @@ function _Header() {
                           />
                           <FeaturedColumn onSelect={closeAll} />
                         </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -290,7 +313,7 @@ function _Header() {
             })}
           </nav>
 
-          <div className="ml-auto hidden shrink-0 items-center gap-2.5 lg:flex">
+          <div className="ml-auto hidden shrink-0 items-center gap-2.5 xl:flex">
             <a href="/customer-portal/" className="inline-flex items-center gap-1.5 rounded-lg border border-[#d9e3eb] bg-white px-3 py-2 text-[11px] font-bold text-[#24415d] transition-colors hover:border-[#b9cbd8] hover:bg-[#f2f6f8] hover:text-[#d93c34]">
               <User className="h-3.5 w-3.5" /> Portal
             </a>
@@ -300,14 +323,14 @@ function _Header() {
             </Link>
           </div>
 
-          <button type="button" className="ml-auto flex h-10 w-10 items-center justify-center rounded-lg border border-[#dce5eb] text-[#183654] transition-colors hover:bg-[#eef3f6] lg:hidden" onClick={() => setMobileOpen((open) => !open)} aria-label={mobileOpen ? "Close menu" : "Open menu"} aria-expanded={mobileOpen}>
+          <button type="button" data-testid="button-open-public-navigation" className="ml-auto flex h-11 w-11 items-center justify-center rounded-lg border border-[#dce5eb] text-[#183654] transition-colors hover:bg-[#eef3f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e3483e] xl:hidden" onClick={() => setMobileOpen((open) => !open)} aria-label={mobileOpen ? "Close menu" : "Open menu"} aria-expanded={mobileOpen}>
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
       {mobileOpen && (
-        <div className="absolute inset-x-0 top-full z-[60] h-[calc(100dvh-106px)] lg:hidden">
+        <div className="absolute inset-x-0 top-full z-[60] h-[calc(100dvh-114px)] xl:hidden">
           <button type="button" className="absolute inset-0 bg-[#112b4b]/35 backdrop-blur-[2px]" onClick={closeAll} aria-label="Close navigation" />
           <aside className="absolute bottom-0 right-0 top-0 flex w-[min(410px,100%)] flex-col overflow-y-auto border-l border-[#dce5eb] bg-[#fbfcfd] shadow-[-20px_0_60px_rgba(17,43,75,0.18)]" style={{ animation: "drawerIn 220ms ease-out both" }}>
             <div className="flex items-center justify-between border-b border-[#e5ebf0] px-5 py-4">
@@ -409,20 +432,23 @@ function SimpleDesktopDropdown({
         type="button"
         aria-expanded={open}
         aria-haspopup="true"
-        onClick={onOpen}
+        aria-controls={`primary-${item.id}-menu`}
+        onClick={() => (open ? onClose() : onOpen())}
         className={`nav-link-ul inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-bold transition-colors ${open || active ? "bg-[#e3483e]/[0.07] text-[#d93c34]" : "text-[#30465c] hover:bg-[#edf2f5] hover:text-[#d93c34]"}`}
       >
         {item.label}
         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180 text-[#e3483e]" : "text-[#8291a0]"}`} />
       </button>
       {open && (
-        <div className="absolute left-1/2 top-full z-[9999] mt-2 min-w-[230px] -translate-x-1/2 overflow-hidden rounded-xl border border-[#dfe7ed] bg-[#fbfcfd] p-2 shadow-[0_20px_50px_rgba(17,43,75,0.18)]" style={{ animation: "megaFadeIn 180ms ease-out both" }}>
-          {children.map(child => (
-            <Link key={child.id} href={child.href} target={child.openInNewTab ? "_blank" : undefined} rel={child.openInNewTab ? "noreferrer" : undefined} onClick={onSelect} className="flex items-center justify-between rounded-lg px-3 py-2.5 text-xs font-semibold text-[#52677a] transition-colors hover:bg-[#fff0ee] hover:text-[#d93c34]">
-              {child.label}
-              {child.openInNewTab && <ExternalLink className="h-3 w-3" />}
-            </Link>
-          ))}
+        <div className="absolute left-1/2 top-full z-[9999] min-w-[230px] -translate-x-1/2 pt-2" style={{ animation: "megaFadeIn 180ms ease-out both" }}>
+          <div id={`primary-${item.id}-menu`} className="overflow-hidden rounded-xl border border-[#dfe7ed] bg-[#fbfcfd] p-2 shadow-[0_20px_50px_rgba(17,43,75,0.18)]">
+            {children.map(child => (
+              <Link key={child.id} href={child.href} target={child.openInNewTab ? "_blank" : undefined} rel={child.openInNewTab ? "noreferrer" : undefined} onClick={onSelect} className="flex items-center justify-between rounded-lg px-3 py-2.5 text-xs font-semibold text-[#52677a] transition-colors hover:bg-[#fff0ee] hover:text-[#d93c34]">
+                {child.label}
+                {child.openInNewTab && <ExternalLink className="h-3 w-3" />}
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -458,7 +484,7 @@ function FeaturedColumn({ onSelect }: { onSelect: () => void }) {
       <div className="grid grid-cols-2 gap-2">
         {FEATURED_IN_MENU.map((item) => (
           <Link key={item.slug} href={`/${item.slug}`} onClick={onSelect} className="group overflow-hidden rounded-lg border border-[#dce4e8] bg-[#fbfcfd] transition-all hover:-translate-y-0.5 hover:border-[#e3483e]/40 hover:shadow-[0_5px_14px_rgba(17,43,75,0.1)]">
-            <div className="aspect-[4/3] overflow-hidden bg-[#e7edf0]"><img src={item.img} alt={item.label} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={(event) => { event.currentTarget.style.opacity = "0.25"; }} /></div>
+            <div className="aspect-[4/3] overflow-hidden bg-[#e7edf0]"><img {...responsiveImageProps(item.img)} alt={item.label} width={500} height={375} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={(event) => { event.currentTarget.style.opacity = "0.25"; }} /></div>
             <div className="px-2 py-1.5 text-[10px] font-bold text-[#40566a]">{item.label}</div>
           </Link>
         ))}

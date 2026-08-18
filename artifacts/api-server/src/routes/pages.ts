@@ -8,8 +8,9 @@ import {
   UpdatePageBody,
   UpdatePageParams,
 } from "@workspace/api-zod";
-import { requireAdministrator, requireCapability } from "../middlewares/auth";
+import { canEditContentLive, requireAdministrator, requireCapability } from "../middlewares/auth";
 import {
+  applyContentRevision,
   createContentRevision,
   revisionPayloadFromPage,
 } from "../lib/content-revisions";
@@ -69,6 +70,10 @@ router.post("/admin/pages", requireCapability("content"), async (req, res) => {
       },
       req,
     });
+    if (canEditContentLive(req)) {
+      await applyContentRevision({ revisionId: revision.id, req });
+      return res.status(201).json({ ...fmt(row), workflow: "live", revisionId: revision.id });
+    }
     res.status(202).json({ ...fmt(row), workflow: "pending", revisionId: revision.id, previewToken: revision.previewToken });
   } catch (e) {
     req.log.error(e);
@@ -155,6 +160,10 @@ router.put("/admin/pages/:id", requireCapability("content"), async (req, res) =>
       },
       req,
     });
+    if (canEditContentLive(req)) {
+      await applyContentRevision({ revisionId: revision.id, req });
+      return res.json({ ...fmt(row), workflow: "live", revisionId: revision.id });
+    }
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.status(202).json({ ...fmt(row), workflow: "pending", revisionId: revision.id, previewToken: revision.previewToken });
   } catch (e) {

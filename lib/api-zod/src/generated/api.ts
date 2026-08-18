@@ -392,11 +392,47 @@ export const ListQuotesResponseItem = zod.object({
   "company": zod.string().nullish(),
   "productType": zod.string().nullish(),
   "quantity": zod.string().nullish(),
+  "dimensions": zod.string().nullish(),
+  "material": zod.string().nullish(),
+  "printingDetails": zod.string().nullish(),
   "additionalNotes": zod.string().nullish(),
+  "source": zod.string().nullish(),
   "status": zod.string(),
   "createdAt": zod.string().optional()
 })
 export const ListQuotesResponse = zod.array(ListQuotesResponseItem)
+
+
+/**
+ * @summary List all Clark conversations with linked quote details
+ */
+export const ListClarkConversationsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "sessionId": zod.string(),
+  "transcript": zod.string(),
+  "ip": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "lastActivity": zod.string(),
+  "quote": zod.union([zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "company": zod.string().nullish(),
+  "productType": zod.string().nullish(),
+  "quantity": zod.string().nullish(),
+  "dimensions": zod.string().nullish(),
+  "material": zod.string().nullish(),
+  "printingDetails": zod.string().nullish(),
+  "additionalNotes": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "status": zod.string(),
+  "createdAt": zod.string().optional()
+}),zod.null()]).optional()
+})
+export const ListClarkConversationsResponse = zod.array(ListClarkConversationsResponseItem)
 
 
 /**
@@ -424,7 +460,8 @@ export const CreatePageBody = zod.object({
   "content": zod.string().nullish(),
   "metaTitle": zod.string().nullish(),
   "metaDescription": zod.string().nullish(),
-  "isPublished": zod.boolean().optional()
+  "isPublished": zod.boolean().optional(),
+  "scheduledAt": zod.string().nullish()
 })
 
 export const CreatePageResponse = zod.object({
@@ -452,7 +489,8 @@ export const UpdatePageBody = zod.object({
   "content": zod.string().nullish(),
   "metaTitle": zod.string().nullish(),
   "metaDescription": zod.string().nullish(),
-  "isPublished": zod.boolean().optional()
+  "isPublished": zod.boolean().optional(),
+  "scheduledAt": zod.string().nullish()
 })
 
 export const UpdatePageResponse = zod.object({
@@ -580,7 +618,8 @@ export const CreateBlogPostBody = zod.object({
   "author": zod.string().nullish(),
   "status": zod.string().optional(),
   "metaTitle": zod.string().nullish(),
-  "metaDescription": zod.string().nullish()
+  "metaDescription": zod.string().nullish(),
+  "scheduledAt": zod.string().nullish()
 })
 
 export const CreateBlogPostResponse = zod.object({
@@ -615,7 +654,8 @@ export const UpdateBlogPostBody = zod.object({
   "author": zod.string().nullish(),
   "status": zod.string().optional(),
   "metaTitle": zod.string().nullish(),
-  "metaDescription": zod.string().nullish()
+  "metaDescription": zod.string().nullish(),
+  "scheduledAt": zod.string().nullish()
 })
 
 export const UpdateBlogPostResponse = zod.object({
@@ -968,6 +1008,17 @@ export const GetAdminSettingsResponse = zod.object({
   "phone": zod.string().nullish(),
   "address": zod.string().nullish(),
   "adminEmail": zod.string().nullish(),
+  "announcementBar": zod.string().nullish(),
+  "popupEnabled": zod.string().nullish(),
+  "popupBadge": zod.string().nullish(),
+  "popupTitle": zod.string().nullish(),
+  "popupMessage": zod.string().nullish(),
+  "popupButtonText": zod.string().nullish(),
+  "popupButtonUrl": zod.string().nullish(),
+  "popupImageUrl": zod.string().nullish(),
+  "tawkEnabled": zod.string().nullish(),
+  "tawkPropertyId": zod.string().nullish(),
+  "tawkHandoffLabel": zod.string().nullish(),
   "updatedAt": zod.string().nullish()
 })
 
@@ -984,6 +1035,17 @@ export const UpdateSettingsBody = zod.object({
   "phone": zod.string().nullish(),
   "address": zod.string().nullish(),
   "adminEmail": zod.string().nullish(),
+  "announcementBar": zod.string().nullish(),
+  "popupEnabled": zod.string().nullish(),
+  "popupBadge": zod.string().nullish(),
+  "popupTitle": zod.string().nullish(),
+  "popupMessage": zod.string().nullish(),
+  "popupButtonText": zod.string().nullish(),
+  "popupButtonUrl": zod.string().nullish(),
+  "popupImageUrl": zod.string().nullish(),
+  "tawkEnabled": zod.string().nullish(),
+  "tawkPropertyId": zod.string().nullish(),
+  "tawkHandoffLabel": zod.string().nullish(),
   "updatedAt": zod.string().nullish()
 })
 
@@ -996,6 +1058,17 @@ export const UpdateSettingsResponse = zod.object({
   "phone": zod.string().nullish(),
   "address": zod.string().nullish(),
   "adminEmail": zod.string().nullish(),
+  "announcementBar": zod.string().nullish(),
+  "popupEnabled": zod.string().nullish(),
+  "popupBadge": zod.string().nullish(),
+  "popupTitle": zod.string().nullish(),
+  "popupMessage": zod.string().nullish(),
+  "popupButtonText": zod.string().nullish(),
+  "popupButtonUrl": zod.string().nullish(),
+  "popupImageUrl": zod.string().nullish(),
+  "tawkEnabled": zod.string().nullish(),
+  "tawkPropertyId": zod.string().nullish(),
+  "tawkHandoffLabel": zod.string().nullish(),
   "updatedAt": zod.string().nullish()
 })
 

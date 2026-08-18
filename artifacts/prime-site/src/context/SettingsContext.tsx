@@ -8,6 +8,16 @@ export interface SiteSettings {
   address: string;
   whatsapp: string;
   announcementBar?: string;
+  popupEnabled?: string;
+  popupBadge?: string;
+  popupTitle?: string;
+  popupMessage?: string;
+  popupButtonText?: string;
+  popupButtonUrl?: string;
+  popupImageUrl?: string;
+  tawkEnabled?: string;
+  tawkPropertyId?: string;
+  tawkHandoffLabel?: string;
 }
 
 const DEFAULTS: SiteSettings = {
@@ -16,6 +26,16 @@ const DEFAULTS: SiteSettings = {
   address: "444 Alaska Avenue Suite, Torrance, CA 90503, USA",
   whatsapp: "18187584076",
   announcementBar: "",
+  popupEnabled: "true",
+  popupBadge: "Limited-time offer",
+  popupTitle: "Make your next unboxing unforgettable",
+  popupMessage: "Get free design support and a fast custom packaging quote from our team.",
+  popupButtonText: "Get a free quote",
+  popupButtonUrl: "/get-a-quote",
+  popupImageUrl: "",
+  tawkEnabled: "false",
+  tawkPropertyId: "",
+  tawkHandoffLabel: "Talk to a real person",
 };
 
 const SettingsContext = createContext<SiteSettings>(DEFAULTS);
@@ -34,6 +54,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             address: data.address || DEFAULTS.address,
             whatsapp: data.whatsapp || DEFAULTS.whatsapp,
             announcementBar: data.announcementBar || DEFAULTS.announcementBar,
+            popupEnabled: data.popupEnabled ?? DEFAULTS.popupEnabled,
+            popupBadge: data.popupBadge || DEFAULTS.popupBadge,
+            popupTitle: data.popupTitle || DEFAULTS.popupTitle,
+            popupMessage: data.popupMessage || DEFAULTS.popupMessage,
+            popupButtonText: data.popupButtonText || DEFAULTS.popupButtonText,
+            popupButtonUrl: data.popupButtonUrl || DEFAULTS.popupButtonUrl,
+            popupImageUrl: data.popupImageUrl || DEFAULTS.popupImageUrl,
+            tawkEnabled: data.tawkEnabled ?? DEFAULTS.tawkEnabled,
+            tawkPropertyId: data.tawkPropertyId || DEFAULTS.tawkPropertyId,
+            tawkHandoffLabel: data.tawkHandoffLabel || DEFAULTS.tawkHandoffLabel,
           });
         }
       })

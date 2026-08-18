@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { AdminLayout } from "../components/layout/AdminLayout";
 import { 
   useAdminListBanners, 
   useCreateBanner, 
   useUpdateBanner, 
   useDeleteBanner,
+  useGetAdminMe,
   getAdminListBannersQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,12 +16,15 @@ import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useForm } from "react-hook-form";
 
 export default function BannersPage() {
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { data: banners = [], isLoading } = useAdminListBanners();
   
   const createBanner = useCreateBanner();
   const updateBanner = useUpdateBanner();
   const deleteBanner = useDeleteBanner();
+  const { data: admin } = useGetAdminMe({ query: { retry: false, staleTime: 30_000 } as any });
+  const isLiveAdmin = Boolean((admin as any)?.role === "superadmin" || (admin as any)?.capabilities?.includes("*") || (admin as any)?.capabilities?.includes("content-approval"));
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -30,8 +35,7 @@ export default function BannersPage() {
       title: "",
       subtitle: "",
       imageUrl: "",
-      linkUrl: "",
-      linkText: "",
+      link: "",
       isActive: true,
       sortOrder: 0
     }
@@ -41,7 +45,7 @@ export default function BannersPage() {
     setEditingId(null);
     reset({
       title: "", subtitle: "", imageUrl: "", 
-      linkUrl: "", linkText: "", isActive: true, sortOrder: 0
+      link: "", isActive: true, sortOrder: 0
     });
     setModalOpen(true);
   };
@@ -52,8 +56,7 @@ export default function BannersPage() {
       ...banner,
       subtitle: banner.subtitle || "",
       imageUrl: banner.imageUrl || "",
-      linkUrl: banner.linkUrl || "",
-      linkText: banner.linkText || "",
+      link: banner.link || "",
     });
     setModalOpen(true);
   };
@@ -66,16 +69,24 @@ export default function BannersPage() {
 
     if (editingId) {
       updateBanner.mutate({ id: editingId, data: payload }, {
-        onSuccess: () => {
+        onSuccess: (result: any) => {
           queryClient.invalidateQueries({ queryKey: getAdminListBannersQueryKey() });
           setModalOpen(false);
+          if (result?.pendingApproval) {
+            window.alert("Banner change is live.");
+            setLocation("/content-approvals");
+          }
         }
       });
     } else {
       createBanner.mutate({ data: payload }, {
-        onSuccess: () => {
+        onSuccess: (result: any) => {
           queryClient.invalidateQueries({ queryKey: getAdminListBannersQueryKey() });
           setModalOpen(false);
+          if (result?.pendingApproval) {
+            window.alert("New banner is live.");
+            setLocation("/content-approvals");
+          }
         }
       });
     }
@@ -84,9 +95,13 @@ export default function BannersPage() {
   const confirmDelete = () => {
     if (deleteId) {
       deleteBanner.mutate({ id: deleteId }, {
-        onSuccess: () => {
+        onSuccess: (result: any) => {
           queryClient.invalidateQueries({ queryKey: getAdminListBannersQueryKey() });
           setDeleteId(null);
+          if (result?.pendingApproval) {
+            window.alert("Banner deleted.");
+            setLocation("/content-approvals");
+          }
         }
       });
     }
@@ -100,7 +115,7 @@ export default function BannersPage() {
           onClick={openAddModal}
           className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md font-medium text-sm"
         >
-          <Plus className="h-4 w-4" /> Add Banner
+          <Plus className="h-4 w-4" /> {isLiveAdmin ? "Add Banner" : "Submit Banner"}
         </button>
       </div>
 
@@ -137,8 +152,8 @@ export default function BannersPage() {
                       <div className="text-xs text-muted-foreground truncate max-w-xs">{banner.subtitle}</div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
-                      {banner.link ? (
-                        <div className="truncate max-w-[150px]">{banner.link}</div>
+              {banner.link ? (
+                         <div className="truncate max-w-[150px]">{banner.link}</div>
                       ) : "-"}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -180,15 +195,9 @@ export default function BannersPage() {
             <input {...register("imageUrl", { required: true })} className="w-full h-9 rounded-md border border-input px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Link URL</label>
-              <input {...register("linkUrl")} placeholder="/products/example" className="w-full h-9 rounded-md border border-input px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Link Text</label>
-              <input {...register("linkText")} placeholder="Shop Now" className="w-full h-9 rounded-md border border-input px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none" />
-            </div>
+           <div className="space-y-1.5">
+             <label className="text-sm font-medium">Link URL</label>
+             <input {...register("link")} placeholder="/products/example" className="w-full h-9 rounded-md border border-input px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none" />
           </div>
 
           <div className="space-y-1.5 w-1/2">
@@ -206,7 +215,7 @@ export default function BannersPage() {
           <div className="flex justify-end gap-3 pt-4 border-t mt-6">
             <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 border rounded-md text-sm font-medium hover:bg-muted">Cancel</button>
             <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
-              {editingId ? "Save Changes" : "Create Banner"}
+               {editingId ? (isLiveAdmin ? "Save Changes" : "Submit for Approval") : (isLiveAdmin ? "Create Banner" : "Submit for Approval")}
             </button>
           </div>
         </form>

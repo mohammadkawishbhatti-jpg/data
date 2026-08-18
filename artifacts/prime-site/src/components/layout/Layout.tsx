@@ -5,6 +5,7 @@ import { Footer } from "./Footer";
 import { WhatsAppButton } from "../ui/WhatsAppButton";
 import { DeferredAdminEnhancements } from "../DeferredAdminEnhancements";
 import { PromotionPopup } from "../PromotionPopup";
+import { TawkWidget } from "../TawkWidget";
 
 // Lazy-load chat widget — non-critical, deferred after main content
 const ChatWidget = lazy(() => import("../ChatWidget").then(m => ({ default: m.ChatWidget })));
@@ -25,6 +26,7 @@ export function Layout({ children }: LayoutProps) {
         <Suspense fallback={null}>
           <ChatWidget />
         </Suspense>
+        <TawkWidget />
         <PromotionPopup />
       </div>
     </DeferredAdminEnhancements>

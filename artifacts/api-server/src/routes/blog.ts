@@ -2,7 +2,12 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { blogPostsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
-import { requireAdmin } from "../middlewares/auth";
+import { canEditContentLive, requireAdministrator, requireCapability } from "../middlewares/auth";
+import {
+  applyContentRevision,
+  createContentRevision,
+  revisionPayloadFromBlog,
+} from "../lib/content-revisions";
 import {
   ListBlogPostsQueryParams,
   GetBlogPostParams,
@@ -45,7 +50,7 @@ router.get("/blog/:slug", async (req, res) => {
 });
 
 // Admin: GET /admin/blog
-router.get("/admin/blog", requireAdmin, async (req, res) => {
+router.get("/admin/blog", requireCapability("content"), async (req, res) => {
   try {
     const rows = await db.select().from(blogPostsTable).orderBy(desc(blogPostsTable.createdAt));
     res.json(rows.map(fmt));
@@ -56,11 +61,37 @@ router.get("/admin/blog", requireAdmin, async (req, res) => {
 });
 
 // Admin: POST /admin/blog
-router.post("/admin/blog", requireAdmin, async (req, res) => {
+router.post("/admin/blog", requireCapability("content"), async (req, res) => {
   try {
     const data = CreateBlogPostBody.parse(req.body);
-    const [row] = await db.insert(blogPostsTable).values(data).returning();
-    res.status(201).json(fmt(row));
+    const [row] = await db.insert(blogPostsTable).values({
+      title: data.title,
+      slug: data.slug,
+      excerpt: null,
+      content: null,
+      imageUrl: null,
+      author: null,
+      status: "draft",
+      scheduledAt: null,
+      metaTitle: null,
+      metaDescription: null,
+    }).returning();
+    const revision = await createContentRevision({
+      entityType: "blog",
+      entityId: row.id,
+      entityLabel: row.title,
+      payload: {
+        ...data,
+        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt).toISOString() : null,
+        status: data.scheduledAt ? "scheduled" : data.status,
+      },
+      req,
+    });
+    if (canEditContentLive(req)) {
+      await applyContentRevision({ revisionId: revision.id, req });
+      return res.status(201).json({ ...fmt(row), workflow: "live", revisionId: revision.id });
+    }
+    res.status(202).json({ ...fmt(row), workflow: "pending", revisionId: revision.id, previewToken: revision.previewToken });
   } catch (e) {
     req.log.error(e);
     res.status(400).json({ error: "Bad request" });
@@ -68,15 +99,29 @@ router.post("/admin/blog", requireAdmin, async (req, res) => {
 });
 
 // Admin: PUT /admin/blog/:id
-router.put("/admin/blog/:id", requireAdmin, async (req, res) => {
+router.put("/admin/blog/:id", requireCapability("content"), async (req, res) => {
   try {
     const { id } = UpdateBlogPostParams.parse(req.params);
     const data = UpdateBlogPostBody.parse(req.body);
-    const [row] = await db.update(blogPostsTable)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(blogPostsTable.id, id)).returning();
+    const [row] = await db.select().from(blogPostsTable).where(eq(blogPostsTable.id, id));
     if (!row) return res.status(404).json({ error: "Not found" });
-    res.json(fmt(row));
+    const revision = await createContentRevision({
+      entityType: "blog",
+      entityId: id,
+      entityLabel: data.title ?? row.title,
+      payload: {
+        ...revisionPayloadFromBlog(row),
+        ...data,
+        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt).toISOString() : null,
+        status: data.scheduledAt ? "scheduled" : (data.status ?? row.status),
+      },
+      req,
+    });
+    if (canEditContentLive(req)) {
+      await applyContentRevision({ revisionId: revision.id, req });
+      return res.json({ ...fmt(row), workflow: "live", revisionId: revision.id });
+    }
+    res.status(202).json({ ...fmt(row), workflow: "pending", revisionId: revision.id, previewToken: revision.previewToken });
   } catch (e) {
     req.log.error(e);
     res.status(400).json({ error: "Bad request" });
@@ -84,7 +129,7 @@ router.put("/admin/blog/:id", requireAdmin, async (req, res) => {
 });
 
 // Admin: DELETE /admin/blog/:id
-router.delete("/admin/blog/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/blog/:id", requireAdministrator, async (req, res) => {
   try {
     const { id } = DeleteBlogPostParams.parse(req.params);
     await db.delete(blogPostsTable).where(eq(blogPostsTable.id, id));
@@ -105,6 +150,7 @@ function fmt(b: any) {
     imageUrl: b.imageUrl ?? null,
     author: b.author ?? null,
     status: b.status,
+    scheduledAt: b.scheduledAt?.toISOString?.() ?? b.scheduledAt ?? null,
     metaTitle: b.metaTitle ?? null,
     metaDescription: b.metaDescription ?? null,
     createdAt: b.createdAt?.toISOString?.() ?? b.createdAt,

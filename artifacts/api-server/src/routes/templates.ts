@@ -2,8 +2,8 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { pageTemplatesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { requireCapability } from "../middlewares/auth";
-import { createContentRevision } from "../lib/content-revisions";
+import { canEditContentLive, requireCapability } from "../middlewares/auth";
+import { applyContentRevision, createContentRevision } from "../lib/content-revisions";
 import { sanitizeInlineDocument } from "../lib/inline-content";
 
 const router = Router();
@@ -129,6 +129,10 @@ router.put("/admin/templates/:type", requireCapability("content"), async (req, r
       payload: { type, content: sanitizedContent },
       req,
     });
+    if (canEditContentLive(req)) {
+      await applyContentRevision({ revisionId: revision.id, req });
+      return res.json({ ...row, content: sanitizedContent, workflow: "live", revisionId: revision.id });
+    }
     res.status(202).json({ ...row, content: existing?.content ?? null, workflow: "pending", revisionId: revision.id, previewToken: revision.previewToken });
   } catch (e) {
     res.status(500).json({ error: "Internal server error" });

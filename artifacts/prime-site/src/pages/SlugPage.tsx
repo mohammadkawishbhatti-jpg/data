@@ -20,7 +20,7 @@ const Spinner = () => (
 export default function SlugPage() {
   const { slug = "" } = useParams<{ slug: string }>();
 
-  const { data, isLoading } = useQuery<{ type: string; slug: string }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ type: string; slug: string }>({
     queryKey: ["resolve", slug],
     queryFn: async () => {
       const r = await fetch(`/api/resolve/${encodeURIComponent(slug)}`);
@@ -31,7 +31,18 @@ export default function SlugPage() {
     retry: false,
   });
 
-  if (isLoading || !data) return <Spinner />;
+  if (isLoading || !data) {
+    if (isError) {
+      return (
+        <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+          <h1 className="text-2xl font-bold text-[#1a2f5a]">We couldn’t load this page</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Please check your connection and try again.</p>
+          <button onClick={() => void refetch()} className="mt-6 rounded-lg bg-[#1a2f5a] px-5 py-2.5 text-sm font-semibold text-white">Try again</button>
+        </div>
+      );
+    }
+    return <Spinner />;
+  }
 
   return (
     <Suspense fallback={<Spinner />}>

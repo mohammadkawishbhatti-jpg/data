@@ -431,11 +431,34 @@ function extractQuantity(text: string): string | null {
   return m ? m[0] : null;
 }
 
+function extractDimensions(text: string): string | null {
+  const m = text.match(
+    /\b\d+(?:\.\d+)?\s*(?:x|×|by)\s*\d+(?:\.\d+)?(?:\s*(?:x|×|by)\s*\d+(?:\.\d+)?)?\s*(?:in(?:ches)?|cm|mm)?\b/i,
+  );
+  return m ? m[0].trim() : null;
+}
+
 const BOX_KEYWORDS = [
   "mailer box","product box","display box","retail box","corrugated",
   "kraft box","rigid box","folding carton","gift box","shipping box",
   "cosmetic box","soap box","candle box","cbd box","mylar","subscription box",
 ];
+
+const MATERIAL_KEYWORDS = [
+  "kraft", "corrugated", "rigid", "sbs", "paperboard", "chipboard",
+  "recycled", "recyclable", "cardboard", "food-safe",
+];
+
+const PRINTING_KEYWORDS = [
+  "full color", "full-colour", "cmyk", "pantone", "spot uv", "uv",
+  "foil", "emboss", "deboss", "matte", "gloss", "lamination",
+];
+
+function extractKeywordMatches(text: string, keywords: string[]): string | null {
+  const lowerText = text.toLowerCase();
+  const matches = keywords.filter(keyword => lowerText.includes(keyword));
+  return matches.length > 0 ? [...new Set(matches)].join(", ") : null;
+}
 
 /* ── Email notification ──────────────────────────────────────── */
 async function sendLeadNotification(lead: {
@@ -515,17 +538,24 @@ async function tryUpsertLead(
     const userMsgs = messages.filter(m => m.role === "user");
     if (userMsgs.length < 2) return; // need at least name + one more
 
-    const allText = messages.map(m => m.content).join("\n");
+    // Only use customer messages for quote extraction. Clark's own prompts
+    // contain example sizes, materials, and finishes that must not become
+    // requirements the customer never supplied.
+    const customerText = userMsgs.map(m => m.content).join("\n");
 
-    const email = extractEmailFromText(allText);
+    const email = extractEmailFromText(customerText);
     if (!email) return; // no email yet — not ready
 
     const name = userMsgs[0]?.content?.trim();
     if (!name || name.length < 2 || name.length > 80) return;
 
-    const lc = allText.toLowerCase();
+    const lc = customerText.toLowerCase();
     const productType = BOX_KEYWORDS.find(k => lc.includes(k)) ?? null;
-    const quantity = extractQuantity(allText);
+    const quantity = extractQuantity(customerText);
+    const dimensions = extractDimensions(customerText);
+    const material = extractKeywordMatches(customerText, MATERIAL_KEYWORDS);
+    const printingDetails = extractKeywordMatches(customerText, PRINTING_KEYWORDS);
+    const additionalNotes = customerText.slice(0, 4000);
 
     // Upsert by sessionId
     const [existing] = await db
@@ -543,6 +573,10 @@ async function tryUpsertLead(
       clarkSessionId: sessionId,
       clarkTranscript: JSON.stringify(messages),
       clarkLastActivity: new Date(),
+      dimensions: dimensions || undefined,
+      material: material || undefined,
+      printingDetails: printingDetails || undefined,
+      additionalNotes: additionalNotes || undefined,
     };
 
     // Only set IP/country on insert or if not yet captured
@@ -570,7 +604,7 @@ async function saveClarkConversation(
   messages: Array<{ role: string; content: string }>,
   ipData?: { ip: string; country: string; city: string } | null,
 ) {
-  if (!sessionId) return;
+  if (!sessionId) return false;
   try {
     const [existing] = await db
       .select({ id: clarkConversationsTable.id, ip: clarkConversationsTable.ip })
@@ -599,10 +633,40 @@ async function saveClarkConversation(
     } else {
       await db.insert(clarkConversationsTable).values(payload);
     }
+    return true;
   } catch (error) {
     console.error("Clark conversation save error:", error);
+    return false;
   }
 }
+
+// Save the complete anonymous transcript before handing the visitor to the
+// official Tawk widget. Tawk receives the live handoff; this record remains
+// the durable internal history even when the visitor never supplies an email.
+router.post("/chat/handoff", async (req, res) => {
+  try {
+    const { sessionId, messages } = req.body as {
+      sessionId?: string;
+      messages?: Array<{ role: string; content: string }>;
+    };
+    if (typeof sessionId !== "string" || !sessionId.trim() || !Array.isArray(messages)) {
+      return res.status(400).json({ error: "sessionId and messages are required" });
+    }
+    const safeMessages = messages
+      .filter(message => ["user", "assistant"].includes(message?.role) && typeof message?.content === "string")
+      .slice(-100)
+      .map(message => ({ role: message.role, content: message.content.slice(0, 4000) }));
+    const saved = await saveClarkConversation(sessionId.trim(), [
+      ...safeMessages,
+      { role: "system", content: "Visitor requested a live agent handoff through Tawk.to." },
+    ]);
+    if (!saved) return res.status(500).json({ error: "Unable to save conversation" });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("Clark handoff save error:", error);
+    return res.status(400).json({ error: "Unable to save conversation" });
+  }
+});
 
 router.post("/chat", async (req, res) => {
   try {

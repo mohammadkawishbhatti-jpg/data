@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, FolderOpen, Image as ImageIcon,
   FileText, BookOpen, FileEdit, Settings, LogOut, X, Users,
    HardDrive, Shield, Palette, ShoppingBag, Upload, ScrollText,
-  Bell, Bot, ChevronDown, TrendingUp, Inbox, MessageSquare, Sparkles, Command, Menu as MenuIcon
+   Bell, Bot, ChevronDown, TrendingUp, Inbox, MessageSquare, Sparkles, Command, Menu as MenuIcon, GitCompare, ClipboardCheck, Activity
 } from "lucide-react";
 import { useAdminLogout, useGetAdminStats } from "@workspace/api-client-react";
 
@@ -13,6 +13,7 @@ const sections = [
     label: "Overview",
     items: [
       { name: "Dashboard",      href: "/",               icon: LayoutDashboard },
+        { name: "Approval Center", href: "/content-approvals", icon: ClipboardCheck, badgeKey: "pendingApprovals", capability: "content-approval" },
       { name: "Quote Pipeline", href: "/quote-pipeline", icon: TrendingUp, capability: "sales" },
       { name: "Follow Ups",     href: "/follow-ups",     icon: Bell, capability: "sales" },
     ],
@@ -36,7 +37,7 @@ const sections = [
       { name: "Products",    href: "/products",       icon: Package, capability: "catalog" },
       { name: "Categories",  href: "/categories",     icon: FolderOpen, capability: "catalog" },
       { name: "Banners",     href: "/banners",        icon: ImageIcon, capability: "catalog" },
-      { name: "Import (WP)", href: "/import-products",icon: Upload, capability: "catalog" },
+      { name: "Import (WP)", href: "/import-products",icon: Upload, capability: "superadmin" },
     ],
   },
   {
@@ -47,16 +48,18 @@ const sections = [
       { name: "Blog",            href: "/blog",          icon: BookOpen, capability: "content" },
       { name: "Media",           href: "/media",         icon: HardDrive, capability: "media" },
       { name: "Global Styles",   href: "/global-styles", icon: Palette, capability: "content" },
+       { name: "Content History",  href: "/content-approvals", icon: GitCompare, capability: "content" },
     ],
   },
   {
     label: "System",
     items: [
-      { name: "Clark AI",        href: "/clark",           icon: Bot, capability: "superadmin" },
+      { name: "Clark AI",        href: "/clark",           icon: Bot, capability: "sales" },
       { name: "Users",           href: "/users",           icon: Users, capability: "superadmin" },
       { name: "Country Blocker", href: "/country-blocker", icon: Shield, capability: "superadmin" },
       { name: "Database",        href: "/database",        icon: HardDrive, capability: "superadmin" },
       { name: "Security",        href: "/security",        icon: Shield, capability: "superadmin" },
+      { name: "Monitoring",      href: "/monitoring",      icon: Activity, capability: "superadmin" },
       { name: "Audit Log",       href: "/audit-log",       icon: ScrollText, capability: "superadmin" },
       { name: "Settings",        href: "/settings",        icon: Settings, capability: "superadmin" },
     ],
@@ -64,27 +67,33 @@ const sections = [
 ];
 
 function NavSection({
-  section, location, stats, capabilities, onClose,
+  section, location, stats, capabilities, onClose, open, onToggle, accessLoading,
 }: {
   section: typeof sections[0];
   location: string;
   stats: any;
   capabilities: string[];
   onClose: () => void;
+  open: boolean;
+  onToggle: () => void;
+  accessLoading: boolean;
 }) {
-  const [open, setOpen] = useState(true);
-  const visibleItems = section.items.filter((item: any) =>
-    !item.capability || capabilities.includes("*") || capabilities.includes(item.capability)
-  );
+  const visibleItems = accessLoading
+    ? section.items
+    : section.items.filter((item: any) =>
+      !item.capability || capabilities.includes("*") || capabilities.includes(item.capability)
+    );
   if (!visibleItems.length) return null;
 
   return (
     <div className="mb-2">
       <button
-        onClick={() => setOpen(o => !o)}
+        type="button"
+        onClick={onToggle}
         aria-expanded={open}
         aria-controls={`admin-nav-${section.label.toLowerCase().replace(/\s+/g, "-")}`}
-         className="w-full flex items-center justify-between px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
+        data-testid={`button-toggle-admin-section-${section.label.toLowerCase()}`}
+        className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/30 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
       >
         {section.label}
         <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${open ? "" : "-rotate-90"}`} />
@@ -100,12 +109,16 @@ function NavSection({
             let badge = 0;
             if (stats && (item as any).badgeKey === "newQuotes") badge = (stats as any).newQuotes || 0;
             if (stats && (item as any).badgeKey === "newLeads")  badge = (stats as any).newLeads  || 0;
+            if (stats && (item as any).badgeKey === "pendingApprovals") badge = (stats as any).pendingApprovals || 0;
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
+                data-testid={`link-admin-nav-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                data-admin-nav-item="true"
+                data-active={isActive ? "true" : "false"}
                 className={`group relative flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
                   isActive
                      ? "bg-sidebar-primary/15 text-sidebar-foreground border-l-2 border-sidebar-primary shadow-md shadow-sidebar-primary/10"
@@ -140,24 +153,75 @@ export function Sidebar({
   const [location] = useLocation();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const navRef = useRef<HTMLElement>(null);
   const logout = useAdminLogout();
   const [, setLocation] = useLocation();
   const { data: stats } = useGetAdminStats();
   const [access, setAccess] = useState<{ roleLabel?: string; capabilities: string[] }>({ capabilities: [] });
+  const [accessLoading, setAccessLoading] = useState(true);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    const defaults = Object.fromEntries(sections.map(section => [section.label, true]));
+    try {
+      const stored = window.sessionStorage.getItem("prime-admin-open-sections");
+      return stored ? { ...defaults, ...JSON.parse(stored) } : defaults;
+    } catch {
+      return defaults;
+    }
+  });
 
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/admin/me", { credentials: "include" })
       .then((response) => response.ok ? response.json() : null)
-      .then((data) => data && setAccess({ roleLabel: data.roleLabel, capabilities: data.capabilities || [] }))
-      .catch(() => undefined);
+      .then((data) => {
+        if (cancelled) return;
+        if (data) setAccess({ roleLabel: data.roleLabel, capabilities: data.capabilities || [] });
+        setAccessLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setAccessLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem("prime-admin-open-sections", JSON.stringify(openSections));
+    } catch {
+      // Session storage is optional; navigation remains fully functional without it.
+    }
+  }, [openSections]);
+
+  useEffect(() => {
+    const activeSection = sections.find(section => section.items.some(item =>
+      location === item.href || (item.href !== "/" && location.startsWith(item.href))
+    ));
+    if (!activeSection) return;
+    setOpenSections(current => current[activeSection.label] === false
+      ? { ...current, [activeSection.label]: true }
+      : current
+    );
+    const frame = requestAnimationFrame(() => {
+      navRef.current?.querySelector<HTMLElement>('[data-admin-nav-item="true"][data-active="true"]')?.scrollIntoView({
+        block: "nearest",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [location]);
 
   useEffect(() => {
     if (!mobileOpen) return;
     previousFocusRef.current = document.activeElement as HTMLElement | null;
     const frame = requestAnimationFrame(() => closeButtonRef.current?.focus());
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", onKeyDown);
       previousFocusRef.current?.focus?.();
     };
   }, [mobileOpen]);
@@ -170,11 +234,11 @@ export function Sidebar({
   };
 
   const SidebarContent = () => (
-     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground w-64 border-r border-sidebar-border shadow-2xl">
+     <div className="flex h-full w-[17.5rem] max-w-[calc(100vw-1rem)] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-2xl">
       {/* Brand Header */}
        <div className="flex items-center justify-between px-5 py-5 border-b border-sidebar-border bg-sidebar-accent/20">
         <div className="flex items-center gap-3">
-          <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 shadow-lg shadow-rose-500/30 border border-rose-400/30">
+           <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-rose-400/30 bg-gradient-to-br from-rose-500 to-rose-700 shadow-lg shadow-rose-500/30">
             <Package className="h-5 w-5 text-white" />
             <span className="absolute -top-1 -right-1 flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -182,11 +246,11 @@ export function Sidebar({
             </span>
           </div>
           <div>
-             <h2 className="text-sm font-bold tracking-tight text-sidebar-foreground flex items-center gap-1.5">
+              <h2 className="flex items-center gap-1.5 text-[15px] font-bold tracking-tight text-sidebar-foreground">
               Prime Admin
               <Sparkles className="h-3 w-3 text-rose-400" />
             </h2>
-             <p className="text-[10px] text-sidebar-foreground/60 mt-0.5">primepackagingboxes.com</p>
+              <p className="mt-0.5 text-[10px] text-sidebar-foreground/60">primepackagingboxes.com</p>
              {access.roleLabel && <span className="mt-1 inline-flex rounded-full bg-sidebar-primary/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sidebar-primary">{access.roleLabel}</span>}
           </div>
         </div>
@@ -197,7 +261,9 @@ export function Sidebar({
         <div className="px-3 pt-3">
           <button
             onClick={onOpenCommandPalette}
-             className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-sidebar-accent/45 border border-sidebar-border text-xs text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-sidebar-accent/75 transition-all duration-150 group shadow-inner"
+             type="button"
+             data-testid="button-admin-quick-search"
+             className="group flex w-full items-center justify-between rounded-xl border border-sidebar-border bg-sidebar-accent/45 px-3 py-2.5 text-xs text-sidebar-foreground/65 shadow-inner transition-all duration-150 hover:bg-sidebar-accent/75 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
           >
             <span className="flex items-center gap-2">
               <Command className="h-3.5 w-3.5 text-rose-400" />
@@ -211,7 +277,7 @@ export function Sidebar({
       )}
 
       {/* Nav List */}
-      <nav className="flex-1 overflow-y-auto py-3 px-3 scrollbar-thin">
+       <nav ref={navRef} aria-label="Admin navigation" className="min-h-0 flex-1 overscroll-contain overflow-y-auto px-3 py-3 scrollbar-thin">
         {sections.map(section => (
           <NavSection
             key={section.label}
@@ -220,6 +286,9 @@ export function Sidebar({
             stats={stats}
             capabilities={access.capabilities}
             onClose={() => setMobileOpen(false)}
+             open={openSections[section.label] !== false}
+             onToggle={() => setOpenSections(current => ({ ...current, [section.label]: current[section.label] === false }))}
+             accessLoading={accessLoading}
           />
         ))}
       </nav>
@@ -228,7 +297,9 @@ export function Sidebar({
        <div className="px-3 pb-4 pt-3 border-t border-sidebar-border bg-sidebar-accent/20">
         <button
           onClick={handleLogout}
-           className="flex items-center gap-2.5 px-3 py-2 w-full rounded-xl text-xs font-semibold text-sidebar-foreground/65 hover:bg-sidebar-primary/10 hover:text-sidebar-primary border border-transparent hover:border-sidebar-primary/20 transition-all duration-150 group"
+          type="button"
+          data-testid="button-admin-sign-out"
+          className="group flex w-full items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-semibold text-sidebar-foreground/65 transition-all duration-150 hover:border-sidebar-primary/20 hover:bg-sidebar-primary/10 hover:text-sidebar-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
            <LogOut className="h-4 w-4 text-sidebar-foreground/60 group-hover:text-sidebar-primary transition-colors" />
           Sign Out
@@ -251,7 +322,7 @@ export function Sidebar({
             className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="relative w-64 bg-[#090d16] z-50 animate-in slide-in-from-left duration-200">
+          <div id="admin-navigation-drawer" className="relative z-50 w-[17.5rem] max-w-[calc(100vw-1rem)] animate-in slide-in-from-left duration-200 bg-[#090d16]">
             <button
               ref={closeButtonRef}
               className="absolute right-4 top-5 text-slate-400 hover:text-white"

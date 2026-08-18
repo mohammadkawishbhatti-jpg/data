@@ -99,6 +99,9 @@ export default function SettingsPage() {
       clarkCompanyAddress: "",
       clarkToneNotes: "",
       clarkQuoteHours: "2",
+      tawkEnabled: "false",
+      tawkPropertyId: "",
+      tawkHandoffLabel: "Talk to a real person",
     }
   });
 
@@ -138,6 +141,9 @@ export default function SettingsPage() {
         clarkCompanyAddress: s.clarkCompanyAddress || "",
         clarkToneNotes: s.clarkToneNotes || "",
         clarkQuoteHours: s.clarkQuoteHours || "2",
+        tawkEnabled: s.tawkEnabled ?? "false",
+        tawkPropertyId: s.tawkPropertyId || "",
+        tawkHandoffLabel: s.tawkHandoffLabel || "Talk to a real person",
       });
       // Load custom FAQs
       try {
@@ -188,6 +194,9 @@ export default function SettingsPage() {
       clarkToneNotes: data.clarkToneNotes,
       clarkQuoteHours: data.clarkQuoteHours,
       clarkCustomFaqs: JSON.stringify(clarkFaqs),
+      tawkEnabled: data.tawkEnabled,
+      tawkPropertyId: data.tawkPropertyId,
+      tawkHandoffLabel: data.tawkHandoffLabel,
     };
     saveSettings(payload);
   });
@@ -842,6 +851,38 @@ export default function SettingsPage() {
                     className="h-8 px-4 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 disabled:opacity-50">
                     + Add FAQ
                   </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Tawk handoff */}
+            <div className="bg-card border rounded-xl shadow-sm divide-y">
+              <div className="px-5 py-4 space-y-4">
+                <div>
+                  <h3 className="font-semibold text-sm">Live agent handoff</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Clark saves the conversation, then opens the official Tawk.to chat for a human agent. Tawk notifications, agents, and availability stay managed in your Tawk dashboard.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={label}>Tawk widget</label>
+                    <select {...register("tawkEnabled")} className={`${field} bg-background`}>
+                      <option value="false">🔴 Disabled</option>
+                      <option value="true">✅ Enabled</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={label}>Handoff button label</label>
+                    <input {...register("tawkHandoffLabel")} placeholder="Talk to a real person" className={field} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className={label}>Tawk Property ID / widget path</label>
+                    <input {...register("tawkPropertyId")} placeholder="e.g. 64abc1234567890/default" className={field} />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Copy the public embed path from Tawk.to. Do not paste an API key or private credential here.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

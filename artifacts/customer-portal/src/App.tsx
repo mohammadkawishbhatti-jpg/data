@@ -32,6 +32,23 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  React.useEffect(() => {
+    const report = (message: string, name?: string) => {
+      void fetch("/api/monitoring/frontend-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: message.slice(0, 500), name, route: window.location.pathname, browser: navigator.userAgent.slice(0, 200) }),
+      }).catch(() => undefined);
+    };
+    const onError = (event: ErrorEvent) => report(event.message || "Unhandled browser error", event.error?.name);
+    const onRejection = (event: PromiseRejectionEvent) => report(String(event.reason || "Unhandled promise rejection"), "UnhandledRejection");
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, []);
   return (
     <BrowserRouter basename={base}>
       <AuthProvider>

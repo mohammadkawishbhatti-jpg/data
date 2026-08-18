@@ -15,5 +15,16 @@ export interface SiteSettings {
   phone?: string | null;
   address?: string | null;
   adminEmail?: string | null;
+  announcementBar?: string | null;
+  popupEnabled?: string | null;
+  popupBadge?: string | null;
+  popupTitle?: string | null;
+  popupMessage?: string | null;
+  popupButtonText?: string | null;
+  popupButtonUrl?: string | null;
+  popupImageUrl?: string | null;
+  tawkEnabled?: string | null;
+  tawkPropertyId?: string | null;
+  tawkHandoffLabel?: string | null;
   updatedAt?: string | null;
 }

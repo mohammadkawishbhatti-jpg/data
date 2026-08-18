@@ -7,6 +7,7 @@ import { PageHero } from "../components/ui/PageHero";
 import { TemplateRenderer, usePageTemplate } from "../components/ui/TemplateRenderer";
 import { useListProducts, useListCategories } from "@workspace/api-client-react";
 import { useSEO } from "../lib/useSEO";
+import { responsiveImageProps } from "../lib/responsiveImage";
 
 const HERO_BG = "/api/uploads/cardboard-gift-boxes.webp";
 
@@ -18,8 +19,8 @@ export default function ProductsPage() {
     description: "Browse our complete catalog of custom packaging products — mailer boxes, rigid boxes, kraft boxes, cosmetic packaging, and more. Free design. Free shipping."
   });
 
-  const { data: productsData, isLoading: isLoadingProducts } = useListProducts({ limit: 100 });
-  const { data: categoriesData } = useListCategories();
+  const { data: productsData, isLoading: isLoadingProducts, isError: productsError, refetch: refetchProducts } = useListProducts({ limit: 100 });
+  const { data: categoriesData, isError: categoriesError, refetch: refetchCategories } = useListCategories();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | number>("All");
@@ -113,6 +114,11 @@ export default function ProductsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             {isLoadingProducts ? (
               Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+            ) : productsError ? (
+              <div className="col-span-full rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+                <p className="font-semibold text-red-800">Products could not be loaded.</p>
+                <button onClick={() => void refetchProducts()} className="mt-4 rounded-lg bg-[#1a2f5a] px-4 py-2 text-sm font-semibold text-white">Try again</button>
+              </div>
             ) : filteredProducts.length > 0 ? (
               (filteredProducts as any[]).map((product: any) => <ProductCard key={product.id} product={product} />)
             ) : (
@@ -176,7 +182,8 @@ export default function ProductsPage() {
               <Link key={cat.slug} href={`/${cat.slug}`}
                 className="group block rounded-2xl overflow-hidden border border-gray-200 bg-white hover:shadow-lg hover:border-[#e63329]/30 transition-all">
                 <div className="aspect-square overflow-hidden bg-gray-100">
-                  <img src={cat.img} alt={cat.label}
+                  <img {...responsiveImageProps(cat.img)} alt={cat.label}
+                    width={500} height={500} loading="lazy" decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={e => { (e.target as HTMLImageElement).style.opacity = "0.2"; }} />
                 </div>

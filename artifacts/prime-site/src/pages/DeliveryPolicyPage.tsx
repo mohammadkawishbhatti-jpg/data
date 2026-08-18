@@ -42,6 +42,9 @@ export default function DeliveryPolicyPage() {
                 <img
                   src="/api/uploads/corrugated-mailer-boxes-wholesale.webp"
                   alt="Custom corrugated mailer boxes shipped free across USA"
+                  width={800}
+                  height={600}
+                  decoding="async"
                   className="relative rounded-2xl shadow-2xl w-full object-cover max-h-[380px]"
                   loading="eager"
                 />

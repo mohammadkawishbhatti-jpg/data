@@ -25,11 +25,8 @@
     <meta name="theme-color" content="#1a2f5a" />
     <link rel="canonical" href="https://www.primepackagingboxes.com/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- Async font loading — non-render-blocking -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800;900&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800;900&display=swap" /></noscript>
+    <!-- Prioritize the first hero image so the above-the-fold visual is discoverable in HTML. -->
+    <link rel="preload" as="image" href="/api/uploads/luxury-chocolate-boxes.webp?w=500" type="image/webp" fetchpriority="high" />
   </head>
   <body>
     <div id="root"></div>

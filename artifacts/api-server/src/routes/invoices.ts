@@ -3,17 +3,12 @@ import { db } from "@workspace/db";
 import { invoicesTable, customersTable, siteSettingsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
-import { createHash, randomBytes } from "crypto";
-import { requireAdmin } from "../middlewares/auth";
+import { randomBytes } from "crypto";
+import { requireCapability } from "../middlewares/auth";
 import { sendEmail } from "../lib/email";
+import { hashPassword } from "../lib/security";
 
 const router = Router();
-const SALT = "prime_customer_salt_2024";
-
-function hashPassword(plain: string) {
-  return createHash("sha256").update(plain + SALT).digest("hex");
-}
-
 function generatePassword(): string {
   // 8-char alphanumeric password
   return randomBytes(6).toString("base64").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).padEnd(8, "x");
@@ -80,7 +75,7 @@ const InvoiceBody = z.object({
 });
 
 // GET /admin/invoices
-router.get("/admin/invoices", requireAdmin, async (req, res) => {
+router.get("/admin/invoices", requireCapability("invoices"), async (req, res) => {
   try {
     const rows = await db.select().from(invoicesTable).orderBy(desc(invoicesTable.createdAt));
     res.json(rows.map(fmt));
@@ -88,7 +83,7 @@ router.get("/admin/invoices", requireAdmin, async (req, res) => {
 });
 
 // POST /admin/invoices
-router.post("/admin/invoices", requireAdmin, async (req, res) => {
+router.post("/admin/invoices", requireCapability("invoices"), async (req, res) => {
   try {
     const body = InvoiceBody.parse(req.body);
     let { customerEmail, customerName, customerCompany, customerPhone, customerId } = body;
@@ -123,7 +118,7 @@ router.post("/admin/invoices", requireAdmin, async (req, res) => {
         // New email — auto-create a portal account
         const baseUsername = usernameFromEmail(customerEmail);
         const plainPwd = generatePassword();
-        const hash = hashPassword(plainPwd);
+        const hash = await hashPassword(plainPwd);
 
         // Ensure username uniqueness
         let username = baseUsername;
@@ -187,7 +182,7 @@ router.post("/admin/invoices", requireAdmin, async (req, res) => {
 });
 
 // GET /admin/invoices/:id
-router.get("/admin/invoices/:id", requireAdmin, async (req, res) => {
+router.get("/admin/invoices/:id", requireCapability("invoices"), async (req, res) => {
   try {
     const id = Number(req.params.id);
     const [row] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, id));
@@ -197,7 +192,7 @@ router.get("/admin/invoices/:id", requireAdmin, async (req, res) => {
 });
 
 // PATCH /admin/invoices/:id
-router.patch("/admin/invoices/:id", requireAdmin, async (req, res) => {
+router.patch("/admin/invoices/:id", requireCapability("invoices"), async (req, res) => {
   try {
     const id = Number(req.params.id);
     const body = InvoiceBody.partial().parse(req.body);
@@ -216,7 +211,7 @@ router.patch("/admin/invoices/:id", requireAdmin, async (req, res) => {
       } else if (body.customerEmail) {
         const baseUsername = usernameFromEmail(body.customerEmail);
         const plainPwd = generatePassword();
-        const hash = hashPassword(plainPwd);
+        const hash = await hashPassword(plainPwd);
         let username = baseUsername;
         const [conflict] = await db.select({ id: customersTable.id }).from(customersTable).where(eq(customersTable.username, username));
         if (conflict) username = `${baseUsername}${Math.floor(100 + Math.random() * 900)}`;
@@ -271,7 +266,7 @@ router.patch("/admin/invoices/:id", requireAdmin, async (req, res) => {
 });
 
 // POST /admin/invoices/:id/send
-router.post("/admin/invoices/:id/send", requireAdmin, async (req, res) => {
+router.post("/admin/invoices/:id/send", requireCapability("invoices"), async (req, res) => {
   try {
     const id = Number(req.params.id);
     const [inv] = await db.select().from(invoicesTable).where(eq(invoicesTable.id, id));
@@ -349,7 +344,7 @@ router.post("/admin/invoices/:id/send", requireAdmin, async (req, res) => {
 });
 
 // Lookup customer by email for invoice autofill
-router.get("/admin/customers/by-email/:email", requireAdmin, async (req, res) => {
+router.get("/admin/customers/by-email/:email", requireCapability("customers"), async (req, res) => {
   try {
     const [row] = await db.select().from(customersTable).where(eq(customersTable.email, String(req.params.email)));
     if (!row) return res.status(404).json({ error: "Customer not found" });

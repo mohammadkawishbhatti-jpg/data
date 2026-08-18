@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useSettings } from "../context/SettingsContext";
 
 interface Message {
   role: "user" | "assistant";
@@ -13,17 +14,24 @@ const GREETING: Message = {
   role: "assistant",
   ts: new Date(),
   content:
-    "Hi there! 👋 Welcome to **Prime Packaging Boxes**! I'm Clark, your packaging specialist. How can I help you today?\n\nI can help with pricing, delivery timelines, custom samples, or start a quote for you.",
+    "Hi! 👋 I’m Clark from **Prime Packaging Boxes**. I can help you choose the right box, check turnaround times, arrange samples, or start a free quote.\n\nWhat are you packaging today?",
 };
 
 const QUICK_REPLIES = [
-  { label: "💰 Prices",        text: "What are your pricing options?" },
+  { label: "💬 Quote options", text: "What information do you need for a quote?" },
   { label: "🚚 Delivery",      text: "What are your delivery times?" },
   { label: "📦 Samples",       text: "Can I get a free sample?" },
   { label: "🎨 Design help",   text: "Do you offer design support?" },
   { label: "📋 Get a quote",   text: "I'd like to get a custom quote." },
-  { label: "📍 Track Order",   text: "I want to track my order. Can you help?" },
+  { label: "📍 Track an order", text: "I want to track my order. Can you help?" },
 ];
+
+const HUMAN_HANDOFF_PATTERN =
+  /\b(?:human|agent|real agent|real person|real human|actual person|human agent|live agent|live support|human support|customer service|customer support|representative|someone from your team|talk to (?:a )?(?:human|person|agent)|speak to (?:a )?(?:human|person|agent)|connect me (?:to )?(?:a )?(?:human|person|agent)|transfer me (?:to )?(?:a )?(?:human|person|agent))\b/i;
+
+function requestsHumanAgent(text: string) {
+  return HUMAN_HANDOFF_PATTERN.test(text);
+}
 
 function makeSessionId() {
   return typeof crypto !== "undefined" && crypto.randomUUID
@@ -69,15 +77,39 @@ function TypingDots() {
 }
 
 export function ChatWidget() {
+  const settings = useSettings();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [handoffLoading, setHandoffLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const sessionIdRef = useRef<string>(makeSessionId());
+  const handoffPendingRef = useRef(false);
+  const tawkConfigured = settings.tawkEnabled === "true" && Boolean(settings.tawkPropertyId?.trim());
+
+  const openTawk = useCallback(() => {
+    const api = window.Tawk_API;
+    if (!api?.maximize && !api?.toggle) return false;
+    window.dispatchEvent(new Event("prime-tawk-handoff"));
+    api.showWidget?.();
+    if (api.maximize) api.maximize();
+    else api.toggle?.();
+    setOpen(false);
+    handoffPendingRef.current = false;
+    return true;
+  }, []);
+
+  useEffect(() => {
+    const onTawkReady = () => {
+      if (handoffPendingRef.current) openTawk();
+    };
+    window.addEventListener("prime-tawk-ready", onTawkReady);
+    return () => window.removeEventListener("prime-tawk-ready", onTawkReady);
+  }, [openTawk]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -96,6 +128,22 @@ export function ChatWidget() {
 
     const userMsg: Message = { role: "user", content: text, ts: new Date() };
     const updatedMessages = [...messages, userMsg];
+
+    if (tawkConfigured && requestsHumanAgent(text)) {
+      const handoffMessages: Message[] = [
+        ...updatedMessages,
+        {
+          role: "assistant",
+          content: "Of course — I’m connecting you with a live support specialist now…",
+          ts: new Date(),
+        },
+      ];
+      setMessages(handoffMessages);
+      setInput("");
+      await requestHumanAgent(updatedMessages);
+      return;
+    }
+
     setMessages(updatedMessages);
     setInput("");
     setLoading(true);
@@ -202,6 +250,36 @@ export function ChatWidget() {
     sessionIdRef.current = makeSessionId();
   };
 
+  const requestHumanAgent = async (transcriptMessages: Message[]) => {
+    if (!tawkConfigured || handoffLoading) return;
+    setHandoffLoading(true);
+    const transcript = transcriptMessages.map(message => ({ role: message.role, content: message.content }));
+    try {
+      const response = await fetch(`${BASE}/api/chat/handoff`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: sessionIdRef.current, messages: transcript }),
+      });
+      if (!response.ok) throw new Error("Unable to save chat");
+      if (!openTawk()) {
+        handoffPendingRef.current = true;
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: "I’m connecting you with our live support team now…",
+          ts: new Date(),
+        }]);
+      }
+    } catch {
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "I couldn’t connect live support right now. Please try again in a moment.",
+        ts: new Date(),
+      }]);
+    } finally {
+      setHandoffLoading(false);
+    }
+  };
+
   /* Show quick replies only if user hasn't sent any message yet */
   const showQuickReplies = messages.filter(m => m.role === "user").length === 0 && !loading;
 
@@ -210,7 +288,7 @@ export function ChatWidget() {
       {/* ── Chat window ───────────────────────────────────────── */}
       {open && (
         <div
-          className="fixed bottom-[88px] right-4 z-50 flex flex-col overflow-hidden"
+          className="fixed bottom-[88px] right-5 z-50 flex flex-col overflow-hidden"
           style={{
             width: "min(380px, calc(100vw - 24px))",
             height: "min(580px, calc(100vh - 116px))",
@@ -414,12 +492,13 @@ export function ChatWidget() {
       {/* ── Floating button ───────────────────────────────────── */}
       <button
         onClick={() => setOpen(prev => !prev)}
-        className="fixed bottom-[88px] right-4 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+         className="fixed bottom-[88px] right-4 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
         style={{
-          background: open ? "#e63329" : "#1B2B5E",
-          boxShadow: "0 8px 24px rgba(27,43,94,0.35)",
+           background: open ? "#e63329" : "#1B2B5E",
+           boxShadow: "0 8px 24px rgba(27,43,94,0.35)",
         }}
-        aria-label="Chat with Clark"
+         aria-label={open ? "Close Clark chat" : "Open chat"}
+         aria-expanded={open}
       >
         {/* Unread badge */}
         {!open && unread > 0 && (
@@ -431,24 +510,24 @@ export function ChatWidget() {
           </span>
         )}
 
-        {open ? (
+         {open ? (
           <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
-        ) : (
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" fill="white"/>
-            <circle cx="9" cy="11" r="1.2" fill="#1B2B5E"/>
-            <circle cx="12" cy="11" r="1.2" fill="#1B2B5E"/>
-            <circle cx="15" cy="11" r="1.2" fill="#1B2B5E"/>
-          </svg>
-        )}
+         ) : (
+           <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" fill="white"/>
+             <circle cx="9" cy="11" r="1.2" fill="#1B2B5E"/>
+             <circle cx="12" cy="11" r="1.2" fill="#1B2B5E"/>
+             <circle cx="15" cy="11" r="1.2" fill="#1B2B5E"/>
+           </svg>
+         )}
 
         {/* Pulse ring when closed */}
         {!open && (
           <span
             className="absolute inset-0 rounded-full animate-ping opacity-20"
-            style={{ background: "#1B2B5E" }}
+           style={{ background: "#1B2B5E" }}
           />
         )}
       </button>

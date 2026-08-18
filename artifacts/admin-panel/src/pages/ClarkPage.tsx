@@ -1,6 +1,10 @@
 import { useState, useMemo } from "react";
 import { AdminLayout } from "../components/layout/AdminLayout";
-import { useListQuotes } from "@workspace/api-client-react";
+import {
+  getListClarkConversationsQueryKey,
+  useListClarkConversations,
+  type ClarkConversation,
+} from "@workspace/api-client-react";
 import {
   Bot, MessageSquare, Users, Search,
   ChevronDown, ChevronUp, Calendar, Mail, Package, Hash,
@@ -62,29 +66,37 @@ function Transcript({ transcript }: { transcript: string }) {
 }
 
 /* ── conversation card ─────────────────────────────────────────── */
-function ConvCard({ quote }: { quote: any }) {
+function ConvCard({ conversation }: { conversation: ClarkConversation }) {
   const [open, setOpen] = useState(false);
-  const msgs = msgCount(quote.clarkTranscript);
-  const date = quote.createdAt ? new Date(quote.createdAt) : null;
+  const quote = conversation.quote;
+  const msgs = msgCount(conversation.transcript);
+  const date = conversation.lastActivity ? new Date(conversation.lastActivity) : null;
+  const displayName = quote?.name || "Anonymous visitor";
+  const displayEmail = quote?.email || "Email not provided";
 
   return (
     <div className="border rounded-xl overflow-hidden bg-card">
       <button type="button" onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/5 transition-colors text-left">
         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1B2B5E] to-[#e63329] flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-sm font-bold">{quote.name?.[0]?.toUpperCase() ?? "?"}</span>
+          <span className="text-white text-sm font-bold">{displayName[0]?.toUpperCase() ?? "?"}</span>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm">{quote.name}</span>
-            <StatusBadge status={quote.status} />
+            <span className="font-semibold text-sm">{displayName}</span>
+            <StatusBadge status={quote?.status ?? "chat"} />
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide ${
+              quote ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"
+            }`}>
+              {quote ? "Quote created" : "Chat only"}
+            </span>
             {date && isToday(date) && (
               <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold">Today</span>
             )}
           </div>
           <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
-            <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{quote.email}</span>
-            {quote.productType && <span className="flex items-center gap-1"><Package className="h-3 w-3" />{quote.productType}</span>}
+            <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{displayEmail}</span>
+            {quote?.productType && <span className="flex items-center gap-1"><Package className="h-3 w-3" />{quote.productType}</span>}
             <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{msgs} messages</span>
             {date && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{format(date, "MMM d, yyyy · h:mm a")}</span>}
           </div>
@@ -94,13 +106,14 @@ function ConvCard({ quote }: { quote: any }) {
 
       {open && (
         <div className="border-t px-4 py-4 space-y-4 bg-muted/5">
-          {/* Visitor info row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
             {[
-              { label: "Quote ID",   value: `#${quote.id}` },
-              { label: "Quantity",   value: quote.quantity  || "—" },
-              { label: "Dimensions", value: quote.dimensions || "—" },
-              { label: "Material",   value: quote.material  || "—" },
+              { label: "Quote ID", value: quote ? `#${quote.id}` : "Not created" },
+              { label: "Box style", value: quote?.productType || "—" },
+              { label: "Quantity", value: quote?.quantity || "—" },
+              { label: "Dimensions", value: quote?.dimensions || "—" },
+              { label: "Material", value: quote?.material || "—" },
+              { label: "Print / finish", value: quote?.printingDetails || "—" },
             ].map(f => (
               <div key={f.label} className="bg-white border rounded-lg p-2.5">
                 <div className="text-muted-foreground mb-0.5">{f.label}</div>
@@ -109,33 +122,39 @@ function ConvCard({ quote }: { quote: any }) {
             ))}
           </div>
 
-          {/* IP / Location strip */}
-          {(quote.clarkIp || quote.clarkCountry || quote.clarkCity) && (
+          {(conversation.ip || conversation.country || conversation.city) && (
             <div className="flex flex-wrap items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600">
               <span className="font-semibold text-slate-400 uppercase tracking-wide mr-1">Visitor</span>
-              {quote.clarkIp && (
+              {conversation.ip && (
                 <span className="flex items-center gap-1">
                   <Monitor className="h-3 w-3 text-slate-400" />
-                  <span className="font-mono">{quote.clarkIp}</span>
+                  <span className="font-mono">{conversation.ip}</span>
                 </span>
               )}
-              {quote.clarkCountry && (
+              {conversation.country && (
                 <span className="flex items-center gap-1">
                   <Globe className="h-3 w-3 text-slate-400" />
-                  {quote.clarkCountry}
+                  {conversation.country}
                 </span>
               )}
-              {quote.clarkCity && (
+              {conversation.city && (
                 <span className="flex items-center gap-1">
                   <MapPin className="h-3 w-3 text-slate-400" />
-                  {quote.clarkCity}
+                  {conversation.city}
                 </span>
               )}
             </div>
           )}
 
-          {quote.clarkTranscript
-            ? <Transcript transcript={quote.clarkTranscript} />
+          {quote?.additionalNotes && (
+            <div className="rounded-xl border bg-white px-3 py-2 text-xs">
+              <div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Customer details captured</div>
+              <p className="whitespace-pre-wrap text-slate-700">{quote.additionalNotes}</p>
+            </div>
+          )}
+
+          {conversation.transcript
+            ? <Transcript transcript={conversation.transcript} />
             : <p className="text-sm text-muted-foreground italic">No transcript saved yet.</p>
           }
         </div>
@@ -146,34 +165,43 @@ function ConvCard({ quote }: { quote: any }) {
 
 /* ── main page ─────────────────────────────────────────────────── */
 export default function ClarkPage() {
-  const { data: allQuotes = [], isLoading } = useListQuotes();
+  const { data: conversations = [], isLoading } = useListClarkConversations({
+    query: {
+      queryKey: getListClarkConversationsQueryKey(),
+      refetchInterval: 30_000,
+    },
+  });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const clarkLeads = useMemo(
-    () => (allQuotes as any[]).filter(q => q.source === "clark"),
-    [allQuotes]
-  );
-
-  const today  = clarkLeads.filter(q => q.createdAt && isToday(new Date(q.createdAt)));
-  const week   = clarkLeads.filter(q => q.createdAt && isThisWeek(new Date(q.createdAt)));
-  const newOnes = clarkLeads.filter(q => q.status === "new");
+  const quoteLeads = conversations.filter(conversation => Boolean(conversation.quote));
+  const today  = conversations.filter(conversation => isToday(new Date(conversation.lastActivity)));
+  const week   = conversations.filter(conversation => isThisWeek(new Date(conversation.lastActivity)));
+  const newOnes = quoteLeads.filter(conversation => conversation.quote?.status === "new");
 
   const filtered = useMemo(() => {
-    let list = clarkLeads;
-    if (statusFilter !== "all") list = list.filter(q => q.status === statusFilter);
+    let list = [...conversations];
+    if (statusFilter === "chat-only") list = list.filter(conversation => !conversation.quote);
+    else if (statusFilter === "quote") list = list.filter(conversation => Boolean(conversation.quote));
+    else if (statusFilter !== "all") {
+      list = list.filter(conversation => conversation.quote?.status === statusFilter);
+    }
     if (search.trim()) {
       const s = search.toLowerCase();
-      list = list.filter(q =>
-        q.name?.toLowerCase().includes(s) ||
-        q.email?.toLowerCase().includes(s) ||
-        q.productType?.toLowerCase().includes(s)
-      );
+      list = list.filter(conversation => {
+        const quote = conversation.quote;
+        return Boolean(
+          quote?.name?.toLowerCase().includes(s) ||
+          quote?.email?.toLowerCase().includes(s) ||
+          quote?.productType?.toLowerCase().includes(s) ||
+          conversation.transcript.toLowerCase().includes(s)
+        );
+      });
     }
-    return list.sort((a: any, b: any) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return list.sort((a, b) =>
+      new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
     );
-  }, [clarkLeads, statusFilter, search]);
+  }, [conversations, statusFilter, search]);
 
   return (
     <AdminLayout title="Clark AI Conversations">
@@ -181,10 +209,11 @@ export default function ClarkPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
-          { icon: Hash,         label: "Total Leads",     value: clarkLeads.length, color: "from-[#1B2B5E] to-[#2d4a9e]" },
+          { icon: Hash,         label: "Total Conversations", value: conversations.length, color: "from-[#1B2B5E] to-[#2d4a9e]" },
+          { icon: Users,        label: "Quote Leads",     value: quoteLeads.length,    color: "from-emerald-500 to-teal-500" },
           { icon: Users,        label: "New (unhandled)", value: newOnes.length,    color: "from-amber-500 to-orange-500" },
           { icon: MessageSquare,label: "This Week",        value: week.length,       color: "from-purple-500 to-indigo-500" },
-          { icon: Bot,          label: "Today",            value: today.length,      color: "from-emerald-500 to-teal-500" },
+          { icon: Bot,          label: "Today",            value: today.length,      color: "from-sky-500 to-blue-500" },
         ].map(s => (
           <div key={s.label} className="bg-card border rounded-xl p-4 flex items-center gap-3 shadow-sm">
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center flex-shrink-0`}>
@@ -209,6 +238,8 @@ export default function ClarkPage() {
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
           className="h-9 rounded-lg border border-input px-3 text-sm focus:outline-none bg-background">
           <option value="all">All statuses</option>
+          <option value="chat-only">Chat only</option>
+          <option value="quote">Quote created</option>
           <option value="new">New</option>
           <option value="in progress">In Progress</option>
           <option value="quoted">Quoted</option>
@@ -227,14 +258,14 @@ export default function ClarkPage() {
         <div className="py-16 text-center border-2 border-dashed rounded-2xl">
           <Bot className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-muted-foreground font-medium">
-            {clarkLeads.length === 0
+            {conversations.length === 0
               ? "No Clark conversations yet — they'll appear here once customers start chatting."
               : "No conversations match your filter."}
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((q: any) => <ConvCard key={q.id} quote={q} />)}
+          {filtered.map(conversation => <ConvCard key={conversation.id} conversation={conversation} />)}
         </div>
       )}
     </AdminLayout>

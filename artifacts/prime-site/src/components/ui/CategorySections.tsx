@@ -198,7 +198,7 @@ export function CategorySections({ categoryName, productCount = 0 }: { categoryN
               {FINISHES.map(f => (
                 <div key={f.label} className="overflow-hidden rounded-xl border border-gray-100 bg-white transition-all hover:border-[#e63329]/30 hover:shadow-md">
                   <div className="h-24 overflow-hidden bg-gray-100">
-                    <img src={f.image} alt={`${f.label} packaging finish reference`} className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
+                    <img src={f.image} alt={`${f.label} packaging finish reference`} width={500} height={500} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
                   </div>
                   <div className="p-3.5">
                     <div className="mb-1 text-xs font-bold text-gray-800">{f.label}</div>
@@ -245,7 +245,7 @@ export function CategorySections({ categoryName, productCount = 0 }: { categoryN
             {INDUSTRIES.map(ind => (
               <div key={ind.label} className="overflow-hidden rounded-xl border border-gray-100 bg-white text-center transition-all hover:border-[#1a2f5a]/30 hover:shadow-md">
                 <div className="h-16 overflow-hidden bg-gray-100">
-                  <img src={ind.image} alt={`${ind.label} packaging`} className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
+                  <img src={ind.image} alt={`${ind.label} packaging`} width={500} height={500} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
                 </div>
                 <div className="px-2 py-3 text-xs font-semibold leading-tight text-gray-700">{ind.label}</div>
               </div>

@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { db } from "@workspace/db";
 import { siteSettingsTable } from "@workspace/db";
+import { recordMonitoringEvent } from "./monitoring";
 
 /** Escape HTML special chars — prevents XSS/HTML-injection in email templates */
 function esc(raw: string | null | undefined): string {
@@ -94,6 +95,12 @@ async function sendWithFallback(message: Parameters<ReturnType<typeof nodemailer
       lastErr = err;
     }
   }
+  void recordMonitoringEvent({
+    eventType: "email_failure",
+    severity: "critical",
+    message: "All configured SMTP providers failed",
+    metadata: { providerCount: configs.length },
+  });
   throw lastErr;   // all configs failed
 }
 

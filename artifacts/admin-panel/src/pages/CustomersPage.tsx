@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AdminLayout } from "../components/layout/AdminLayout";
-import { Users, Plus, RefreshCw, Send, Trash2, Eye, EyeOff, Copy, KeyRound } from "lucide-react";
+import { Users, Plus, RefreshCw, Send, Trash2, Eye, EyeOff, Copy, KeyRound, UserCheck, Ban } from "lucide-react";
 import { Modal } from "../components/ui/Modal";
 import { format } from "date-fns";
 
@@ -91,11 +91,39 @@ export default function CustomersPage() {
         return;
       }
       setResetSuccess("Password updated successfully!");
-      // Update local state so viewCustomer reflects new portalPassword
-      setViewCustomer((prev: any) => prev ? { ...prev, portalPassword: newPassword } : null);
+      setViewCustomer((prev: any) => prev ? { ...prev, status: "active", portalPassword: undefined } : null);
       setNewPassword("");
       setTimeout(() => { setShowResetPw(false); setResetSuccess(""); load(); }, 1500);
     } finally { setResetSaving(false); }
+  };
+
+  const handleInvite = async (customer: any) => {
+    const response = await fetch(`${API}/admin/customers/${customer.id}/invite`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (response.ok) {
+      alert(`✓ Invitation sent to ${customer.email}. It expires in 72 hours.`);
+      load();
+    } else {
+      const body = await response.json().catch(() => ({}));
+      alert(body.error || "Failed to send invitation.");
+    }
+  };
+
+  const handleAccess = async (customer: any) => {
+    const nextStatus = customer.status === "disabled" ? "active" : "disabled";
+    const response = await fetch(`${API}/admin/customers/${customer.id}/access`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: nextStatus }),
+    });
+    if (response.ok) {
+      const updated = await response.json();
+      setViewCustomer(updated);
+      load();
+    }
   };
 
   const handleSendCreds = async (customer: any, password: string) => {
@@ -146,6 +174,7 @@ export default function CustomersPage() {
                 <th className="px-4 py-3 font-medium text-left">Email</th>
                 <th className="px-4 py-3 font-medium text-left">Phone</th>
                 <th className="px-4 py-3 font-medium text-left">Company</th>
+                <th className="px-4 py-3 font-medium text-left">Access</th>
                 <th className="px-4 py-3 font-medium text-left">Created</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
@@ -153,8 +182,8 @@ export default function CustomersPage() {
             <tbody className="divide-y">
               {loading ? (
                 <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>
-              ) : customers.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+                ) : customers.length === 0 ? (
+                <tr><td colSpan={9} className="px-4 py-12 text-center text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-20" />
                   <p>No customers yet. Add your first customer.</p>
                 </td></tr>
@@ -166,7 +195,10 @@ export default function CustomersPage() {
                   <td className="px-4 py-3 text-muted-foreground">{c.email}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.phone || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.company || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs">{format(new Date(c.createdAt), "MMM d, yyyy")}</td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${c.status === "active" ? "bg-emerald-100 text-emerald-700" : c.status === "invited" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-700"}`}>{c.status || "active"}</span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{format(new Date(c.createdAt), "MMM d, yyyy")}</td>
                   <td className="px-4 py-3 text-right">
                     <button className="p-1 text-muted-foreground hover:text-primary"><Eye className="h-4 w-4" /></button>
                   </td>
@@ -203,10 +235,10 @@ export default function CustomersPage() {
               <p className="text-[10px] text-muted-foreground mt-1">Used to log into the customer portal</p>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Password *</label>
-              <input required type="password" minLength={6} value={form.password} onChange={e => setForm(f => ({...f, password: e.target.value}))}
-                className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="Min 6 characters" />
-              <p className="text-[10px] text-muted-foreground mt-1">Customer will use this to login</p>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Password (optional)</label>
+              <input type="password" minLength={form.password ? 6 : undefined} value={form.password} onChange={e => setForm(f => ({...f, password: e.target.value}))}
+                className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="Leave blank to email invitation" />
+              <p className="text-[10px] text-muted-foreground mt-1">Blank creates an invited account with a 72-hour activation link.</p>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Phone</label>
@@ -259,31 +291,10 @@ export default function CustomersPage() {
                 </div>
               </div>
 
-              {/* Password Display Field */}
               <div>
-                <p className="text-muted-foreground text-xs uppercase font-semibold tracking-wide mb-0.5">Portal Password</p>
-                <div className="flex items-center gap-1.5">
-                  <p className="font-mono font-bold text-emerald-600">
-                    {showPassword ? (viewCustomer.portalPassword || "• • • • • • • •") : "• • • • • • • •"}
-                  </p>
-                  <button 
-                    onClick={() => setShowPassword(!showPassword)} 
-                    className="text-muted-foreground hover:text-primary p-0.5 rounded hover:bg-muted/20"
-                    title={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  </button>
-                  {viewCustomer.portalPassword && (
-                    <button 
-                      onClick={() => copyText(viewCustomer.portalPassword, "password")} 
-                      className="text-muted-foreground hover:text-primary p-0.5 rounded hover:bg-muted/20"
-                      title="Copy password"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                  {copied === "password" && <span className="text-green-600 text-xs font-medium">Copied!</span>}
-                </div>
+                <p className="text-muted-foreground text-xs uppercase font-semibold tracking-wide mb-0.5">Portal Access</p>
+                <span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold uppercase ${viewCustomer.status === "active" ? "bg-emerald-100 text-emerald-700" : viewCustomer.status === "invited" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-700"}`}>{viewCustomer.status || "active"}</span>
+                {viewCustomer.invitationExpiresAt && <p className="mt-1 text-[11px] text-muted-foreground">Invitation expires {format(new Date(viewCustomer.invitationExpiresAt), "MMM d, yyyy h:mm a")}</p>}
               </div>
 
               <div>
@@ -314,6 +325,19 @@ export default function CustomersPage() {
             <div className="border-t pt-4 space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</p>
               <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => void handleInvite(viewCustomer)}
+                  className="flex items-center gap-2 border rounded-lg px-3 py-2 text-sm hover:bg-muted/20"
+                >
+                  <Send className="h-3.5 w-3.5" /> Send Invitation
+                </button>
+                <button
+                  onClick={() => void handleAccess(viewCustomer)}
+                  className="flex items-center gap-2 border rounded-lg px-3 py-2 text-sm hover:bg-muted/20"
+                >
+                  {viewCustomer.status === "disabled" ? <UserCheck className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                  {viewCustomer.status === "disabled" ? "Enable Portal" : "Disable Portal"}
+                </button>
                 <button
                   onClick={() => { setShowResetPw(true); setNewPassword(""); setResetError(""); setResetSuccess(""); }}
                   className="flex items-center gap-2 border rounded-lg px-3 py-2 text-sm hover:bg-muted/20"
@@ -358,9 +382,8 @@ export default function CustomersPage() {
           </div>
 
           <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-xs text-blue-700 space-y-1">
-            <p className="font-semibold">Portal Login Credentials:</p>
-            <p>Username: <strong>{viewCustomer?.username}</strong></p>
-            <p>Password: <strong>{newPassword || "—"}</strong></p>
+            <p className="font-semibold">Security note:</p>
+            <p>The new password is stored securely and will not be displayed or emailed by the admin panel.</p>
           </div>
 
           <div className="flex gap-3">

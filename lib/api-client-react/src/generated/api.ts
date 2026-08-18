@@ -35,6 +35,7 @@ import type {
   CategoryInput,
   CategoryUpdate,
   CategoryWithProducts,
+  ClarkConversation,
   HealthStatus,
   Lead,
   ListBlogPostsParams,
@@ -1445,6 +1446,83 @@ export function useListQuotes<TData = Awaited<ReturnType<typeof listQuotes>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListQuotesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListClarkConversationsUrl = () => {
+
+
+
+
+  return `/api/admin/clark/conversations`
+}
+
+/**
+ * @summary List all Clark conversations with linked quote details
+ */
+export const listClarkConversations = async ( options?: Parameters<typeof customFetch>[1]): Promise<ClarkConversation[]> => {
+
+  return customFetch<ClarkConversation[]>(getListClarkConversationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListClarkConversationsQueryKey = () => {
+    return [
+    `/api/admin/clark/conversations`
+    ] as const;
+    }
+
+
+export const getListClarkConversationsQueryOptions = <TData = Awaited<ReturnType<typeof listClarkConversations>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClarkConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListClarkConversationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listClarkConversations>>> = ({ signal }) => listClarkConversations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listClarkConversations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListClarkConversationsQueryResult = NonNullable<Awaited<ReturnType<typeof listClarkConversations>>>
+export type ListClarkConversationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all Clark conversations with linked quote details
+ */
+
+export function useListClarkConversations<TData = Awaited<ReturnType<typeof listClarkConversations>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClarkConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListClarkConversationsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

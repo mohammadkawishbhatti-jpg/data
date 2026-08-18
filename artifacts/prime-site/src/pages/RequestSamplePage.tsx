@@ -68,6 +68,9 @@ export default function RequestSamplePage() {
                 <img
                   src="/api/uploads/custom-cardboard-gift-boxes-with-logo.webp"
                   alt="Custom branded cardboard gift boxes with logo — Prime Packaging sample kit"
+                  width={800}
+                  height={600}
+                  decoding="async"
                   className="relative rounded-2xl shadow-2xl w-full object-cover max-h-[400px]"
                   loading="eager"
                 />

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { ArrowRight, Package } from "lucide-react";
 import type { Product } from "@workspace/api-client-react";
+import { responsiveImageProps } from "../../lib/responsiveImage";
 
 interface ProductCardProps {
   product: Product;
@@ -36,9 +37,12 @@ export function ProductCard({ product }: ProductCardProps) {
       <Link href={`/${product.slug}`} className="block relative overflow-hidden bg-gray-50" style={{ aspectRatio: "4/3" }}>
         {hasImage ? (
           <img
-            src={resolved}
+            {...responsiveImageProps(resolved)}
             alt={product.name}
+            width={800}
+            height={600}
             loading="lazy"
+            decoding="async"
             onError={() => setImgError(true)}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />

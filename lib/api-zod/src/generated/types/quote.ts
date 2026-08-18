@@ -14,7 +14,11 @@ export interface Quote {
   company?: string | null;
   productType?: string | null;
   quantity?: string | null;
+  dimensions?: string | null;
+  material?: string | null;
+  printingDetails?: string | null;
   additionalNotes?: string | null;
+  source?: string | null;
   status: string;
   createdAt?: string;
 }

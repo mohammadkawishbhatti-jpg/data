@@ -156,6 +156,9 @@ export default function FaqPage() {
                 <img
                   src="/api/uploads/custom-clothing-boxes-with-logo.webp"
                   alt="Custom branded clothing boxes with logo — Prime Packaging Boxes USA"
+                  width={800}
+                  height={600}
+                  decoding="async"
                   className="relative rounded-2xl shadow-2xl w-full object-cover max-h-[380px]"
                   loading="eager"
                 />

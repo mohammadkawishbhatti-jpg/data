@@ -32,7 +32,7 @@ export default function CategoryPage() {
     query: { enabled: !!slug, queryKey: ["category", slug] }
   });
 
-  const { data: productsData, isLoading: isLoadingProducts } = useListProducts(
+  const { data: productsData, isLoading: isLoadingProducts, isError: productsError, refetch: refetchProducts } = useListProducts(
     { category: slug, limit: 24 } as any,
     { query: { enabled: !!slug, queryKey: ["products", "category", slug] } }
   );
@@ -162,6 +162,11 @@ export default function CategoryPage() {
           {isLoadingProducts ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          ) : productsError ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+              <p className="font-semibold text-red-800">Products could not be loaded.</p>
+              <button onClick={() => void refetchProducts()} className="mt-4 rounded-lg bg-[#1a2f5a] px-4 py-2 text-sm font-semibold text-white">Try again</button>
             </div>
           ) : (products as any[]).length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useAdminLogin } from "@workspace/api-client-react";
 import { useForm } from "react-hook-form";
 import { 
   Loader2, AlertCircle, ShieldCheck, Eye, EyeOff, 
@@ -16,25 +15,42 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const login = useAdminLogin();
+  const [captchaChallenge, setCaptchaChallenge] = useState("");
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [loginPending, setLoginPending] = useState(false);
 
   const { register, handleSubmit, formState: { isSubmitting } } = useForm({
     defaultValues: { username: "", password: "" },
   });
 
-  const onSubmit = handleSubmit((data) => {
+  const onSubmit = handleSubmit(async (data) => {
     setErrorMsg("");
-    login.mutate({ data } as any, {
-      onSuccess: (res: any) => {
-        if (res?.requires2fa) setRequires2fa(true);
-        else setLocation("/");
-      },
-      onError: (err: any) => {
-        if (err.status === 429) setErrorMsg("Too many attempts. Wait 15 minutes.");
-        else if (err.status === 401) setErrorMsg("Invalid username or password.");
-        else setErrorMsg("Login failed. Check backend status.");
-      },
-    });
+    setLoginPending(true);
+    try {
+      const response = await fetch(`${API}/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ...data, captchaAnswer }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (result.captchaRequired) setCaptchaChallenge(result.captchaChallenge || "Complete the security check");
+        if (result.lockedOut) setErrorMsg("This IP has been blocked after repeated failed attempts. Contact an administrator.");
+        else if (response.status === 429) setErrorMsg(result.error || "Complete the security check before trying again.");
+        else if (response.status === 401) setErrorMsg("Invalid username or password.");
+        else setErrorMsg(result.error || "Login failed. Check backend status.");
+        return;
+      }
+      setCaptchaChallenge("");
+      setCaptchaAnswer("");
+      if (result?.requires2fa) setRequires2fa(true);
+      else setLocation("/");
+    } catch {
+      setErrorMsg("Login failed. Check backend status.");
+    } finally {
+      setLoginPending(false);
+    }
   });
 
   const verify2fa = async () => {
@@ -195,6 +211,23 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {captchaChallenge && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                  <label htmlFor="admin-captcha" className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-2">
+                    Security check: {captchaChallenge}
+                  </label>
+                  <input
+                    id="admin-captcha"
+                    value={captchaAnswer}
+                    onChange={e => setCaptchaAnswer(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="Answer"
+                    className="w-full px-4 py-3 bg-[#141A29] border border-amber-500/40 rounded-xl text-white text-sm outline-none focus:border-amber-400"
+                  />
+                </div>
+              )}
+
               {/* Password Input */}
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
@@ -222,10 +255,10 @@ export default function LoginPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isSubmitting || login.isPending}
+                disabled={isSubmitting || loginPending}
                 className="w-full py-4 bg-gradient-to-r from-[#E63329] to-[#C42A21] hover:from-[#F43F35] hover:to-[#D43128] active:scale-[0.99] text-white font-extrabold text-sm rounded-xl transition-all shadow-lg shadow-[#E63329]/25 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
               >
-                {(isSubmitting || login.isPending) ? (
+                {(isSubmitting || loginPending) ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
                     <span>Authenticating...</span>

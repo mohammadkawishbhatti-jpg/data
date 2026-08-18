@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useSEO } from "../lib/useSEO";
-import { useSubmitContact } from "@workspace/api-client-react";
 import {
   ShieldAlert, RefreshCcw, Camera, Mail, Phone, Clock,
   CheckCircle, XCircle, FileText, Send, Wrench, Search,
@@ -14,27 +13,35 @@ export default function ReturnsSupportPage() {
   const [form, setForm] = useState({ orderNumber: "", email: "", issue: "", details: "" });
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
-  const submitContact = useSubmitContact();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ticketReference, setTicketReference] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    submitContact.mutate({
-      data: {
-        name: `Returns Claim — ${form.orderNumber}`,
-        email: form.email,
-        subject: `Returns Claim — ${form.issue} — ${form.orderNumber}`,
-        message: [
-          `Order Number: ${form.orderNumber}`,
-          `Issue Type: ${form.issue}`,
-          "",
-          form.details,
-        ].join("\n"),
-      },
-    }, {
-      onSuccess: () => setSubmitted(true),
-      onError: () => setError("We could not submit your claim. Please try again or email help@primepackagingboxes.com."),
-    });
+    if (!form.orderNumber.trim() || !form.email.trim() || !form.issue.trim() || form.details.trim().length < 10) {
+      setError("Please complete all fields and provide at least 10 characters of detail.");
+      return;
+    }
+    setIsSubmitting(true);
+    fetch("/api/support/tickets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: `Returns Claim — ${form.orderNumber.trim()}`,
+        email: form.email.trim(),
+        subject: `Returns Claim — ${form.issue.trim()} — ${form.orderNumber.trim()}`,
+        priority: "high",
+        message: [`Order Number: ${form.orderNumber.trim()}`, `Issue Type: ${form.issue.trim()}`, "", form.details.trim()].join("\n"),
+      }),
+    }).then(async response => {
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Unable to submit claim");
+      setTicketReference(result.referenceNumber || "");
+      setSubmitted(true);
+    }).catch((submissionError) => {
+      setError(submissionError instanceof Error ? submissionError.message : "We could not submit your claim. Please try again.");
+    }).finally(() => setIsSubmitting(false));
   };
 
   return (
@@ -69,6 +76,9 @@ export default function ReturnsSupportPage() {
                 <img
                   src="/api/uploads/custom-corrugated-mailer-boxes-with-logo.webp"
                   alt="Custom branded mailer boxes — quality guaranteed by Prime Packaging USA"
+                  width={800}
+                  height={600}
+                  decoding="async"
                   className="relative rounded-2xl shadow-2xl w-full object-cover max-h-[380px]"
                   loading="eager"
                 />
@@ -294,7 +304,9 @@ export default function ReturnsSupportPage() {
                 <div className="text-center py-10">
                   <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                   <h4 className="text-xl font-bold text-[#0d1f3c] mb-2">Claim Submitted</h4>
-                  <p className="text-gray-600 mb-6">Our team will review your details and contact you within 24 hours.</p>
+                  <p className="text-gray-600 mb-2">Our team will review your details and contact you within 24 hours.</p>
+                  {ticketReference && <p className="text-sm font-bold text-[#1a2f5a] mb-6">Ticket reference: {ticketReference}</p>}
+                  {!ticketReference && <div className="mb-6" />}
                   <button onClick={() => setSubmitted(false)} className="text-[#e63329] font-bold">Submit another claim</button>
                 </div>
               ) : (
@@ -324,8 +336,8 @@ export default function ReturnsSupportPage() {
                       <label className="block text-sm font-bold text-[#0d1f3c] mb-2">Details *</label>
                       <textarea required name="details" value={form.details} onChange={e => setForm(f => ({ ...f, details: e.target.value }))} rows={4} placeholder="Describe the issue and how many units are affected." className="w-full p-3 rounded-xl border border-gray-300 focus:border-[#e63329] focus:ring-1 focus:ring-[#e63329] outline-none transition resize-none"></textarea>
                     </div>
-                    <button type="submit" disabled={submitContact.isPending} className="w-full bg-[#1a2f5a] hover:bg-[#0d1f3c] text-white font-black text-lg py-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60">
-                      {submitContact.isPending ? "Submitting…" : <><Send className="w-5 h-5" /> Submit Claim</>}
+                    <button type="submit" disabled={isSubmitting} className="w-full bg-[#1a2f5a] hover:bg-[#0d1f3c] text-white font-black text-lg py-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+                      {isSubmitting ? "Submitting…" : <><Send className="w-5 h-5" /> Submit Claim</>}
                     </button>
                     <p className="text-xs text-center text-gray-500 mt-2">
                       <AlertTriangle className="w-3 h-3 inline mr-1" />
